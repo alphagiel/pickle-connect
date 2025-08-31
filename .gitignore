@@ -1,0 +1,40 @@
+
+# Miscellaneous files
+.DS_Store
+.env
+.env.*
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.dart_tool/
+
+# Build and IDE-related files
+build/
+.idea/
+*.iml
+*.iws
+*.ipr
+*.vscode/
+
+# Platform-specific generated files
+**/android/local.properties
+**/android/key.properties
+**/ios/.symlinks/
+**/ios/Flutter/.last_build_id
+**/ios/Pods/
+
+# Dependency cache
+**/ios/Flutter/ephemeral/
+**/macos/Flutter/ephemeral/
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+
+# Xcode user data
+**/ios/Runner.xcworkspace/xcuserdata/
+**/macos/Runner.xcworkspace/xcuserdata/
+
+# Flutter specific ignore patterns
+coverage/
+# For generated files from a build_runner
+lib/*.g.dart
+lib/*.freezed.dart
