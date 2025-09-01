@@ -1,0 +1,73 @@
+name: pickle_connect
+description: A tennis club management app with player scheduling, ladder system, and tournaments
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # UI & Navigation
+  cupertino_icons: ^1.0.2
+  go_router: ^12.0.0
+  
+  # State Management
+  flutter_riverpod: ^2.4.0
+  riverpod_annotation: ^2.3.0
+  
+  # HTTP & API
+  dio: ^5.3.2
+  retrofit: ^4.0.3
+  json_annotation: ^4.8.1
+  
+  # Local Storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  shared_preferences: ^2.2.2
+  
+  # Authentication & Database
+  firebase_core: ^2.24.2
+  firebase_auth: ^4.15.3
+  cloud_firestore: ^4.13.6
+  
+  # Push Notifications
+  firebase_messaging: ^14.7.10
+  flutter_local_notifications: ^16.3.0
+  
+  # Utilities
+  intl: ^0.18.1
+  uuid: ^4.2.1
+  equatable: ^2.0.5
+  freezed_annotation: ^2.4.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  # Code Generation
+  build_runner: ^2.4.7
+  riverpod_generator: ^2.3.0
+  retrofit_generator: ^8.0.4
+  json_serializable: ^6.7.1
+  hive_generator: ^2.0.1
+  freezed: ^2.4.6
+  
+  # Linting
+  flutter_lints: ^3.0.0
+  
+  # Testing
+  mocktail: ^1.0.2
+
+flutter:
+  uses-material-design: true
+  
+  # Assets
+  assets:
+    - assets/images/
+    - assets/icons/
+  
+  # Fonts will be added later when needed
