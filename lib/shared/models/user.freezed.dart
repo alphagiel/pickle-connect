@@ -20,17 +20,20 @@ User _$UserFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$User {
-  String get id => throw _privateConstructorUsedError;
+  String get userId => throw _privateConstructorUsedError;
+  String get displayName => throw _privateConstructorUsedError;
   String get email => throw _privateConstructorUsedError;
-  String get fullName => throw _privateConstructorUsedError;
-  String get phoneNumber => throw _privateConstructorUsedError;
-  UserRole get role => throw _privateConstructorUsedError;
-  String? get ustaRating => throw _privateConstructorUsedError;
-  String? get utrRating => throw _privateConstructorUsedError;
-  SkillDivision? get skillDivision => throw _privateConstructorUsedError;
-  bool get isActive => throw _privateConstructorUsedError;
-  DateTime? get createdAt => throw _privateConstructorUsedError;
-  DateTime? get lastLoginAt => throw _privateConstructorUsedError;
+  SkillLevel get skillLevel => throw _privateConstructorUsedError;
+  String get location => throw _privateConstructorUsedError;
+  String? get profileImageURL => throw _privateConstructorUsedError;
+  int get matchesPlayed => throw _privateConstructorUsedError;
+  int get matchesWon => throw _privateConstructorUsedError;
+  int get matchesLost => throw _privateConstructorUsedError;
+  double get winRate => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
+  DateTime get createdAt => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
+  DateTime get updatedAt => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -43,17 +46,20 @@ abstract class $UserCopyWith<$Res> {
       _$UserCopyWithImpl<$Res, User>;
   @useResult
   $Res call(
-      {String id,
+      {String userId,
+      String displayName,
       String email,
-      String fullName,
-      String phoneNumber,
-      UserRole role,
-      String? ustaRating,
-      String? utrRating,
-      SkillDivision? skillDivision,
-      bool isActive,
-      DateTime? createdAt,
-      DateTime? lastLoginAt});
+      SkillLevel skillLevel,
+      String location,
+      String? profileImageURL,
+      int matchesPlayed,
+      int matchesWon,
+      int matchesLost,
+      double winRate,
+      @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
+      DateTime createdAt,
+      @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
+      DateTime updatedAt});
 }
 
 /// @nodoc
@@ -69,63 +75,68 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? id = null,
+    Object? userId = null,
+    Object? displayName = null,
     Object? email = null,
-    Object? fullName = null,
-    Object? phoneNumber = null,
-    Object? role = null,
-    Object? ustaRating = freezed,
-    Object? utrRating = freezed,
-    Object? skillDivision = freezed,
-    Object? isActive = null,
-    Object? createdAt = freezed,
-    Object? lastLoginAt = freezed,
+    Object? skillLevel = null,
+    Object? location = null,
+    Object? profileImageURL = freezed,
+    Object? matchesPlayed = null,
+    Object? matchesWon = null,
+    Object? matchesLost = null,
+    Object? winRate = null,
+    Object? createdAt = null,
+    Object? updatedAt = null,
   }) {
     return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      displayName: null == displayName
+          ? _value.displayName
+          : displayName // ignore: cast_nullable_to_non_nullable
               as String,
       email: null == email
           ? _value.email
           : email // ignore: cast_nullable_to_non_nullable
               as String,
-      fullName: null == fullName
-          ? _value.fullName
-          : fullName // ignore: cast_nullable_to_non_nullable
+      skillLevel: null == skillLevel
+          ? _value.skillLevel
+          : skillLevel // ignore: cast_nullable_to_non_nullable
+              as SkillLevel,
+      location: null == location
+          ? _value.location
+          : location // ignore: cast_nullable_to_non_nullable
               as String,
-      phoneNumber: null == phoneNumber
-          ? _value.phoneNumber
-          : phoneNumber // ignore: cast_nullable_to_non_nullable
-              as String,
-      role: null == role
-          ? _value.role
-          : role // ignore: cast_nullable_to_non_nullable
-              as UserRole,
-      ustaRating: freezed == ustaRating
-          ? _value.ustaRating
-          : ustaRating // ignore: cast_nullable_to_non_nullable
+      profileImageURL: freezed == profileImageURL
+          ? _value.profileImageURL
+          : profileImageURL // ignore: cast_nullable_to_non_nullable
               as String?,
-      utrRating: freezed == utrRating
-          ? _value.utrRating
-          : utrRating // ignore: cast_nullable_to_non_nullable
-              as String?,
-      skillDivision: freezed == skillDivision
-          ? _value.skillDivision
-          : skillDivision // ignore: cast_nullable_to_non_nullable
-              as SkillDivision?,
-      isActive: null == isActive
-          ? _value.isActive
-          : isActive // ignore: cast_nullable_to_non_nullable
-              as bool,
-      createdAt: freezed == createdAt
+      matchesPlayed: null == matchesPlayed
+          ? _value.matchesPlayed
+          : matchesPlayed // ignore: cast_nullable_to_non_nullable
+              as int,
+      matchesWon: null == matchesWon
+          ? _value.matchesWon
+          : matchesWon // ignore: cast_nullable_to_non_nullable
+              as int,
+      matchesLost: null == matchesLost
+          ? _value.matchesLost
+          : matchesLost // ignore: cast_nullable_to_non_nullable
+              as int,
+      winRate: null == winRate
+          ? _value.winRate
+          : winRate // ignore: cast_nullable_to_non_nullable
+              as double,
+      createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      lastLoginAt: freezed == lastLoginAt
-          ? _value.lastLoginAt
-          : lastLoginAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
+              as DateTime,
+      updatedAt: null == updatedAt
+          ? _value.updatedAt
+          : updatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
     ) as $Val);
   }
 }
@@ -138,17 +149,20 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
   @override
   @useResult
   $Res call(
-      {String id,
+      {String userId,
+      String displayName,
       String email,
-      String fullName,
-      String phoneNumber,
-      UserRole role,
-      String? ustaRating,
-      String? utrRating,
-      SkillDivision? skillDivision,
-      bool isActive,
-      DateTime? createdAt,
-      DateTime? lastLoginAt});
+      SkillLevel skillLevel,
+      String location,
+      String? profileImageURL,
+      int matchesPlayed,
+      int matchesWon,
+      int matchesLost,
+      double winRate,
+      @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
+      DateTime createdAt,
+      @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
+      DateTime updatedAt});
 }
 
 /// @nodoc
@@ -161,63 +175,68 @@ class __$$UserImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? id = null,
+    Object? userId = null,
+    Object? displayName = null,
     Object? email = null,
-    Object? fullName = null,
-    Object? phoneNumber = null,
-    Object? role = null,
-    Object? ustaRating = freezed,
-    Object? utrRating = freezed,
-    Object? skillDivision = freezed,
-    Object? isActive = null,
-    Object? createdAt = freezed,
-    Object? lastLoginAt = freezed,
+    Object? skillLevel = null,
+    Object? location = null,
+    Object? profileImageURL = freezed,
+    Object? matchesPlayed = null,
+    Object? matchesWon = null,
+    Object? matchesLost = null,
+    Object? winRate = null,
+    Object? createdAt = null,
+    Object? updatedAt = null,
   }) {
     return _then(_$UserImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      displayName: null == displayName
+          ? _value.displayName
+          : displayName // ignore: cast_nullable_to_non_nullable
               as String,
       email: null == email
           ? _value.email
           : email // ignore: cast_nullable_to_non_nullable
               as String,
-      fullName: null == fullName
-          ? _value.fullName
-          : fullName // ignore: cast_nullable_to_non_nullable
+      skillLevel: null == skillLevel
+          ? _value.skillLevel
+          : skillLevel // ignore: cast_nullable_to_non_nullable
+              as SkillLevel,
+      location: null == location
+          ? _value.location
+          : location // ignore: cast_nullable_to_non_nullable
               as String,
-      phoneNumber: null == phoneNumber
-          ? _value.phoneNumber
-          : phoneNumber // ignore: cast_nullable_to_non_nullable
-              as String,
-      role: null == role
-          ? _value.role
-          : role // ignore: cast_nullable_to_non_nullable
-              as UserRole,
-      ustaRating: freezed == ustaRating
-          ? _value.ustaRating
-          : ustaRating // ignore: cast_nullable_to_non_nullable
+      profileImageURL: freezed == profileImageURL
+          ? _value.profileImageURL
+          : profileImageURL // ignore: cast_nullable_to_non_nullable
               as String?,
-      utrRating: freezed == utrRating
-          ? _value.utrRating
-          : utrRating // ignore: cast_nullable_to_non_nullable
-              as String?,
-      skillDivision: freezed == skillDivision
-          ? _value.skillDivision
-          : skillDivision // ignore: cast_nullable_to_non_nullable
-              as SkillDivision?,
-      isActive: null == isActive
-          ? _value.isActive
-          : isActive // ignore: cast_nullable_to_non_nullable
-              as bool,
-      createdAt: freezed == createdAt
+      matchesPlayed: null == matchesPlayed
+          ? _value.matchesPlayed
+          : matchesPlayed // ignore: cast_nullable_to_non_nullable
+              as int,
+      matchesWon: null == matchesWon
+          ? _value.matchesWon
+          : matchesWon // ignore: cast_nullable_to_non_nullable
+              as int,
+      matchesLost: null == matchesLost
+          ? _value.matchesLost
+          : matchesLost // ignore: cast_nullable_to_non_nullable
+              as int,
+      winRate: null == winRate
+          ? _value.winRate
+          : winRate // ignore: cast_nullable_to_non_nullable
+              as double,
+      createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      lastLoginAt: freezed == lastLoginAt
-          ? _value.lastLoginAt
-          : lastLoginAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
+              as DateTime,
+      updatedAt: null == updatedAt
+          ? _value.updatedAt
+          : updatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
     ));
   }
 }
@@ -226,48 +245,58 @@ class __$$UserImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$UserImpl implements _User {
   const _$UserImpl(
-      {required this.id,
+      {required this.userId,
+      required this.displayName,
       required this.email,
-      required this.fullName,
-      required this.phoneNumber,
-      required this.role,
-      this.ustaRating,
-      this.utrRating,
-      this.skillDivision,
-      this.isActive = true,
-      this.createdAt,
-      this.lastLoginAt});
+      required this.skillLevel,
+      required this.location,
+      this.profileImageURL,
+      this.matchesPlayed = 0,
+      this.matchesWon = 0,
+      this.matchesLost = 0,
+      this.winRate = 0.0,
+      @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
+      required this.createdAt,
+      @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
+      required this.updatedAt});
 
   factory _$UserImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserImplFromJson(json);
 
   @override
-  final String id;
+  final String userId;
+  @override
+  final String displayName;
   @override
   final String email;
   @override
-  final String fullName;
+  final SkillLevel skillLevel;
   @override
-  final String phoneNumber;
+  final String location;
   @override
-  final UserRole role;
-  @override
-  final String? ustaRating;
-  @override
-  final String? utrRating;
-  @override
-  final SkillDivision? skillDivision;
+  final String? profileImageURL;
   @override
   @JsonKey()
-  final bool isActive;
+  final int matchesPlayed;
   @override
-  final DateTime? createdAt;
+  @JsonKey()
+  final int matchesWon;
   @override
-  final DateTime? lastLoginAt;
+  @JsonKey()
+  final int matchesLost;
+  @override
+  @JsonKey()
+  final double winRate;
+  @override
+  @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
+  final DateTime createdAt;
+  @override
+  @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
+  final DateTime updatedAt;
 
   @override
   String toString() {
-    return 'User(id: $id, email: $email, fullName: $fullName, phoneNumber: $phoneNumber, role: $role, ustaRating: $ustaRating, utrRating: $utrRating, skillDivision: $skillDivision, isActive: $isActive, createdAt: $createdAt, lastLoginAt: $lastLoginAt)';
+    return 'User(userId: $userId, displayName: $displayName, email: $email, skillLevel: $skillLevel, location: $location, profileImageURL: $profileImageURL, matchesPlayed: $matchesPlayed, matchesWon: $matchesWon, matchesLost: $matchesLost, winRate: $winRate, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -275,42 +304,45 @@ class _$UserImpl implements _User {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$UserImpl &&
-            (identical(other.id, id) || other.id == id) &&
+            (identical(other.userId, userId) || other.userId == userId) &&
+            (identical(other.displayName, displayName) ||
+                other.displayName == displayName) &&
             (identical(other.email, email) || other.email == email) &&
-            (identical(other.fullName, fullName) ||
-                other.fullName == fullName) &&
-            (identical(other.phoneNumber, phoneNumber) ||
-                other.phoneNumber == phoneNumber) &&
-            (identical(other.role, role) || other.role == role) &&
-            (identical(other.ustaRating, ustaRating) ||
-                other.ustaRating == ustaRating) &&
-            (identical(other.utrRating, utrRating) ||
-                other.utrRating == utrRating) &&
-            (identical(other.skillDivision, skillDivision) ||
-                other.skillDivision == skillDivision) &&
-            (identical(other.isActive, isActive) ||
-                other.isActive == isActive) &&
+            (identical(other.skillLevel, skillLevel) ||
+                other.skillLevel == skillLevel) &&
+            (identical(other.location, location) ||
+                other.location == location) &&
+            (identical(other.profileImageURL, profileImageURL) ||
+                other.profileImageURL == profileImageURL) &&
+            (identical(other.matchesPlayed, matchesPlayed) ||
+                other.matchesPlayed == matchesPlayed) &&
+            (identical(other.matchesWon, matchesWon) ||
+                other.matchesWon == matchesWon) &&
+            (identical(other.matchesLost, matchesLost) ||
+                other.matchesLost == matchesLost) &&
+            (identical(other.winRate, winRate) || other.winRate == winRate) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
-            (identical(other.lastLoginAt, lastLoginAt) ||
-                other.lastLoginAt == lastLoginAt));
+            (identical(other.updatedAt, updatedAt) ||
+                other.updatedAt == updatedAt));
   }
 
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
       runtimeType,
-      id,
+      userId,
+      displayName,
       email,
-      fullName,
-      phoneNumber,
-      role,
-      ustaRating,
-      utrRating,
-      skillDivision,
-      isActive,
+      skillLevel,
+      location,
+      profileImageURL,
+      matchesPlayed,
+      matchesWon,
+      matchesLost,
+      winRate,
       createdAt,
-      lastLoginAt);
+      updatedAt);
 
   @JsonKey(ignore: true)
   @override
@@ -328,42 +360,49 @@ class _$UserImpl implements _User {
 
 abstract class _User implements User {
   const factory _User(
-      {required final String id,
+      {required final String userId,
+      required final String displayName,
       required final String email,
-      required final String fullName,
-      required final String phoneNumber,
-      required final UserRole role,
-      final String? ustaRating,
-      final String? utrRating,
-      final SkillDivision? skillDivision,
-      final bool isActive,
-      final DateTime? createdAt,
-      final DateTime? lastLoginAt}) = _$UserImpl;
+      required final SkillLevel skillLevel,
+      required final String location,
+      final String? profileImageURL,
+      final int matchesPlayed,
+      final int matchesWon,
+      final int matchesLost,
+      final double winRate,
+      @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
+      required final DateTime createdAt,
+      @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
+      required final DateTime updatedAt}) = _$UserImpl;
 
   factory _User.fromJson(Map<String, dynamic> json) = _$UserImpl.fromJson;
 
   @override
-  String get id;
+  String get userId;
+  @override
+  String get displayName;
   @override
   String get email;
   @override
-  String get fullName;
+  SkillLevel get skillLevel;
   @override
-  String get phoneNumber;
+  String get location;
   @override
-  UserRole get role;
+  String? get profileImageURL;
   @override
-  String? get ustaRating;
+  int get matchesPlayed;
   @override
-  String? get utrRating;
+  int get matchesWon;
   @override
-  SkillDivision? get skillDivision;
+  int get matchesLost;
   @override
-  bool get isActive;
+  double get winRate;
   @override
-  DateTime? get createdAt;
+  @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
+  DateTime get createdAt;
   @override
-  DateTime? get lastLoginAt;
+  @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
+  DateTime get updatedAt;
   @override
   @JsonKey(ignore: true)
   _$$UserImplCopyWith<_$UserImpl> get copyWith =>

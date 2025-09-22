@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/signup_page.dart';
-import '../../features/scheduling/presentation/pages/courts_page.dart';
-import '../../features/players/presentation/pages/players_page.dart';
-import '../../features/ladder/presentation/pages/ladder_page.dart';
-import '../../features/tournaments/presentation/pages/tournaments_page.dart';
+import '../../features/proposals/presentation/pages/proposals_page.dart';
+import '../../features/proposals/presentation/pages/create_proposal_page.dart';
+import '../../features/standings/presentation/pages/standings_page.dart';
 import '../../shared/widgets/main_navigation.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -25,29 +24,31 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SignupPage(),
       ),
       
+      // Create proposal route (standalone, no shell)
+      GoRoute(
+        path: '/create-proposal',
+        name: 'create-proposal',
+        builder: (context, state) => const CreateProposalPage(),
+      ),
+      
       // Main app routes with bottom navigation
       ShellRoute(
         builder: (context, state, child) => MainNavigation(child: child),
         routes: [
           GoRoute(
-            path: '/courts',
-            name: 'courts',
-            builder: (context, state) => const CourtsPage(),
+            path: '/',
+            name: 'home',
+            builder: (context, state) => const ProposalsPage(),
           ),
           GoRoute(
-            path: '/players',
-            name: 'players',
-            builder: (context, state) => const PlayersPage(),
+            path: '/proposals',
+            name: 'proposals',
+            builder: (context, state) => const ProposalsPage(),
           ),
           GoRoute(
-            path: '/ladder',
-            name: 'ladder',
-            builder: (context, state) => const LadderPage(),
-          ),
-          GoRoute(
-            path: '/tournaments',
-            name: 'tournaments',
-            builder: (context, state) => const TournamentsPage(),
+            path: '/standings',
+            name: 'standings',
+            builder: (context, state) => const StandingsPage(),
           ),
         ],
       ),

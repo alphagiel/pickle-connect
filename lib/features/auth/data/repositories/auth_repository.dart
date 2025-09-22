@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/entities/auth_user.dart';
 import '../../../../shared/models/user.dart' as app_user;
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
@@ -124,23 +123,19 @@ class AuthUser {
   }
 
   app_user.User toAppUser({
-    required String phoneNumber,
-    required app_user.UserRole role,
-    app_user.SkillDivision? skillDivision,
-    String? ustaRating,
-    String? utrRating,
+    required String location,
+    required app_user.SkillLevel skillLevel,
+    String? profileImageURL,
   }) {
     return app_user.User(
-      id: id,
+      userId: id,
+      displayName: displayName ?? '',
       email: email,
-      fullName: displayName ?? '',
-      phoneNumber: phoneNumber,
-      role: role,
-      skillDivision: skillDivision,
-      ustaRating: ustaRating,
-      utrRating: utrRating,
-      isActive: true,
+      skillLevel: skillLevel,
+      location: location,
+      profileImageURL: profileImageURL,
       createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
   }
 }

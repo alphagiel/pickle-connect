@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -7,7 +6,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/app_router.dart';
 import 'firebase_options.dart';
-import 'shared/services/notification_service.dart';
+// import 'shared/services/notification_service.dart';  // Temporarily disabled
+import 'shared/services/proposal_cleanup_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +21,7 @@ void main() async {
   await Hive.initFlutter();
   
   // Initialize notifications
-  await NotificationService.initialize();
+  // await NotificationService.initialize();  // Temporarily disabled
   
   runApp(
     const ProviderScope(
@@ -36,7 +36,10 @@ class PickleConnectApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    
+
+    // Run cleanup on app startup
+    ref.read(proposalCleanupServiceProvider).runStartupCleanup();
+
     return MaterialApp.router(
       title: 'Pickle Connect',
       theme: AppTheme.lightTheme,

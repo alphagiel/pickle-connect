@@ -7,46 +7,38 @@ part of 'user.dart';
 // **************************************************************************
 
 _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
-      id: json['id'] as String,
+      userId: json['userId'] as String,
+      displayName: json['displayName'] as String,
       email: json['email'] as String,
-      fullName: json['fullName'] as String,
-      phoneNumber: json['phoneNumber'] as String,
-      role: $enumDecode(_$UserRoleEnumMap, json['role']),
-      ustaRating: json['ustaRating'] as String?,
-      utrRating: json['utrRating'] as String?,
-      skillDivision:
-          $enumDecodeNullable(_$SkillDivisionEnumMap, json['skillDivision']),
-      isActive: json['isActive'] as bool? ?? true,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      lastLoginAt: json['lastLoginAt'] == null
-          ? null
-          : DateTime.parse(json['lastLoginAt'] as String),
+      skillLevel: $enumDecode(_$SkillLevelEnumMap, json['skillLevel']),
+      location: json['location'] as String,
+      profileImageURL: json['profileImageURL'] as String?,
+      matchesPlayed: (json['matchesPlayed'] as num?)?.toInt() ?? 0,
+      matchesWon: (json['matchesWon'] as num?)?.toInt() ?? 0,
+      matchesLost: (json['matchesLost'] as num?)?.toInt() ?? 0,
+      winRate: (json['winRate'] as num?)?.toDouble() ?? 0.0,
+      createdAt: _timestampFromJson(json['createdAt']),
+      updatedAt: _timestampFromJson(json['updatedAt']),
     );
 
 Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
     <String, dynamic>{
-      'id': instance.id,
+      'userId': instance.userId,
+      'displayName': instance.displayName,
       'email': instance.email,
-      'fullName': instance.fullName,
-      'phoneNumber': instance.phoneNumber,
-      'role': _$UserRoleEnumMap[instance.role]!,
-      'ustaRating': instance.ustaRating,
-      'utrRating': instance.utrRating,
-      'skillDivision': _$SkillDivisionEnumMap[instance.skillDivision],
-      'isActive': instance.isActive,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'lastLoginAt': instance.lastLoginAt?.toIso8601String(),
+      'skillLevel': _$SkillLevelEnumMap[instance.skillLevel]!,
+      'location': instance.location,
+      'profileImageURL': instance.profileImageURL,
+      'matchesPlayed': instance.matchesPlayed,
+      'matchesWon': instance.matchesWon,
+      'matchesLost': instance.matchesLost,
+      'winRate': instance.winRate,
+      'createdAt': _timestampToJson(instance.createdAt),
+      'updatedAt': _timestampToJson(instance.updatedAt),
     };
 
-const _$UserRoleEnumMap = {
-  UserRole.admin: 'admin',
-  UserRole.user: 'user',
-};
-
-const _$SkillDivisionEnumMap = {
-  SkillDivision.beginner: 'beginner',
-  SkillDivision.intermediate: 'intermediate',
-  SkillDivision.advanced: 'advanced',
+const _$SkillLevelEnumMap = {
+  SkillLevel.beginner: 'Beginner',
+  SkillLevel.intermediate: 'Intermediate',
+  SkillLevel.advancedPlus: 'Advanced+',
 };
