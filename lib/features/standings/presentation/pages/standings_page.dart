@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../shared/models/user.dart';
 import '../../../../shared/models/standing.dart';
 import '../../../../shared/providers/standings_providers.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../widgets/standing_card.dart';
 import '../widgets/skill_level_tabs.dart';
+import '../../../../features/auth/presentation/providers/auth_providers.dart';
 
 class StandingsPage extends ConsumerStatefulWidget {
   const StandingsPage({super.key});
@@ -42,6 +44,65 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = ref.watch(currentUserProvider);
+
+    // Show login state if user is not authenticated
+    if (currentUser == null) {
+      return Scaffold(
+        backgroundColor: AppColors.backgroundColor,
+        appBar: AppBar(
+          title: const Text('Standings'),
+          backgroundColor: AppColors.accentBlue,
+          foregroundColor: AppColors.onPrimary,
+          elevation: 0,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.login_outlined,
+                size: 80,
+                color: AppColors.mediumGray,
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Please log in',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryText,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'You need to be logged in to view standings',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.secondaryText,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () => context.go('/login'),
+                icon: const Icon(Icons.login),
+                label: const Text('Go to Login'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accentBlue,
+                  foregroundColor: AppColors.onPrimary,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       body: Column(

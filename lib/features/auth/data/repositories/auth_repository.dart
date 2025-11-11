@@ -59,10 +59,18 @@ class AuthRepository {
       if (credential.user != null) {
         // Update display name
         await credential.user!.updateDisplayName(fullName);
-        
+
         // Send email verification
         await credential.user!.sendEmailVerification();
-        
+
+        // Reload the user to get updated display name
+        await credential.user!.reload();
+
+        // Debug: Check the display name after update
+        print('=== Signup Debug ===');
+        print('Full name provided: $fullName');
+        print('User displayName after update: ${credential.user!.displayName}');
+
         return AuthUser.fromFirebaseUser(credential.user!);
       }
       

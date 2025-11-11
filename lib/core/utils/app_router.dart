@@ -7,10 +7,30 @@ import '../../features/proposals/presentation/pages/proposals_page.dart';
 import '../../features/proposals/presentation/pages/create_proposal_page.dart';
 import '../../features/standings/presentation/pages/standings_page.dart';
 import '../../shared/widgets/main_navigation.dart';
+import '../../features/auth/presentation/providers/auth_providers.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/login',
+    redirect: (context, state) {
+      final currentUser = ref.read(currentUserProvider);
+      final isAuthenticated = currentUser != null;
+
+      final isAuthRoute = state.uri.path == '/login' || state.uri.path == '/signup';
+
+      // If user is not authenticated and trying to access protected routes
+      if (!isAuthenticated && !isAuthRoute) {
+        return '/login';
+      }
+
+      // If user is authenticated and trying to access auth routes
+      if (isAuthenticated && isAuthRoute) {
+        return '/';
+      }
+
+      // No redirect needed
+      return null;
+    },
     routes: [
       // Auth routes
       GoRoute(

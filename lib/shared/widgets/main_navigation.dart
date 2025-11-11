@@ -110,10 +110,11 @@ class MainNavigation extends ConsumerWidget {
 
   void _handleLogout(BuildContext context, WidgetRef ref) async {
     try {
-      // TODO: Implement actual logout logic with auth provider
-      // await ref.read(authNotifierProvider.notifier).signOut();
-      
+      // Sign out from Firebase Auth
+      await ref.read(authNotifierProvider.notifier).signOut();
+
       if (context.mounted) {
+        // Navigate to login page
         GoRouter.of(context).go('/login');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

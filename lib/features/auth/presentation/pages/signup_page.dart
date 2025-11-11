@@ -75,6 +75,9 @@ class _SignupPageState extends ConsumerState<SignupPage> {
           updatedAt: DateTime.now(),
         );
 
+        print('=== Signup Firestore Debug ===');
+        print('Creating Firestore user profile with displayName: ${userProfile.displayName}');
+
         await usersRepository.saveUser(userProfile);
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -109,7 +112,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Join Tennis Club'),
+        title: const Text('Join Pickle Connect'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/login'),
@@ -126,7 +129,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                   const SizedBox(height: 32),
 
                   Text(
-                    'Join Tennis Club',
+                    'Join Pickle Connect',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: AppColors.primaryGreen,
@@ -135,7 +138,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                   const SizedBox(height: 16),
 
                   Text(
-                    'Create your account to start playing with fellow club members.',
+                    'Create your account to start playing with fellow pickle ballers.',
                     style: Theme.of(context).textTheme.bodyLarge,
                     textAlign: TextAlign.center,
                   ),

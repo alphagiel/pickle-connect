@@ -34,6 +34,65 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = ref.watch(currentUserProvider);
+    print('Current user in CreateProposalPage: $currentUser');
+    // Show login state if user is not authenticated
+    if (currentUser == null) {
+      return Scaffold(
+        backgroundColor: AppColors.backgroundColor,
+        appBar: AppBar(
+          title: const Text('Create Match Proposal'),
+          backgroundColor: AppColors.primaryGreen,
+          foregroundColor: AppColors.onPrimary,
+          elevation: 0,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.login_outlined,
+                size: 80,
+                color: AppColors.mediumGray,
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Please log in',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryText,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'You need to be logged in to create match proposals',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.secondaryText,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () => context.go('/login'),
+                icon: const Icon(Icons.login),
+                label: const Text('Go to Login'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: AppColors.onPrimary,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
@@ -59,15 +118,15 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.2)),
                   ),
-                  child: Column(
+                  child: const Column(
                     children: [
                       Icon(
                         Icons.sports_tennis,
                         size: 48,
                         color: AppColors.primaryGreen,
                       ),
-                      const SizedBox(height: 12),
-                      const Text(
+                      SizedBox(height: 12),
+                      Text(
                         'Find Your Perfect Match',
                         style: TextStyle(
                           fontSize: 20,
@@ -75,7 +134,7 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
                           color: AppColors.primaryText,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Text(
                         'Create a proposal and connect with players',
                         style: TextStyle(
@@ -86,8 +145,60 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
                     ],
                   ),
                 ),
-                
-                const SizedBox(height: 32),
+
+                const SizedBox(height: 16),
+
+                // Debug Panel - Current User Info
+                if (currentUser != null) ...[
+                  _buildSectionCard(
+                    title: 'Debug - Current User Info',
+                    icon: Icons.bug_report,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'User ID: ${currentUser.id}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.secondaryText,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Email: ${currentUser.email}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.secondaryText,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Display Name: ${currentUser.displayName ?? "NULL"}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: currentUser.displayName == null ? AppColors.errorRed : AppColors.secondaryText,
+                            fontFamily: 'monospace',
+                            fontWeight: currentUser.displayName == null ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Email Verified: ${currentUser.isEmailVerified}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.secondaryText,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                const SizedBox(height: 16),
                 
                 // Date & Time Section
                 _buildSectionCard(
@@ -127,7 +238,8 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
                   title: 'Where do you want to play?',
                   icon: Icons.location_on,
                   child: TextFormField(
-                    controller: _locationController,
+                    style: const TextStyle(color: AppColors.primaryText),
+                    controller: _locationController,  
                     decoration: InputDecoration(
                       hintText: 'e.g., Clayton Tennis Courts, Smithfield Park...',
                       border: OutlineInputBorder(
@@ -157,7 +269,7 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Select all that apply:',
                         style: TextStyle(
                           fontSize: 14,
@@ -202,8 +314,8 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
                         }).toList(),
                       ),
                       if (_selectedSkillLevels.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
                           child: Text(
                             'Please select at least one skill level',
                             style: TextStyle(
@@ -223,6 +335,7 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
                   title: 'Additional Notes (Optional)',
                   icon: Icons.note_outlined,
                   child: TextFormField(
+                    style: const TextStyle(color: AppColors.primaryText),
                     controller: _notesController,
                     maxLines: 3,
                     decoration: InputDecoration(
@@ -375,7 +488,7 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
                 const SizedBox(width: 8),
                 Text(
                   label,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.secondaryText,
                     fontWeight: FontWeight.w500,
@@ -467,7 +580,7 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
 
   void _createProposal() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     if (_selectedSkillLevels.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -492,6 +605,32 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
       // Get user profile from Firestore
       final usersRepository = ref.read(usersRepositoryProvider);
       final userProfile = await usersRepository.getUserById(currentUser.id);
+
+      print('=== User Profile Debug ===');
+      print('Current user ID: ${currentUser.id}');
+      print('Current user displayName: ${currentUser.displayName}');
+      print('User profile from Firestore: $userProfile');
+      print('User profile displayName: ${userProfile?.displayName}');
+
+      // Show debug info in UI via snackbar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('User Debug Info:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('Firebase Display Name: ${currentUser.displayName ?? "NULL"}'),
+                Text('Firestore Display Name: ${userProfile?.displayName ?? "NULL"}'),
+                Text('Final Creator Name: ${userProfile?.displayName ?? currentUser.displayName ?? "Unknown User"}'),
+              ],
+            ),
+            backgroundColor: AppColors.accentBlue,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
 
       final creatorName = userProfile?.displayName ?? currentUser.displayName ?? 'Unknown User';
 

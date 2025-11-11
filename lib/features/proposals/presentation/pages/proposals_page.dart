@@ -41,8 +41,66 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = ref.watch(currentUserProvider);
     final selectedSkillLevel = ref.watch(selectedSkillLevelProvider);
-    
+
+    // Show login state if user is not authenticated
+    if (currentUser == null) {
+      return Scaffold(
+        backgroundColor: AppColors.backgroundColor,
+        appBar: AppBar(
+          title: const Text('Match Proposals'),
+          backgroundColor: AppColors.primaryGreen,
+          foregroundColor: AppColors.onPrimary,
+          elevation: 0,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.login_outlined,
+                size: 80,
+                color: AppColors.mediumGray,
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Please log in',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryText,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'You need to be logged in to view match proposals',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.secondaryText,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () => context.go('/login'),
+                icon: const Icon(Icons.login),
+                label: const Text('Go to Login'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: AppColors.onPrimary,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       body: Column(
@@ -408,6 +466,12 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
       // Get user profile from Firestore
       final usersRepository = ref.read(usersRepositoryProvider);
       final userProfile = await usersRepository.getUserById(currentUser.id);
+
+      print('=== Accept Proposal User Debug ===');
+      print('Current user ID: ${currentUser.id}');
+      print('Current user displayName: ${currentUser.displayName}');
+      print('User profile from Firestore: $userProfile');
+      print('User profile displayName: ${userProfile?.displayName}');
 
       final userName = userProfile?.displayName ?? currentUser.displayName ?? 'Unknown User';
 
