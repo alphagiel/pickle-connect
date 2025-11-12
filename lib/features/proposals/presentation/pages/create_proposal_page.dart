@@ -147,58 +147,6 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
                 ),
 
                 const SizedBox(height: 16),
-
-                // Debug Panel - Current User Info
-                if (currentUser != null) ...[
-                  _buildSectionCard(
-                    title: 'Debug - Current User Info',
-                    icon: Icons.bug_report,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'User ID: ${currentUser.id}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.secondaryText,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Email: ${currentUser.email}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.secondaryText,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Display Name: ${currentUser.displayName ?? "NULL"}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: currentUser.displayName == null ? AppColors.errorRed : AppColors.secondaryText,
-                            fontFamily: 'monospace',
-                            fontWeight: currentUser.displayName == null ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Email Verified: ${currentUser.isEmailVerified}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.secondaryText,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                const SizedBox(height: 16),
                 
                 // Date & Time Section
                 _buildSectionCard(
@@ -612,25 +560,25 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
       print('User profile from Firestore: $userProfile');
       print('User profile displayName: ${userProfile?.displayName}');
 
-      // Show debug info in UI via snackbar
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('User Debug Info:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('Firebase Display Name: ${currentUser.displayName ?? "NULL"}'),
-                Text('Firestore Display Name: ${userProfile?.displayName ?? "NULL"}'),
-                Text('Final Creator Name: ${userProfile?.displayName ?? currentUser.displayName ?? "Unknown User"}'),
-              ],
-            ),
-            backgroundColor: AppColors.accentBlue,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
+      // // Show debug info in UI via snackbar
+      // if (mounted) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(
+      //       content: Column(
+      //         crossAxisAlignment: CrossAxisAlignment.start,
+      //         mainAxisSize: MainAxisSize.min,
+      //         children: [
+      //           const Text('User Debug Info:', style: TextStyle(fontWeight: FontWeight.bold)),
+      //           Text('Firebase Display Name: ${currentUser.displayName ?? "NULL"}'),
+      //           Text('Firestore Display Name: ${userProfile?.displayName ?? "NULL"}'),
+      //           Text('Final Creator Name: ${userProfile?.displayName ?? currentUser.displayName ?? "Unknown User"}'),
+      //         ],
+      //       ),
+      //       backgroundColor: AppColors.accentBlue,
+      //       duration: const Duration(seconds: 5),
+      //     ),
+      //   );
+      // }
 
       final creatorName = userProfile?.displayName ?? currentUser.displayName ?? 'Unknown User';
 

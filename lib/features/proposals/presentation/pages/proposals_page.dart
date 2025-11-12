@@ -481,6 +481,10 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
         userName,
       );
 
+      // Invalidate the providers to refresh the streams
+      final selectedSkillLevel = ref.read(selectedSkillLevelProvider);
+      ref.invalidate(openProposalsProvider(selectedSkillLevel));
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -490,10 +494,25 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
         );
       }
     } catch (e) {
+      print('Accept proposal error: $e');
+      print('Error type: ${e.runtimeType}');
+
+      // Provide more specific error messages
+      String errorMessage = 'Failed to accept proposal';
+      if (e.toString().contains('permission')) {
+        errorMessage = 'Permission denied. Please check if you are logged in.';
+      } else if (e.toString().contains('network')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (e.toString().contains('firestore')) {
+        errorMessage = 'Firestore error. Please try again later.';
+      } else {
+        errorMessage = 'Failed to accept proposal: ${e.toString()}';
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to accept proposal: $e'),
+            content: Text(errorMessage),
             backgroundColor: AppColors.errorRed,
           ),
         );
@@ -526,6 +545,17 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
       try {
         await ref.read(proposalActionsProvider).deleteProposal(proposal.proposalId);
 
+        // Invalidate the providers to refresh the streams
+        final selectedSkillLevel = ref.read(selectedSkillLevelProvider);
+        ref.invalidate(openProposalsProvider(selectedSkillLevel));
+        ref.invalidate(filteredProposalsProvider(selectedSkillLevel));
+
+        final currentUser = ref.read(currentUserProvider);
+        if (currentUser != null) {
+          ref.invalidate(userProposalsProvider(currentUser.id));
+          ref.invalidate(filteredUserProposalsProvider(currentUser.id));
+        }
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -535,6 +565,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
           );
         }
       } catch (e) {
+        print('Delete proposal error: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

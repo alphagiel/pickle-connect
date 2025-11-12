@@ -36,10 +36,11 @@ class ProposalsRepository {
         .map((snapshot) => snapshot.docs
             .map((doc) {
               try {
-                final proposal = Proposal.fromJson({
-                  'proposalId': doc.id,
-                  ...doc.data(),
-                });
+                // Extract data and ensure we use the actual Firestore document ID
+                final data = Map<String, dynamic>.from(doc.data());
+                data['proposalId'] = doc.id; // Always use the real Firestore ID
+
+                final proposal = Proposal.fromJson(data);
 
                 // Check if proposal should be expired and mark it locally
                 if (proposal != null && proposal.shouldExpire && proposal.status != ProposalStatus.expired) {
@@ -73,10 +74,11 @@ class ProposalsRepository {
         .map((snapshot) => snapshot.docs
             .map((doc) {
               try {
-                final proposal = Proposal.fromJson({
-                  'proposalId': doc.id,
-                  ...doc.data(),
-                });
+                // Extract data and ensure we use the actual Firestore document ID
+                final data = Map<String, dynamic>.from(doc.data());
+                data['proposalId'] = doc.id; // Always use the real Firestore ID
+
+                final proposal = Proposal.fromJson(data);
 
                 // Check if proposal should be expired and mark it locally
                 if (proposal != null && proposal.shouldExpire && proposal.status != ProposalStatus.expired) {
@@ -107,10 +109,11 @@ class ProposalsRepository {
         .map((snapshot) => snapshot.docs
             .map((doc) {
               try {
-                final proposal = Proposal.fromJson({
-                  'proposalId': doc.id,
-                  ...doc.data(),
-                });
+                // Extract data and ensure we use the actual Firestore document ID
+                final data = Map<String, dynamic>.from(doc.data());
+                data['proposalId'] = doc.id; // Always use the real Firestore ID
+
+                final proposal = Proposal.fromJson(data);
 
                 // Check if proposal should be expired and mark it locally
                 if (proposal != null && proposal.shouldExpire && proposal.status != ProposalStatus.expired) {
@@ -141,10 +144,11 @@ class ProposalsRepository {
         .map((snapshot) => snapshot.docs
             .map((doc) {
               try {
-                final proposal = Proposal.fromJson({
-                  'proposalId': doc.id,
-                  ...doc.data(),
-                });
+                // Extract data and ensure we use the actual Firestore document ID
+                final data = Map<String, dynamic>.from(doc.data());
+                data['proposalId'] = doc.id; // Always use the real Firestore ID
+
+                final proposal = Proposal.fromJson(data);
 
                 // Check if proposal should be expired and mark it locally
                 if (proposal != null && proposal.shouldExpire && proposal.status != ProposalStatus.expired) {
@@ -305,26 +309,54 @@ class ProposalsRepository {
 
   // Get proposals that need lifecycle updates
   Future<List<Proposal>> getProposalsForCleanup() async {
-    final snapshot = await _firestore
-        .collection(_collection)
-        .where('status', whereIn: ['open', 'accepted', 'expired', 'completed'])
-        .get();
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('status', whereIn: ['open', 'accepted', 'expired', 'completed'])
+          .get();
 
-    return snapshot.docs
-        .map((doc) {
-          try {
-            return Proposal.fromJson({
-              'proposalId': doc.id,
-              ...doc.data(),
-            });
-          } catch (e) {
-            print('Error parsing proposal for cleanup: $e');
-            return null;
+      final proposals = <Proposal>[];
+
+      for (final doc in snapshot.docs) {
+        try {
+          final data = doc.data();
+          if (data.isEmpty) {
+            print('Skipping empty document ${doc.id}');
+            continue;
           }
-        })
-        .where((proposal) => proposal != null)
-        .cast<Proposal>()
-        .toList();
+
+          // Check for required fields before attempting to parse
+          final requiredFields = ['creatorName', 'skillLevels', 'dateTime', 'createdAt', 'updatedAt'];
+          final missingFields = requiredFields.where((field) => !data.containsKey(field) || data[field] == null).toList();
+
+          if (missingFields.isNotEmpty) {
+            print('Skipping invalid proposal ${doc.id} - missing required fields: $missingFields');
+            continue;
+          }
+
+          final proposal = Proposal.fromJson({
+            'proposalId': doc.id,
+            ...data,
+          });
+          proposals.add(proposal);
+        } catch (e) {
+          // Check if this is the specific test-proposal with missing required fields
+          if (doc.id == 'test-proposal') {
+            print('Skipping test-proposal with incomplete data');
+            continue;
+          }
+          print('Error parsing proposal ${doc.id} for cleanup: $e');
+          print('Document data: ${doc.data()}');
+          // Skip invalid proposals
+          continue;
+        }
+      }
+
+      return proposals;
+    } catch (e) {
+      print('Error fetching proposals for cleanup: $e');
+      return [];
+    }
   }
 
   // Run cleanup operations
@@ -333,8 +365,22 @@ class ProposalsRepository {
 
     final proposals = await getProposalsForCleanup();
 
+    if (proposals.isEmpty) {
+      print('No proposals found for cleanup');
+      return;
+    }
+
+    print('Found ${proposals.length} proposals for cleanup');
+
     for (final proposal in proposals) {
       try {
+        // Check if the proposal document still exists before processing
+        final doc = await _firestore.collection(_collection).doc(proposal.proposalId).get();
+        if (!doc.exists) {
+          print('Proposal ${proposal.proposalId} already deleted, skipping cleanup');
+          continue;
+        }
+
         if (proposal.shouldDelete) {
           print('Deleting proposal ${proposal.proposalId} (${proposal.daysPastDue} days past due)');
           await deleteProposal(proposal.proposalId);
@@ -346,7 +392,12 @@ class ProposalsRepository {
           await expireProposal(proposal.proposalId);
         }
       } catch (e) {
-        print('Error processing proposal ${proposal.proposalId}: $e');
+        // Check if the error is because the document doesn't exist
+        if (e.toString().contains('not-found') || e.toString().contains('No document')) {
+          print('Proposal ${proposal.proposalId} already deleted, skipping cleanup');
+        } else {
+          print('Error processing proposal ${proposal.proposalId}: $e');
+        }
       }
     }
 
@@ -358,10 +409,22 @@ class ProposalsRepository {
     // Run async operation without blocking the stream
     Future(() async {
       try {
+        // Check if the proposal document still exists before processing
+        final doc = await _firestore.collection(_collection).doc(proposalId).get();
+        if (!doc.exists) {
+          print('Proposal $proposalId already deleted, skipping expiration');
+          return;
+        }
+
         await expireProposal(proposalId);
         print('Marked proposal $proposalId as expired');
       } catch (e) {
-        print('Error marking proposal $proposalId as expired: $e');
+        // Check if the error is because the document doesn't exist
+        if (e.toString().contains('not-found') || e.toString().contains('No document')) {
+          print('Proposal $proposalId already deleted, skipping expiration');
+        } else {
+          print('Error marking proposal $proposalId as expired: $e');
+        }
       }
     });
   }
