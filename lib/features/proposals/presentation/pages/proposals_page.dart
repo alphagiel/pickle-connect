@@ -579,12 +579,6 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
   }
 
   void _viewProposal(Proposal proposal) {
-    // TODO: Navigate to proposal details page
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Proposal details coming soon!'),
-        backgroundColor: AppColors.accentBlue,
-      ),
-    );
+    context.go('/proposal-details', extra: proposal);
   }
 }

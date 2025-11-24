@@ -291,6 +291,33 @@ class ProposalsRepository {
     await _firestore.collection(_collection).doc(proposalId).delete();
   }
 
+
+  // Update proposal
+  Future<void> updateProposal(
+    String proposalId, {
+    List<SkillLevel>? skillLevels,
+    String? location,
+    DateTime? dateTime,
+  }) async {
+    final updates = <String, dynamic>{
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (skillLevels != null) {
+      updates['skillLevels'] = skillLevels.map((level) => level.displayName).toList();
+    }
+
+    if (location != null) {
+      updates['location'] = location;
+    }
+
+    if (dateTime != null) {
+      updates['dateTime'] = dateTime.toIso8601String();
+    }
+
+    await _firestore.collection(_collection).doc(proposalId).update(updates);
+  }
+
   // Mark proposal as expired
   Future<void> expireProposal(String proposalId) async {
     await _firestore.collection(_collection).doc(proposalId).update({

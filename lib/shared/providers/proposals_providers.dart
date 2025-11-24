@@ -36,6 +36,9 @@ final acceptedProposalsProvider = StreamProvider.family<List<Proposal>, String>(
 // Provider for selected skill level filter
 final selectedSkillLevelProvider = StateProvider<SkillLevel>((ref) => SkillLevel.intermediate);
 
+// Provider for editing proposal - holds the proposal being edited (null when not editing)
+final editingProposalProvider = StateProvider<Proposal?>((ref) => null);
+
 // Enum for proposal status filters
 enum ProposalStatusFilter {
   all,
@@ -180,5 +183,19 @@ class ProposalActions {
 
   Future<void> deleteProposal(String proposalId) async {
     await _repository.deleteProposal(proposalId);
+  }
+
+  Future<void> updateProposal(
+    String proposalId, {
+    List<SkillLevel>? skillLevels,
+    String? location,
+    DateTime? dateTime,
+  }) async {
+    await _repository.updateProposal(
+      proposalId,
+      skillLevels: skillLevels,
+      location: location,
+      dateTime: dateTime,
+    );
   }
 }

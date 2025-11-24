@@ -5,8 +5,11 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/signup_page.dart';
 import '../../features/proposals/presentation/pages/proposals_page.dart';
 import '../../features/proposals/presentation/pages/create_proposal_page.dart';
+import '../../features/proposals/presentation/pages/edit_proposal_page.dart';
+import '../../features/proposals/presentation/pages/proposal_details_page.dart';
 import '../../features/standings/presentation/pages/standings_page.dart';
 import '../../shared/widgets/main_navigation.dart';
+import '../../shared/models/proposal.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -49,6 +52,32 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/create-proposal',
         name: 'create-proposal',
         builder: (context, state) => const CreateProposalPage(),
+      ),
+      
+      // Edit proposal route (standalone, no shell)
+      GoRoute(
+        path: '/edit-proposal',
+        name: 'edit-proposal',
+        builder: (context, state) {
+          final proposal = state.extra as Proposal?;
+          if (proposal == null) {
+            return const ProposalsPage();
+          }
+          return EditProposalPage(proposal: proposal);
+        },
+      ),
+      
+      // Proposal details route (standalone, no shell)
+      GoRoute(
+        path: '/proposal-details',
+        name: 'proposal-details',
+        builder: (context, state) {
+          final proposal = state.extra as Proposal?;
+          if (proposal == null) {
+            return const ProposalsPage();
+          }
+          return ProposalDetailsPage(proposal: proposal);
+        },
       ),
       
       // Main app routes with bottom navigation
