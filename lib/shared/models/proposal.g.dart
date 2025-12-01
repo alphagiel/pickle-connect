@@ -18,15 +18,27 @@ Map<String, dynamic> _$$AcceptedByImplToJson(_$AcceptedByImpl instance) =>
       'displayName': instance.displayName,
     };
 
-_$ScoresImpl _$$ScoresImplFromJson(Map<String, dynamic> json) => _$ScoresImpl(
+_$GameScoreImpl _$$GameScoreImplFromJson(Map<String, dynamic> json) =>
+    _$GameScoreImpl(
       creatorScore: (json['creatorScore'] as num).toInt(),
       opponentScore: (json['opponentScore'] as num).toInt(),
     );
 
-Map<String, dynamic> _$$ScoresImplToJson(_$ScoresImpl instance) =>
+Map<String, dynamic> _$$GameScoreImplToJson(_$GameScoreImpl instance) =>
     <String, dynamic>{
       'creatorScore': instance.creatorScore,
       'opponentScore': instance.opponentScore,
+    };
+
+_$ScoresImpl _$$ScoresImplFromJson(Map<String, dynamic> json) => _$ScoresImpl(
+      games: (json['games'] as List<dynamic>)
+          .map((e) => GameScore.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$$ScoresImplToJson(_$ScoresImpl instance) =>
+    <String, dynamic>{
+      'games': instance.games,
     };
 
 _$ProposalImpl _$$ProposalImplFromJson(Map<String, dynamic> json) =>

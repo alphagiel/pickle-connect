@@ -251,12 +251,11 @@ class ProposalsRepository {
     });
   }
 
-  // Update scores
-  Future<void> updateScores(String proposalId, int creatorScore, int opponentScore) async {
+  // Update scores with per-game results (best of 3)
+  Future<void> updateScores(String proposalId, List<Map<String, int>> games) async {
     await _firestore.collection(_collection).doc(proposalId).update({
       'scores': {
-        'creatorScore': creatorScore,
-        'opponentScore': opponentScore,
+        'games': games,
       },
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -266,6 +265,15 @@ class ProposalsRepository {
   Future<void> confirmScores(String proposalId, String userId) async {
     await _firestore.collection(_collection).doc(proposalId).update({
       'scoreConfirmedBy': FieldValue.arrayUnion([userId]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // Clear scores (when rejected)
+  Future<void> clearScores(String proposalId) async {
+    await _firestore.collection(_collection).doc(proposalId).update({
+      'scores': FieldValue.delete(),
+      'scoreConfirmedBy': [],
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

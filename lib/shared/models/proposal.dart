@@ -5,6 +5,9 @@ import 'user.dart';
 part 'proposal.freezed.dart';
 part 'proposal.g.dart';
 
+// TODO: Set to false for production - disables auto-expiration of past proposals
+const bool kDisableAutoExpire = true;
+
 enum ProposalStatus {
   @JsonValue('open')
   open,
@@ -43,6 +46,7 @@ extension ProposalLifecycle on Proposal {
 
   /// Check if proposal should be marked as expired (past due immediately)
   bool get shouldExpire {
+    if (kDisableAutoExpire) return false; // Testing toggle
     if (!isPastDue) return false;
     // Expire immediately when past due (not after 1 day)
     return (status == ProposalStatus.open || status == ProposalStatus.accepted);
@@ -79,14 +83,46 @@ class AcceptedBy with _$AcceptedBy {
   factory AcceptedBy.fromJson(Map<String, dynamic> json) => _$AcceptedByFromJson(json);
 }
 
+/// Represents a single game score in a pickleball match
 @freezed
-class Scores with _$Scores {
-  const factory Scores({
+class GameScore with _$GameScore {
+  const factory GameScore({
     required int creatorScore,
     required int opponentScore,
+  }) = _GameScore;
+
+  factory GameScore.fromJson(Map<String, dynamic> json) => _$GameScoreFromJson(json);
+}
+
+/// Represents the full match scores (best of 3 games)
+@freezed
+class Scores with _$Scores {
+  const Scores._();
+
+  const factory Scores({
+    required List<GameScore> games, // List of game scores (typically 2-3 games)
   }) = _Scores;
 
   factory Scores.fromJson(Map<String, dynamic> json) => _$ScoresFromJson(json);
+
+  /// Get total games won by creator
+  int get creatorGamesWon => games.where((g) => g.creatorScore > g.opponentScore).length;
+
+  /// Get total games won by opponent
+  int get opponentGamesWon => games.where((g) => g.opponentScore > g.creatorScore).length;
+
+  /// Check if match is complete (someone won 2 games in best of 3)
+  bool get isMatchComplete => creatorGamesWon >= 2 || opponentGamesWon >= 2;
+
+  /// Get the match winner: 'creator', 'opponent', or null if not complete
+  String? get winner {
+    if (creatorGamesWon >= 2) return 'creator';
+    if (opponentGamesWon >= 2) return 'opponent';
+    return null;
+  }
+
+  /// Display string like "2-1" for games won
+  String get matchScore => '$creatorGamesWon-$opponentGamesWon';
 }
 
 @freezed

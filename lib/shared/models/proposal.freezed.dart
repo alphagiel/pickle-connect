@@ -169,32 +169,33 @@ abstract class _AcceptedBy implements AcceptedBy {
       throw _privateConstructorUsedError;
 }
 
-Scores _$ScoresFromJson(Map<String, dynamic> json) {
-  return _Scores.fromJson(json);
+GameScore _$GameScoreFromJson(Map<String, dynamic> json) {
+  return _GameScore.fromJson(json);
 }
 
 /// @nodoc
-mixin _$Scores {
+mixin _$GameScore {
   int get creatorScore => throw _privateConstructorUsedError;
   int get opponentScore => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
-  $ScoresCopyWith<Scores> get copyWith => throw _privateConstructorUsedError;
+  $GameScoreCopyWith<GameScore> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $ScoresCopyWith<$Res> {
-  factory $ScoresCopyWith(Scores value, $Res Function(Scores) then) =
-      _$ScoresCopyWithImpl<$Res, Scores>;
+abstract class $GameScoreCopyWith<$Res> {
+  factory $GameScoreCopyWith(GameScore value, $Res Function(GameScore) then) =
+      _$GameScoreCopyWithImpl<$Res, GameScore>;
   @useResult
   $Res call({int creatorScore, int opponentScore});
 }
 
 /// @nodoc
-class _$ScoresCopyWithImpl<$Res, $Val extends Scores>
-    implements $ScoresCopyWith<$Res> {
-  _$ScoresCopyWithImpl(this._value, this._then);
+class _$GameScoreCopyWithImpl<$Res, $Val extends GameScore>
+    implements $GameScoreCopyWith<$Res> {
+  _$GameScoreCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
@@ -221,21 +222,22 @@ class _$ScoresCopyWithImpl<$Res, $Val extends Scores>
 }
 
 /// @nodoc
-abstract class _$$ScoresImplCopyWith<$Res> implements $ScoresCopyWith<$Res> {
-  factory _$$ScoresImplCopyWith(
-          _$ScoresImpl value, $Res Function(_$ScoresImpl) then) =
-      __$$ScoresImplCopyWithImpl<$Res>;
+abstract class _$$GameScoreImplCopyWith<$Res>
+    implements $GameScoreCopyWith<$Res> {
+  factory _$$GameScoreImplCopyWith(
+          _$GameScoreImpl value, $Res Function(_$GameScoreImpl) then) =
+      __$$GameScoreImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({int creatorScore, int opponentScore});
 }
 
 /// @nodoc
-class __$$ScoresImplCopyWithImpl<$Res>
-    extends _$ScoresCopyWithImpl<$Res, _$ScoresImpl>
-    implements _$$ScoresImplCopyWith<$Res> {
-  __$$ScoresImplCopyWithImpl(
-      _$ScoresImpl _value, $Res Function(_$ScoresImpl) _then)
+class __$$GameScoreImplCopyWithImpl<$Res>
+    extends _$GameScoreCopyWithImpl<$Res, _$GameScoreImpl>
+    implements _$$GameScoreImplCopyWith<$Res> {
+  __$$GameScoreImplCopyWithImpl(
+      _$GameScoreImpl _value, $Res Function(_$GameScoreImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -244,7 +246,7 @@ class __$$ScoresImplCopyWithImpl<$Res>
     Object? creatorScore = null,
     Object? opponentScore = null,
   }) {
-    return _then(_$ScoresImpl(
+    return _then(_$GameScoreImpl(
       creatorScore: null == creatorScore
           ? _value.creatorScore
           : creatorScore // ignore: cast_nullable_to_non_nullable
@@ -259,11 +261,12 @@ class __$$ScoresImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$ScoresImpl implements _Scores {
-  const _$ScoresImpl({required this.creatorScore, required this.opponentScore});
+class _$GameScoreImpl implements _GameScore {
+  const _$GameScoreImpl(
+      {required this.creatorScore, required this.opponentScore});
 
-  factory _$ScoresImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ScoresImplFromJson(json);
+  factory _$GameScoreImpl.fromJson(Map<String, dynamic> json) =>
+      _$$GameScoreImplFromJson(json);
 
   @override
   final int creatorScore;
@@ -272,14 +275,14 @@ class _$ScoresImpl implements _Scores {
 
   @override
   String toString() {
-    return 'Scores(creatorScore: $creatorScore, opponentScore: $opponentScore)';
+    return 'GameScore(creatorScore: $creatorScore, opponentScore: $opponentScore)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$ScoresImpl &&
+            other is _$GameScoreImpl &&
             (identical(other.creatorScore, creatorScore) ||
                 other.creatorScore == creatorScore) &&
             (identical(other.opponentScore, opponentScore) ||
@@ -289,6 +292,151 @@ class _$ScoresImpl implements _Scores {
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(runtimeType, creatorScore, opponentScore);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$GameScoreImplCopyWith<_$GameScoreImpl> get copyWith =>
+      __$$GameScoreImplCopyWithImpl<_$GameScoreImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$GameScoreImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _GameScore implements GameScore {
+  const factory _GameScore(
+      {required final int creatorScore,
+      required final int opponentScore}) = _$GameScoreImpl;
+
+  factory _GameScore.fromJson(Map<String, dynamic> json) =
+      _$GameScoreImpl.fromJson;
+
+  @override
+  int get creatorScore;
+  @override
+  int get opponentScore;
+  @override
+  @JsonKey(ignore: true)
+  _$$GameScoreImplCopyWith<_$GameScoreImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+Scores _$ScoresFromJson(Map<String, dynamic> json) {
+  return _Scores.fromJson(json);
+}
+
+/// @nodoc
+mixin _$Scores {
+  List<GameScore> get games => throw _privateConstructorUsedError;
+
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  @JsonKey(ignore: true)
+  $ScoresCopyWith<Scores> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ScoresCopyWith<$Res> {
+  factory $ScoresCopyWith(Scores value, $Res Function(Scores) then) =
+      _$ScoresCopyWithImpl<$Res, Scores>;
+  @useResult
+  $Res call({List<GameScore> games});
+}
+
+/// @nodoc
+class _$ScoresCopyWithImpl<$Res, $Val extends Scores>
+    implements $ScoresCopyWith<$Res> {
+  _$ScoresCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? games = null,
+  }) {
+    return _then(_value.copyWith(
+      games: null == games
+          ? _value.games
+          : games // ignore: cast_nullable_to_non_nullable
+              as List<GameScore>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ScoresImplCopyWith<$Res> implements $ScoresCopyWith<$Res> {
+  factory _$$ScoresImplCopyWith(
+          _$ScoresImpl value, $Res Function(_$ScoresImpl) then) =
+      __$$ScoresImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({List<GameScore> games});
+}
+
+/// @nodoc
+class __$$ScoresImplCopyWithImpl<$Res>
+    extends _$ScoresCopyWithImpl<$Res, _$ScoresImpl>
+    implements _$$ScoresImplCopyWith<$Res> {
+  __$$ScoresImplCopyWithImpl(
+      _$ScoresImpl _value, $Res Function(_$ScoresImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? games = null,
+  }) {
+    return _then(_$ScoresImpl(
+      games: null == games
+          ? _value._games
+          : games // ignore: cast_nullable_to_non_nullable
+              as List<GameScore>,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ScoresImpl extends _Scores {
+  const _$ScoresImpl({required final List<GameScore> games})
+      : _games = games,
+        super._();
+
+  factory _$ScoresImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ScoresImplFromJson(json);
+
+  final List<GameScore> _games;
+  @override
+  List<GameScore> get games {
+    if (_games is EqualUnmodifiableListView) return _games;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_games);
+  }
+
+  @override
+  String toString() {
+    return 'Scores(games: $games)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ScoresImpl &&
+            const DeepCollectionEquality().equals(other._games, _games));
+  }
+
+  @JsonKey(ignore: true)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, const DeepCollectionEquality().hash(_games));
 
   @JsonKey(ignore: true)
   @override
@@ -304,17 +452,14 @@ class _$ScoresImpl implements _Scores {
   }
 }
 
-abstract class _Scores implements Scores {
-  const factory _Scores(
-      {required final int creatorScore,
-      required final int opponentScore}) = _$ScoresImpl;
+abstract class _Scores extends Scores {
+  const factory _Scores({required final List<GameScore> games}) = _$ScoresImpl;
+  const _Scores._() : super._();
 
   factory _Scores.fromJson(Map<String, dynamic> json) = _$ScoresImpl.fromJson;
 
   @override
-  int get creatorScore;
-  @override
-  int get opponentScore;
+  List<GameScore> get games;
   @override
   @JsonKey(ignore: true)
   _$$ScoresImplCopyWith<_$ScoresImpl> get copyWith =>

@@ -8,6 +8,9 @@ import '../../../../shared/repositories/users_repository.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../../../../shared/theme/app_colors.dart';
 
+// TODO: Set to false for production - allows creating proposals for current/past times
+const bool kAllowPastProposals = true;
+
 class CreateProposalPage extends ConsumerStatefulWidget {
   const CreateProposalPage({super.key});
 
@@ -463,7 +466,7 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime.now(),
+      firstDate: kAllowPastProposals ? DateTime.now().subtract(const Duration(days: 30)) : DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 90)),
       builder: (context, child) {
         return Theme(
@@ -509,7 +512,7 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
       );
 
       final now = DateTime.now();
-      if (selectedDateTime.isBefore(now)) {
+      if (!kAllowPastProposals && selectedDateTime.isBefore(now)) {
         // Show error for past time
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

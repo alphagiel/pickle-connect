@@ -219,16 +219,46 @@ class ProposalDetailsPage extends ConsumerWidget {
                   ],
                   
                   const SizedBox(height: 24),
-                  
+
                   // Status
                   _DetailSection(
                     title: 'Status',
                     icon: Icons.info,
                     child: _StatusInfo(status: proposal.status),
                   ),
-                  
+
+                  // Scores section (only for accepted/expired/completed matches with an opponent)
+                  if (proposal.acceptedBy != null &&
+                      (proposal.status == ProposalStatus.accepted ||
+                       proposal.status == ProposalStatus.expired ||
+                       proposal.status == ProposalStatus.completed)) ...[
+                    const SizedBox(height: 24),
+                    _buildScoresSection(context, ref, proposal, currentUser, isOwner),
+                  ],
+
                   const SizedBox(height: 40),
-                  
+
+                  // Unaccept button for the user who accepted
+                  if (!isOwner &&
+                      proposal.status == ProposalStatus.accepted &&
+                      proposal.acceptedBy?.userId == currentUser?.id) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showUnacceptDialog(context, ref, proposal),
+                        icon: const Icon(Icons.undo),
+                        label: const Text('Unaccept Match'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.warmOrange,
+                          side: const BorderSide(color: AppColors.warmOrange),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
                   // Action buttons for owner
                   if (isOwner) ...[
                     if (canEdit)
@@ -352,6 +382,503 @@ class ProposalDetailsPage extends ConsumerWidget {
             const SnackBar(
               content: Text('Proposal deleted successfully'),
               backgroundColor: AppColors.successGreen,
+            ),
+          );
+          context.go('/');
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: AppColors.errorRed,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _showUnacceptDialog(BuildContext context, WidgetRef ref, Proposal proposal) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Unaccept Match'),
+        content: const Text('Are you sure you want to unaccept this match? The proposal will become available for others to accept.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.warmOrange),
+            child: const Text('Unaccept'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        await ref.read(proposalActionsProvider).unacceptProposal(proposal.proposalId);
+        ref.invalidate(openProposalsProvider);
+        ref.invalidate(acceptedProposalsProvider);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Match unaccepted successfully'),
+              backgroundColor: AppColors.successGreen,
+            ),
+          );
+          context.go('/');
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: AppColors.errorRed,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Widget _buildScoresSection(BuildContext context, WidgetRef ref, Proposal proposal, dynamic currentUser, bool isOwner) {
+    final isAcceptor = proposal.acceptedBy?.userId == currentUser?.id;
+    final isParticipant = isOwner || isAcceptor;
+    final hasScores = proposal.scores != null;
+    final userConfirmed = proposal.scoreConfirmedBy.contains(currentUser?.id);
+    final bothConfirmed = proposal.scoreConfirmedBy.length >= 2;
+
+    return _DetailSection(
+      title: 'Match Scores',
+      icon: Icons.scoreboard,
+      child: Column(
+        children: [
+          if (!hasScores) ...[
+            // No scores yet - show record button for participants
+            if (isParticipant && proposal.status != ProposalStatus.completed)
+              Column(
+                children: [
+                  Text(
+                    'No scores recorded yet',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.secondaryText,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showRecordScoresDialog(context, ref, proposal),
+                      icon: const Icon(Icons.edit_note),
+                      label: const Text('Record Scores'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: AppColors.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Text(
+                'No scores recorded',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.secondaryText,
+                ),
+              ),
+          ] else ...[
+            // Scores exist - show them
+            _buildScoreDisplay(proposal),
+            const SizedBox(height: 16),
+
+            // Show confirmation status
+            if (bothConfirmed || proposal.status == ProposalStatus.completed) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.successGreen.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.successGreen.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.check_circle, color: AppColors.successGreen, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Scores confirmed by both players',
+                      style: TextStyle(
+                        color: AppColors.successGreen,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else if (userConfirmed) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.warmOrange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.warmOrange.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.hourglass_empty, color: AppColors.warmOrange, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Waiting for opponent to confirm',
+                      style: TextStyle(
+                        color: AppColors.warmOrange,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else if (isParticipant) ...[
+              // User hasn't confirmed yet - show confirm/reject buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _rejectScores(context, ref, proposal),
+                      icon: const Icon(Icons.close, size: 18),
+                      label: const Text('Reject'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.errorRed,
+                        side: const BorderSide(color: AppColors.errorRed),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _confirmScores(context, ref, proposal, currentUser?.id),
+                      icon: const Icon(Icons.check, size: 18),
+                      label: const Text('Confirm'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.successGreen,
+                        foregroundColor: AppColors.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScoreDisplay(Proposal proposal) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      decoration: BoxDecoration(
+        color: AppColors.accentBlue.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.accentBlue.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          // Creator score
+          Column(
+            children: [
+              Text(
+                proposal.creatorName,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.secondaryText,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${proposal.scores!.creatorScore}',
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryGreen,
+                ),
+              ),
+            ],
+          ),
+          // VS divider
+          Text(
+            '-',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w300,
+              color: AppColors.mediumGray,
+            ),
+          ),
+          // Opponent score
+          Column(
+            children: [
+              Text(
+                proposal.acceptedBy!.displayName,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.secondaryText,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${proposal.scores!.opponentScore}',
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.accentBlue,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRecordScoresDialog(BuildContext context, WidgetRef ref, Proposal proposal) {
+    int creatorScore = 0;
+    int opponentScore = 0;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Record Match Scores'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Enter the final scores for this match',
+                style: TextStyle(color: AppColors.secondaryText, fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+              // Creator score
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      proposal.creatorName,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          onPressed: creatorScore > 0
+                              ? () => setState(() => creatorScore--)
+                              : null,
+                          icon: const Icon(Icons.remove_circle_outline),
+                          color: AppColors.primaryGreen,
+                        ),
+                        Text(
+                          '$creatorScore',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => setState(() => creatorScore++),
+                          icon: const Icon(Icons.add_circle_outline),
+                          color: AppColors.primaryGreen,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(),
+              // Opponent score
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      proposal.acceptedBy!.displayName,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          onPressed: opponentScore > 0
+                              ? () => setState(() => opponentScore--)
+                              : null,
+                          icon: const Icon(Icons.remove_circle_outline),
+                          color: AppColors.accentBlue,
+                        ),
+                        Text(
+                          '$opponentScore',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => setState(() => opponentScore++),
+                          icon: const Icon(Icons.add_circle_outline),
+                          color: AppColors.accentBlue,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _saveScores(context, ref, proposal, creatorScore, opponentScore);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: AppColors.onPrimary,
+              ),
+              child: const Text('Save Scores'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveScores(BuildContext context, WidgetRef ref, Proposal proposal, int creatorScore, int opponentScore) async {
+    try {
+      await ref.read(proposalActionsProvider).updateScores(
+        proposal.proposalId,
+        creatorScore,
+        opponentScore,
+      );
+      ref.invalidate(openProposalsProvider);
+      ref.invalidate(userProposalsProvider);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Scores recorded! Waiting for opponent to confirm.'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+        // Refresh the page by navigating back
+        context.go('/');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmScores(BuildContext context, WidgetRef ref, Proposal proposal, String? userId) async {
+    if (userId == null) return;
+
+    try {
+      await ref.read(proposalActionsProvider).confirmScores(proposal.proposalId, userId);
+
+      // Check if both players have now confirmed (including the one we just added)
+      final updatedConfirmCount = proposal.scoreConfirmedBy.length + 1;
+      if (updatedConfirmCount >= 2) {
+        await ref.read(proposalActionsProvider).completeMatch(proposal.proposalId);
+      }
+
+      ref.invalidate(openProposalsProvider);
+      ref.invalidate(userProposalsProvider);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(updatedConfirmCount >= 2
+                ? 'Match completed! Scores confirmed by both players.'
+                : 'Scores confirmed! Waiting for opponent.'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+        context.go('/');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _rejectScores(BuildContext context, WidgetRef ref, Proposal proposal) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reject Scores'),
+        content: const Text('Are you sure you want to reject these scores? The scores will be cleared and can be re-entered.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.errorRed),
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        // Clear scores by setting them to null (we need a new method for this)
+        await ref.read(proposalActionsProvider).clearScores(proposal.proposalId);
+        ref.invalidate(openProposalsProvider);
+        ref.invalidate(userProposalsProvider);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Scores rejected. They can now be re-entered.'),
+              backgroundColor: AppColors.warmOrange,
             ),
           );
           context.go('/');

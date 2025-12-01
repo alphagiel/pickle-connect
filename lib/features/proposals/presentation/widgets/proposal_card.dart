@@ -64,7 +64,7 @@ class ProposalCard extends StatelessWidget {
                   const SizedBox(height: 16),
                   _buildExpiredMessage(),
                 ],
-                if (showActions && proposal.status == ProposalStatus.open) ...[
+                if (showActions && (proposal.status == ProposalStatus.open || proposal.status == ProposalStatus.accepted)) ...[
                   const SizedBox(height: 20),
                   _buildActionButtons(),
                 ],
@@ -281,6 +281,9 @@ class ProposalCard extends StatelessWidget {
   }
 
   Widget _buildActionButtons() {
+    // Determine if we should show the second button (Accept/Delete)
+    final showSecondButton = onDelete != null || (onAccept != null && proposal.status == ProposalStatus.open);
+
     return Row(
       children: [
         // View button
@@ -299,41 +302,43 @@ class ProposalCard extends StatelessWidget {
             ),
           ),
         ),
-        
-        const SizedBox(width: 12),
-        
-        // Accept or Delete button
-        Expanded(
-          child: onDelete != null
-              ? ElevatedButton.icon(
-                  onPressed: onDelete,
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  label: const Text('Delete'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.errorRed,
-                    foregroundColor: AppColors.onPrimary,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+
+        if (showSecondButton) ...[
+          const SizedBox(width: 12),
+
+          // Accept or Delete button
+          Expanded(
+            child: onDelete != null
+                ? ElevatedButton.icon(
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Delete'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.errorRed,
+                      foregroundColor: AppColors.onPrimary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                )
-              : ElevatedButton.icon(
-                  onPressed: onAccept,
-                  icon: const Icon(Icons.sports_tennis, size: 18),
-                  label: const Text('Accept'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryGreen,
-                    foregroundColor: AppColors.onPrimary,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  )
+                : ElevatedButton.icon(
+                    onPressed: onAccept,
+                    icon: const Icon(Icons.sports_tennis, size: 18),
+                    label: const Text('Accept'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: AppColors.onPrimary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                ),
-        ),
+          ),
+        ],
       ],
     );
   }

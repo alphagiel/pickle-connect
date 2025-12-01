@@ -165,8 +165,8 @@ class ProposalActions {
     await _repository.unacceptProposal(proposalId);
   }
 
-  Future<void> updateScores(String proposalId, int creatorScore, int opponentScore) async {
-    await _repository.updateScores(proposalId, creatorScore, opponentScore);
+  Future<void> updateScores(String proposalId, List<Map<String, int>> games) async {
+    await _repository.updateScores(proposalId, games);
   }
 
   Future<void> confirmScores(String proposalId, String userId) async {
@@ -197,5 +197,9 @@ class ProposalActions {
       location: location,
       dateTime: dateTime,
     );
+  }
+
+  Future<void> clearScores(String proposalId) async {
+    await _repository.clearScores(proposalId);
   }
 }
