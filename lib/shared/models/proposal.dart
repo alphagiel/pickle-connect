@@ -6,7 +6,7 @@ part 'proposal.freezed.dart';
 part 'proposal.g.dart';
 
 // TODO: Set to false for production - disables auto-expiration of past proposals
-const bool kDisableAutoExpire = true;
+const bool kDisableAutoExpire = false;
 
 enum ProposalStatus {
   @JsonValue('open')
@@ -44,22 +44,30 @@ extension ProposalLifecycle on Proposal {
     return DateTime.now().isAfter(dateTime);
   }
 
-  /// Check if proposal should be marked as expired (past due immediately)
+  /// Check if proposal should be marked as expired (past due AND no scores)
   bool get shouldExpire {
     if (kDisableAutoExpire) return false; // Testing toggle
     if (!isPastDue) return false;
-    // Expire immediately when past due (not after 1 day)
+    if (scores != null) return false; // Has scores = not expired, it's completed
+    // Expire only if past due AND no scores recorded
     return (status == ProposalStatus.open || status == ProposalStatus.accepted);
   }
 
-  /// Check if proposal should be auto-completed (2 days past due)
-  bool get shouldAutoComplete {
-    if (!isPastDue) return false;
-    final daysPastDue = DateTime.now().difference(dateTime).inDays;
-    return daysPastDue >= 2 && status == ProposalStatus.expired;
+  /// Check if proposal should be marked as completed (has scores)
+  bool get shouldComplete {
+    return scores != null && status != ProposalStatus.completed;
   }
 
-  /// Check if proposal should be deleted (7 days past due)
+  /// Check if accepted proposal should auto-complete (past due, no scores entered)
+  /// These matches are marked completed but don't count towards rankings
+  bool get shouldAutoComplete {
+    if (kDisableAutoExpire) return false;
+    if (!isPastDue) return false;
+    if (scores != null) return false; // Already has scores
+    return status == ProposalStatus.accepted;
+  }
+
+  /// Check if proposal should be deleted (7 days past due and completed)
   bool get shouldDelete {
     if (!isPastDue) return false;
     final daysPastDue = DateTime.now().difference(dateTime).inDays;

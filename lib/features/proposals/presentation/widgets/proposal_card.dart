@@ -64,6 +64,10 @@ class ProposalCard extends StatelessWidget {
                   const SizedBox(height: 16),
                   _buildExpiredMessage(),
                 ],
+                if (proposal.status == ProposalStatus.completed && proposal.scores == null) ...[
+                  const SizedBox(height: 16),
+                  _buildNoScoresMessage(),
+                ],
                 if (showActions && (proposal.status == ProposalStatus.open || proposal.status == ProposalStatus.accepted)) ...[
                   const SizedBox(height: 20),
                   _buildActionButtons(),
@@ -125,7 +129,7 @@ class ProposalCard extends StatelessWidget {
   Widget _buildStatusBadge() {
     Color statusColor;
     Color backgroundColor;
-    
+
     switch (proposal.status) {
       case ProposalStatus.open:
         statusColor = AppColors.openStatus;
@@ -149,20 +153,35 @@ class ProposalCard extends StatelessWidget {
         break;
     }
 
+    // Show score instead of "Accepted" when scores exist
+    final hasScores = proposal.scores != null;
+    final displayText = hasScores
+        ? proposal.scores!.matchScore  // e.g., "2-1"
+        : proposal.status.displayName.toUpperCase();
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: hasScores ? AppColors.completedStatusLight : backgroundColor,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Text(
-        proposal.status.displayName.toUpperCase(),
-        style: TextStyle(
-          color: statusColor,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasScores) ...[
+            Icon(Icons.scoreboard, size: 14, color: AppColors.completedStatus),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            displayText,
+            style: TextStyle(
+              color: hasScores ? AppColors.completedStatus : statusColor,
+              fontSize: hasScores ? 14 : 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -214,8 +233,11 @@ class ProposalCard extends StatelessWidget {
           ],
         ),
         
-        // Show accepted by if applicable
-        if (proposal.acceptedBy != null) ...[
+        // Show match result if scores exist, otherwise show accepted by
+        if (proposal.scores != null && proposal.acceptedBy != null) ...[
+          const SizedBox(height: 12),
+          _buildMatchResult(),
+        ] else if (proposal.acceptedBy != null) ...[
           const SizedBox(height: 12),
           Row(
             children: [
@@ -281,8 +303,12 @@ class ProposalCard extends StatelessWidget {
   }
 
   Widget _buildActionButtons() {
+    // Hide delete button if scores have been recorded
+    final hasScores = proposal.scores != null;
+    final canDelete = onDelete != null && !hasScores;
+
     // Determine if we should show the second button (Accept/Delete)
-    final showSecondButton = onDelete != null || (onAccept != null && proposal.status == ProposalStatus.open);
+    final showSecondButton = canDelete || (onAccept != null && proposal.status == ProposalStatus.open);
 
     return Row(
       children: [
@@ -308,7 +334,7 @@ class ProposalCard extends StatelessWidget {
 
           // Accept or Delete button
           Expanded(
-            child: onDelete != null
+            child: canDelete
                 ? ElevatedButton.icon(
                     onPressed: onDelete,
                     icon: const Icon(Icons.delete_outline, size: 18),
@@ -395,6 +421,49 @@ class ProposalCard extends StatelessWidget {
     );
   }
 
+  Widget _buildNoScoresMessage() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.mediumGray.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.mediumGray.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.sports_tennis_outlined,
+            color: AppColors.secondaryText,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'No scores entered',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.secondaryText,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Tooltip(
+            message: 'This match did not count towards ranking because no scores were entered by the players involved.',
+            child: Icon(
+              Icons.info_outline,
+              color: AppColors.secondaryText,
+              size: 18,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Color _getSkillLevelColor(SkillLevel skillLevel) {
     switch (skillLevel) {
       case SkillLevel.beginner:
@@ -404,5 +473,51 @@ class ProposalCard extends StatelessWidget {
       case SkillLevel.advancedPlus:
         return AppColors.advancedColor;
     }
+  }
+
+  Widget _buildMatchResult() {
+    final scores = proposal.scores!;
+    final creatorWon = scores.creatorGamesWon > scores.opponentGamesWon;
+    final winnerName = creatorWon ? proposal.creatorName : proposal.acceptedBy!.displayName;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.successGreen.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.successGreen.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.emoji_events,
+            size: 20,
+            color: AppColors.warmOrange,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(fontSize: 15, color: AppColors.primaryText),
+                children: [
+                  TextSpan(
+                    text: winnerName,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const TextSpan(text: ' won  '),
+                  TextSpan(
+                    text: scores.matchScore,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.successGreen,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

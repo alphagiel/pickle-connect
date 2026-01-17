@@ -276,21 +276,24 @@ class ProposalDetailsPage extends ConsumerWidget {
                           ),
                         ),
                       ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => _showDeleteDialog(context, ref, proposal),
-                        icon: const Icon(Icons.delete_outline),
-                        label: const Text('Delete Proposal'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.errorRed,
-                          side: const BorderSide(color: AppColors.errorRed),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    // Hide delete button if scores have been recorded
+                    if (proposal.scores == null) ...[
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _showDeleteDialog(context, ref, proposal),
+                          icon: const Icon(Icons.delete_outline),
+                          label: const Text('Delete Proposal'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.errorRed,
+                            side: const BorderSide(color: AppColors.errorRed),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ],
               ),
@@ -460,7 +463,7 @@ class ProposalDetailsPage extends ConsumerWidget {
       child: Column(
         children: [
           if (!hasScores) ...[
-            // No scores yet - show record button for participants
+            // No scores yet - show record button for participants (if not completed)
             if (isParticipant && proposal.status != ProposalStatus.completed)
               Column(
                 children: [
@@ -487,6 +490,44 @@ class ProposalDetailsPage extends ConsumerWidget {
                     ),
                   ),
                 ],
+              )
+            else if (proposal.status == ProposalStatus.completed)
+              // Completed but no scores - show info message
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.mediumGray.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.mediumGray.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.sports_tennis_outlined,
+                      color: AppColors.secondaryText,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'No scores entered',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.secondaryText,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    Tooltip(
+                      message: 'This match did not count towards ranking because no scores were entered by the players involved.',
+                      child: Icon(
+                        Icons.info_outline,
+                        color: AppColors.secondaryText,
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                ),
               )
             else
               Text(
@@ -589,201 +630,432 @@ class ProposalDetailsPage extends ConsumerWidget {
   }
 
   Widget _buildScoreDisplay(Proposal proposal) {
+    final scores = proposal.scores!;
+    final creatorWon = scores.creatorGamesWon > scores.opponentGamesWon;
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.accentBlue.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.accentBlue.withValues(alpha: 0.2)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: Column(
         children: [
-          // Creator score
-          Column(
+          // Match result header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              Text(
-                proposal.creatorName,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.secondaryText,
-                  fontWeight: FontWeight.w500,
+              // Creator
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      proposal.creatorName,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.secondaryText,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${scores.creatorGamesWon}',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: creatorWon ? AppColors.successGreen : AppColors.primaryGreen,
+                      ),
+                    ),
+                    if (creatorWon)
+                      Text('WINNER', style: TextStyle(fontSize: 10, color: AppColors.successGreen, fontWeight: FontWeight.bold)),
+                  ],
                 ),
               ),
-              const SizedBox(height: 4),
+              // VS
               Text(
-                '${proposal.scores!.creatorScore}',
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryGreen,
+                '-',
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, color: AppColors.mediumGray),
+              ),
+              // Opponent
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      proposal.acceptedBy!.displayName,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.secondaryText,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${scores.opponentGamesWon}',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: !creatorWon ? AppColors.successGreen : AppColors.accentBlue,
+                      ),
+                    ),
+                    if (!creatorWon)
+                      Text('WINNER', style: TextStyle(fontSize: 10, color: AppColors.successGreen, fontWeight: FontWeight.bold)),
+                  ],
                 ),
               ),
             ],
           ),
-          // VS divider
-          Text(
-            '-',
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w300,
-              color: AppColors.mediumGray,
-            ),
-          ),
-          // Opponent score
-          Column(
-            children: [
-              Text(
-                proposal.acceptedBy!.displayName,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.secondaryText,
-                  fontWeight: FontWeight.w500,
-                ),
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 8),
+          // Individual game scores
+          Text('Game Scores', style: TextStyle(fontSize: 12, color: AppColors.secondaryText, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          ...scores.games.asMap().entries.map((entry) {
+            final index = entry.key;
+            final game = entry.value;
+            final creatorWonGame = game.creatorScore > game.opponentScore;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Game ${index + 1}: ',
+                    style: TextStyle(fontSize: 14, color: AppColors.secondaryText),
+                  ),
+                  Text(
+                    '${game.creatorScore}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: creatorWonGame ? AppColors.successGreen : AppColors.primaryText,
+                    ),
+                  ),
+                  Text(' - ', style: TextStyle(fontSize: 16, color: AppColors.mediumGray)),
+                  Text(
+                    '${game.opponentScore}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: !creatorWonGame ? AppColors.successGreen : AppColors.primaryText,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                '${proposal.scores!.opponentScore}',
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.accentBlue,
-                ),
-              ),
-            ],
-          ),
+            );
+          }),
         ],
       ),
     );
   }
 
   void _showRecordScoresDialog(BuildContext context, WidgetRef ref, Proposal proposal) {
-    int creatorScore = 0;
-    int opponentScore = 0;
+    // Best of 3 games - use TextEditingControllers for text input
+    final controllers = List.generate(3, (_) => [TextEditingController(), TextEditingController()]);
+
+    int _getScore(TextEditingController c) => int.tryParse(c.text) ?? 0;
+
+    // A game is "decided" when at least one player has a score AND scores are different
+    // This allows scores like 11-0 to be valid
+    bool _isGameDecided(List<TextEditingController> game) {
+      final c = _getScore(game[0]);
+      final o = _getScore(game[1]);
+      final hasScore = c > 0 || o > 0; // At least one score entered (not 0-0)
+      return hasScore && c != o;
+    }
+
+    int _getCreatorGamesWon(List<List<TextEditingController>> ctrls) {
+      int won = 0;
+      for (final game in ctrls) {
+        if (_isGameDecided(game) && _getScore(game[0]) > _getScore(game[1])) won++;
+      }
+      return won;
+    }
+
+    int _getOpponentGamesWon(List<List<TextEditingController>> ctrls) {
+      int won = 0;
+      for (final game in ctrls) {
+        if (_isGameDecided(game) && _getScore(game[1]) > _getScore(game[0])) won++;
+      }
+      return won;
+    }
+
+    bool _isMatchComplete(List<List<TextEditingController>> ctrls) {
+      return _getCreatorGamesWon(ctrls) >= 2 || _getOpponentGamesWon(ctrls) >= 2;
+    }
+
+    bool _needsGame3(List<List<TextEditingController>> ctrls) {
+      // Game 3 is needed if each player has won 1 game
+      return _getCreatorGamesWon(ctrls) == 1 && _getOpponentGamesWon(ctrls) == 1;
+    }
+
+    bool _hasGame3Started(List<List<TextEditingController>> ctrls) {
+      return _getScore(ctrls[2][0]) > 0 || _getScore(ctrls[2][1]) > 0;
+    }
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Record Match Scores'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Enter the final scores for this match',
-                style: TextStyle(color: AppColors.secondaryText, fontSize: 14),
-              ),
-              const SizedBox(height: 24),
-              // Creator score
-              Row(
+        builder: (context, setState) {
+          final creatorGamesWon = _getCreatorGamesWon(controllers);
+          final opponentGamesWon = _getOpponentGamesWon(controllers);
+          final matchComplete = _isMatchComplete(controllers);
+          final needsGame3 = _needsGame3(controllers);
+          final game3Started = _hasGame3Started(controllers);
+
+          return AlertDialog(
+            title: const Text('Record Match Scores'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      proposal.creatorName,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  Text(
+                    'Enter scores for each game (Best of 3)',
+                    style: TextStyle(color: AppColors.secondaryText, fontSize: 14),
                   ),
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                  const SizedBox(height: 4),
+                  Text(
+                    'First to win 2 games wins the match',
+                    style: TextStyle(color: AppColors.secondaryText, fontSize: 12),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Header row
+                  Row(
+                    children: [
+                      const SizedBox(width: 70),
+                      Expanded(
+                        child: Text(
+                          proposal.creatorName,
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.primaryGreen),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          proposal.acceptedBy!.displayName,
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.accentBlue),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Game 1
+                  _buildGameScoreInputRow(
+                    gameNumber: 1,
+                    creatorController: controllers[0][0],
+                    opponentController: controllers[0][1],
+                    onChanged: () => setState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Game 2
+                  _buildGameScoreInputRow(
+                    gameNumber: 2,
+                    creatorController: controllers[1][0],
+                    opponentController: controllers[1][1],
+                    onChanged: () => setState(() {}),
+                  ),
+
+                  // Game 3 - always show, never disable to avoid input issues
+                  const SizedBox(height: 12),
+                  _buildGameScoreInputRow(
+                    gameNumber: 3,
+                    creatorController: controllers[2][0],
+                    opponentController: controllers[2][1],
+                    onChanged: () => setState(() {}),
+                    isOptional: !needsGame3 && !game3Started,
+                    isDisabled: false, // Never disable - let save button validation handle it
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Match summary
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: matchComplete
+                          ? AppColors.successGreen.withValues(alpha: 0.1)
+                          : AppColors.warmOrange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
                       children: [
-                        IconButton(
-                          onPressed: creatorScore > 0
-                              ? () => setState(() => creatorScore--)
-                              : null,
-                          icon: const Icon(Icons.remove_circle_outline),
-                          color: AppColors.primaryGreen,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Match: ', style: TextStyle(fontWeight: FontWeight.w500)),
+                            Text(
+                              '$creatorGamesWon - $opponentGamesWon',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: matchComplete ? AppColors.successGreen : AppColors.warmOrange,
+                              ),
+                            ),
+                            if (matchComplete) ...[
+                              const SizedBox(width: 8),
+                              Icon(Icons.check_circle, color: AppColors.successGreen, size: 22),
+                            ],
+                          ],
                         ),
-                        Text(
-                          '$creatorScore',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                        if (!matchComplete)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              'Enter scores until someone wins 2 games',
+                              style: TextStyle(fontSize: 11, color: AppColors.warmOrange),
+                            ),
                           ),
-                        ),
-                        IconButton(
-                          onPressed: () => setState(() => creatorScore++),
-                          icon: const Icon(Icons.add_circle_outline),
-                          color: AppColors.primaryGreen,
-                        ),
                       ],
                     ),
                   ),
                 ],
               ),
-              const Divider(),
-              // Opponent score
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      proposal.acceptedBy!.displayName,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        IconButton(
-                          onPressed: opponentScore > 0
-                              ? () => setState(() => opponentScore--)
-                              : null,
-                          icon: const Icon(Icons.remove_circle_outline),
-                          color: AppColors.accentBlue,
-                        ),
-                        Text(
-                          '$opponentScore',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => setState(() => opponentScore++),
-                          icon: const Icon(Icons.add_circle_outline),
-                          color: AppColors.accentBlue,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  for (final game in controllers) {
+                    game[0].dispose();
+                    game[1].dispose();
+                  }
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: matchComplete
+                    ? () async {
+                        final gameScores = controllers
+                            .map((g) => [_getScore(g[0]), _getScore(g[1])])
+                            .toList();
+                        for (final game in controllers) {
+                          game[0].dispose();
+                          game[1].dispose();
+                        }
+                        Navigator.of(context).pop();
+                        await _saveScores(context, ref, proposal, gameScores);
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: AppColors.onPrimary,
+                ),
+                child: const Text('Save Scores'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                await _saveScores(context, ref, proposal, creatorScore, opponentScore);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
-                foregroundColor: AppColors.onPrimary,
-              ),
-              child: const Text('Save Scores'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  Future<void> _saveScores(BuildContext context, WidgetRef ref, Proposal proposal, int creatorScore, int opponentScore) async {
+  Widget _buildGameScoreInputRow({
+    required int gameNumber,
+    required TextEditingController creatorController,
+    required TextEditingController opponentController,
+    required VoidCallback onChanged,
+    bool isOptional = false,
+    bool isDisabled = false,
+  }) {
+    return Opacity(
+      opacity: isDisabled ? 0.4 : 1.0,
+      child: Row(
+        children: [
+          SizedBox(
+            width: 70,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Game $gameNumber',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+                if (isOptional)
+                  Text(
+                    '(if needed)',
+                    style: TextStyle(fontSize: 10, color: AppColors.secondaryText),
+                  ),
+              ],
+            ),
+          ),
+          // Creator score input
+          Expanded(
+            child: TextField(
+              key: ValueKey('game${gameNumber}_creator'),
+              controller: creatorController,
+              enabled: !isDisabled,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              maxLength: 2,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
+              decoration: InputDecoration(
+                hintText: '0',
+                counterText: '', // Hide character counter
+                hintStyle: TextStyle(color: AppColors.mediumGray),
+                contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
+                ),
+              ),
+              onChanged: (_) => onChanged(),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text('-', style: TextStyle(fontSize: 20, color: AppColors.mediumGray)),
+          ),
+          // Opponent score input
+          Expanded(
+            child: TextField(
+              key: ValueKey('game${gameNumber}_opponent'),
+              controller: opponentController,
+              enabled: !isDisabled,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              maxLength: 2,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.accentBlue),
+              decoration: InputDecoration(
+                hintText: '0',
+                counterText: '', // Hide character counter
+                hintStyle: TextStyle(color: AppColors.mediumGray),
+                contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.accentBlue, width: 2),
+                ),
+              ),
+              onChanged: (_) => onChanged(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveScores(BuildContext context, WidgetRef ref, Proposal proposal, List<List<int>> gameScores) async {
     try {
-      await ref.read(proposalActionsProvider).updateScores(
-        proposal.proposalId,
-        creatorScore,
-        opponentScore,
-      );
+      // Convert to the format expected by repository
+      final games = gameScores
+          .where((g) => g[0] > 0 || g[1] > 0) // Only include games that were played
+          .map((g) => {'creatorScore': g[0], 'opponentScore': g[1]})
+          .toList();
+
+      await ref.read(proposalActionsProvider).updateScores(proposal.proposalId, games);
       ref.invalidate(openProposalsProvider);
       ref.invalidate(userProposalsProvider);
 
@@ -794,7 +1066,6 @@ class ProposalDetailsPage extends ConsumerWidget {
             backgroundColor: AppColors.successGreen,
           ),
         );
-        // Refresh the page by navigating back
         context.go('/');
       }
     } catch (e) {

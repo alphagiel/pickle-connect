@@ -30,7 +30,7 @@ class ProposalsRepository {
     return _firestore
         .collection(_collection)
         .where('skillLevels', arrayContains: skillLevelValue)
-        .where('status', whereIn: ['open', 'accepted', 'expired'])
+        .where('status', isEqualTo: 'open')
         .orderBy('dateTime')
         .snapshots()
         .map((snapshot) => snapshot.docs
@@ -64,11 +64,11 @@ class ProposalsRepository {
             ..sort(_sortProposals));
   }
 
-  // Get all open proposals
+  // Get all open proposals (only status = 'open')
   Stream<List<Proposal>> getOpenProposals() {
     return _firestore
         .collection(_collection)
-        .where('status', whereIn: ['open', 'accepted', 'expired'])
+        .where('status', isEqualTo: 'open')
         .orderBy('dateTime')
         .snapshots()
         .map((snapshot) => snapshot.docs
@@ -169,6 +169,64 @@ class ProposalsRepository {
             ..sort(_sortProposals));
   }
 
+  // Get completed proposals where user is creator or acceptor
+  Stream<List<Proposal>> getCompletedProposals(String userId) {
+    // Query all completed proposals and filter client-side
+    return _firestore
+        .collection(_collection)
+        .where('status', isEqualTo: 'completed')
+        .snapshots()
+        .map((snapshot) {
+          final proposals = <Proposal>[];
+          for (final doc in snapshot.docs) {
+            try {
+              final data = Map<String, dynamic>.from(doc.data());
+              data['proposalId'] = doc.id;
+              final proposal = Proposal.fromJson(data);
+              if (proposal != null) {
+                // Filter: user is either creator or acceptor
+                if (proposal.creatorId == userId || proposal.acceptedBy?.userId == userId) {
+                  proposals.add(proposal);
+                }
+              }
+            } catch (e) {
+              print('Error parsing completed proposal: $e');
+            }
+          }
+          proposals.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+          return proposals;
+        });
+  }
+
+  // Get expired proposals where user is creator or acceptor
+  Stream<List<Proposal>> getExpiredProposals(String userId) {
+    // Query all expired proposals and filter client-side
+    return _firestore
+        .collection(_collection)
+        .where('status', isEqualTo: 'expired')
+        .snapshots()
+        .map((snapshot) {
+          final proposals = <Proposal>[];
+          for (final doc in snapshot.docs) {
+            try {
+              final data = Map<String, dynamic>.from(doc.data());
+              data['proposalId'] = doc.id;
+              final proposal = Proposal.fromJson(data);
+              if (proposal != null) {
+                // Filter: user is either creator or acceptor
+                if (proposal.creatorId == userId || proposal.acceptedBy?.userId == userId) {
+                  proposals.add(proposal);
+                }
+              }
+            } catch (e) {
+              print('Error parsing expired proposal: $e');
+            }
+          }
+          proposals.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+          return proposals;
+        });
+  }
+
   // Create new proposal
   Future<void> createProposal(Proposal proposal) async {
     print('=== Creating proposal ===');
@@ -251,12 +309,13 @@ class ProposalsRepository {
     });
   }
 
-  // Update scores with per-game results (best of 3)
+  // Update scores with per-game results (best of 3) and mark as completed
   Future<void> updateScores(String proposalId, List<Map<String, int>> games) async {
     await _firestore.collection(_collection).doc(proposalId).update({
       'scores': {
         'games': games,
       },
+      'status': 'completed', // Auto-complete when scores are recorded
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

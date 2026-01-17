@@ -25,7 +25,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
 
     // Listen to tab changes to update filter visibility
     _tabController.addListener(() {
@@ -194,6 +194,8 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
                       ),
                       child: TabBar(
                         controller: _tabController,
+                        isScrollable: true,
+                        tabAlignment: TabAlignment.start,
                         indicator: BoxDecoration(
                           color: AppColors.onPrimary,
                           borderRadius: BorderRadius.circular(12),
@@ -202,11 +204,14 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
                         indicatorColor: Colors.transparent,
                         labelColor: AppColors.primaryGreen,
                         unselectedLabelColor: const Color.fromARGB(255, 221, 222, 221).withValues(alpha: 0.7),
-                        labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-                        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 16),
                         tabs: const [
                           Tab(text: 'Available'),
                           Tab(text: 'My Proposals'),
+                          Tab(text: 'Completed'),
+                          Tab(text: 'Expired'),
                         ],
                       ),
                     ),
@@ -231,6 +236,8 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
               children: [
                 _buildAvailableProposals(selectedSkillLevel),
                 _buildMyProposals(),
+                _buildCompletedProposals(),
+                _buildExpiredProposals(),
               ],
             ),
           ),
@@ -342,10 +349,121 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
     );
   }
 
+  Widget _buildCompletedProposals() {
+    final currentUser = ref.watch(currentUserProvider);
+    if (currentUser == null) {
+      return _buildEmptyState(
+        icon: Icons.login_outlined,
+        title: 'Please log in',
+        subtitle: 'You need to be logged in to view completed matches',
+      );
+    }
+
+    final proposalsAsync = ref.watch(completedProposalsProvider(currentUser.id));
+
+    return proposalsAsync.when(
+      data: (proposals) {
+        if (proposals.isEmpty) {
+          return _buildEmptyState(
+            icon: Icons.emoji_events_outlined,
+            title: 'No completed matches',
+            subtitle: 'Your completed matches will appear here',
+            showCreateButton: false,
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(completedProposalsProvider(currentUser.id));
+          },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: proposals.length,
+            itemBuilder: (context, index) {
+              final proposal = proposals[index];
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: ProposalCard(
+                  proposal: proposal,
+                  showActions: true,
+                  onView: () => _viewProposal(proposal),
+                ),
+              );
+            },
+          ),
+        );
+      },
+      loading: () => const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+        ),
+      ),
+      error: (error, stack) => _buildErrorState(error.toString()),
+    );
+  }
+
+  Widget _buildExpiredProposals() {
+    final currentUser = ref.watch(currentUserProvider);
+    if (currentUser == null) {
+      return _buildEmptyState(
+        icon: Icons.login_outlined,
+        title: 'Please log in',
+        subtitle: 'You need to be logged in to view expired matches',
+      );
+    }
+
+    final proposalsAsync = ref.watch(expiredProposalsProvider(currentUser.id));
+
+    return proposalsAsync.when(
+      data: (proposals) {
+        if (proposals.isEmpty) {
+          return _buildEmptyState(
+            icon: Icons.history_outlined,
+            title: 'No expired matches',
+            subtitle: 'Expired matches will appear here',
+            showCreateButton: false,
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(expiredProposalsProvider(currentUser.id));
+          },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: proposals.length,
+            itemBuilder: (context, index) {
+              final proposal = proposals[index];
+              final isOwner = currentUser.id == proposal.creatorId;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: ProposalCard(
+                  proposal: proposal,
+                  showActions: true,
+                  onDelete: isOwner ? () => _deleteProposal(proposal) : null,
+                  onView: () => _viewProposal(proposal),
+                ),
+              );
+            },
+          ),
+        );
+      },
+      loading: () => const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+        ),
+      ),
+      error: (error, stack) => _buildErrorState(error.toString()),
+    );
+  }
+
   Widget _buildEmptyState({
     required IconData icon,
     required String title,
     required String subtitle,
+    bool showCreateButton = true,
   }) {
     return Center(
       child: Padding(
@@ -377,20 +495,22 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: _navigateToCreateProposal,
-              icon: const Icon(Icons.add),
-              label: const Text('Create Proposal'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
-                foregroundColor: AppColors.onPrimary,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            if (showCreateButton) ...[
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: _navigateToCreateProposal,
+                icon: const Icon(Icons.add),
+                label: const Text('Create Proposal'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: AppColors.onPrimary,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),

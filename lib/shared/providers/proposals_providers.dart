@@ -33,6 +33,18 @@ final acceptedProposalsProvider = StreamProvider.family<List<Proposal>, String>(
   return repository.getAcceptedProposals(userId);
 });
 
+// Provider for completed proposals (user involved as creator or acceptor)
+final completedProposalsProvider = StreamProvider.family<List<Proposal>, String>((ref, userId) {
+  final repository = ref.watch(proposalsRepositoryProvider);
+  return repository.getCompletedProposals(userId);
+});
+
+// Provider for expired proposals (user involved as creator or acceptor)
+final expiredProposalsProvider = StreamProvider.family<List<Proposal>, String>((ref, userId) {
+  final repository = ref.watch(proposalsRepositoryProvider);
+  return repository.getExpiredProposals(userId);
+});
+
 // Provider for selected skill level filter
 final selectedSkillLevelProvider = StateProvider<SkillLevel>((ref) => SkillLevel.intermediate);
 
