@@ -108,14 +108,13 @@ class ProposalDetailsPage extends ConsumerWidget {
                   
                   const SizedBox(height: 24),
                   
-                  // Skill Levels
+                  // Skill Level
                   _DetailSection(
-                    title: 'Skill Levels',
+                    title: 'Skill Level',
                     icon: Icons.group,
-                    child: Wrap(
-                      spacing: 12,
-                      runSpacing: 8,
-                      children: proposal.skillLevels.map((skillLevel) {
+                    child: Builder(
+                      builder: (context) {
+                        final skillLevel = proposal.skillLevel;
                         final color = _getSkillLevelColor(skillLevel);
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -133,7 +132,7 @@ class ProposalDetailsPage extends ConsumerWidget {
                             ),
                           ),
                         );
-                      }).toList(),
+                      },
                     ),
                   ),
                   

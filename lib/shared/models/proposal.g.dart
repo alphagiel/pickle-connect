@@ -46,9 +46,7 @@ _$ProposalImpl _$$ProposalImplFromJson(Map<String, dynamic> json) =>
       proposalId: json['proposalId'] as String,
       creatorId: json['creatorId'] as String,
       creatorName: json['creatorName'] as String,
-      skillLevels: (json['skillLevels'] as List<dynamic>)
-          .map((e) => $enumDecode(_$SkillLevelEnumMap, e))
-          .toList(),
+      skillLevel: $enumDecode(_$SkillLevelEnumMap, json['skillLevel']),
       location: json['location'] as String,
       dateTime: _timestampFromJson(json['dateTime']),
       status: $enumDecode(_$ProposalStatusEnumMap, json['status']),
@@ -71,8 +69,7 @@ Map<String, dynamic> _$$ProposalImplToJson(_$ProposalImpl instance) =>
       'proposalId': instance.proposalId,
       'creatorId': instance.creatorId,
       'creatorName': instance.creatorName,
-      'skillLevels':
-          instance.skillLevels.map((e) => _$SkillLevelEnumMap[e]!).toList(),
+      'skillLevel': _$SkillLevelEnumMap[instance.skillLevel]!,
       'location': instance.location,
       'dateTime': _timestampToJson(instance.dateTime),
       'status': _$ProposalStatusEnumMap[instance.status]!,

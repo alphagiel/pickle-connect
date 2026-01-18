@@ -63,7 +63,7 @@ class ProposalCard extends StatelessWidget {
                 const SizedBox(height: 16),
                 _buildMatchDetails(),
                 const SizedBox(height: 16),
-                _buildSkillLevels(),
+                _buildSkillLevel(),
                 if (isExpired) ...[
                   const SizedBox(height: 16),
                   _buildExpiredMessage(),
@@ -266,7 +266,8 @@ class ProposalCard extends StatelessWidget {
     );
   }
 
-  Widget _buildSkillLevels() {
+  Widget _buildSkillLevel() {
+    final skillLevel = proposal.skillLevel;
     return Row(
       children: [
         Icon(
@@ -275,31 +276,23 @@ class ProposalCard extends StatelessWidget {
           color: AppColors.softPurple,
         ),
         const SizedBox(width: 8),
-        Expanded(
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: proposal.skillLevels.map((skillLevel) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _getSkillLevelColor(skillLevel).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _getSkillLevelColor(skillLevel).withValues(alpha: 0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  skillLevel.displayName,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: _getSkillLevelColor(skillLevel),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              );
-            }).toList(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: _getSkillLevelColor(skillLevel).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _getSkillLevelColor(skillLevel).withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            skillLevel.displayName,
+            style: TextStyle(
+              fontSize: 12,
+              color: _getSkillLevelColor(skillLevel),
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],

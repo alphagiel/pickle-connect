@@ -25,7 +25,6 @@ class _EditProposalPageState extends ConsumerState<EditProposalPage> {
   
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
-  late List<SkillLevel> _selectedSkillLevels;
   bool _isLoading = false;
 
   @override
@@ -38,7 +37,6 @@ class _EditProposalPageState extends ConsumerState<EditProposalPage> {
       hour: widget.proposal.dateTime.hour,
       minute: widget.proposal.dateTime.minute,
     );
-    _selectedSkillLevels = List.from(widget.proposal.skillLevels);
   }
 
   @override
@@ -267,74 +265,6 @@ class _EditProposalPageState extends ConsumerState<EditProposalPage> {
                       }
                       return null;
                     },
-                  ),
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Skill Levels Section
-                _buildSectionCard(
-                  title: 'What skill levels are you open to?',
-                  icon: Icons.group,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Select all that apply:',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.secondaryText,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 8,
-                        children: SkillLevel.values.map((skillLevel) {
-                          final isSelected = _selectedSkillLevels.contains(skillLevel);
-                          return FilterChip(
-                            label: Text(
-                              skillLevel.displayName,
-                              style: TextStyle(
-                                color: isSelected ? AppColors.onPrimary : AppColors.primaryText,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
-                            selected: isSelected,
-                            onSelected: (selected) {
-                              setState(() {
-                                if (selected) {
-                                  _selectedSkillLevels.add(skillLevel);
-                                } else {
-                                  _selectedSkillLevels.remove(skillLevel);
-                                }
-                              });
-                            },
-                            backgroundColor: AppColors.lightGray,
-                            selectedColor: AppColors.primaryGreen,
-                            checkmarkColor: AppColors.onPrimary,
-                            side: BorderSide(
-                              color: isSelected ? AppColors.primaryGreen : AppColors.mediumGray,
-                              width: 1.5,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      if (_selectedSkillLevels.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 8),
-                          child: Text(
-                            'Please select at least one skill level',
-                            style: TextStyle(
-                              color: AppColors.errorRed,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                    ],
                   ),
                 ),
                 
@@ -570,16 +500,6 @@ class _EditProposalPageState extends ConsumerState<EditProposalPage> {
   void _updateProposal() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_selectedSkillLevels.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select at least one skill level'),
-          backgroundColor: AppColors.warningOrange,
-        ),
-      );
-      return;
-    }
-
     setState(() {
       _isLoading = true;
     });
@@ -597,13 +517,12 @@ class _EditProposalPageState extends ConsumerState<EditProposalPage> {
         widget.proposal.proposalId,
         location: _locationController.text.trim(),
         dateTime: scheduledDateTime,
-        skillLevels: _selectedSkillLevels,
       );
 
       // Invalidate providers to refresh the data
-      final selectedSkillLevel = ref.read(selectedSkillLevelProvider);
-      ref.invalidate(openProposalsProvider(selectedSkillLevel));
-      ref.invalidate(filteredProposalsProvider(selectedSkillLevel));
+      final skillLevel = widget.proposal.skillLevel;
+      ref.invalidate(openProposalsProvider(skillLevel));
+      ref.invalidate(filteredProposalsProvider(skillLevel));
       
       final currentUser = ref.read(currentUserProvider);
       if (currentUser != null) {

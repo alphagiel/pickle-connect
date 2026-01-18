@@ -45,6 +45,12 @@ final expiredProposalsProvider = StreamProvider.family<List<Proposal>, String>((
   return repository.getExpiredProposals(userId);
 });
 
+// Provider for completed matches by skill level (for standings page)
+final completedMatchesBySkillLevelProvider = StreamProvider.family<List<Proposal>, SkillLevel>((ref, skillLevel) {
+  final repository = ref.watch(proposalsRepositoryProvider);
+  return repository.getCompletedProposalsBySkillLevel(skillLevel);
+});
+
 // Provider for selected skill level filter
 final selectedSkillLevelProvider = StateProvider<SkillLevel>((ref) => SkillLevel.intermediate);
 
@@ -199,13 +205,13 @@ class ProposalActions {
 
   Future<void> updateProposal(
     String proposalId, {
-    List<SkillLevel>? skillLevels,
+    SkillLevel? skillLevel,
     String? location,
     DateTime? dateTime,
   }) async {
     await _repository.updateProposal(
       proposalId,
-      skillLevels: skillLevels,
+      skillLevel: skillLevel,
       location: location,
       dateTime: dateTime,
     );

@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/models/user.dart';
 import '../../../../shared/models/standing.dart';
+import '../../../../shared/models/proposal.dart';
 import '../../../../shared/providers/standings_providers.dart';
+import '../../../../shared/providers/proposals_providers.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../widgets/standing_card.dart';
 import '../widgets/skill_level_tabs.dart';
@@ -203,40 +205,43 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
 
   Widget _buildStandingsContent(SkillLevel skillLevel) {
     final standingsAsync = ref.watch(standingsProvider(skillLevel));
+    final matchesAsync = ref.watch(completedMatchesBySkillLevelProvider(skillLevel));
 
     return standingsAsync.when(
       data: (standings) {
-        if (standings.isEmpty) {
-          return _buildEmptyState(skillLevel);
-        }
-
         return RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(standingsProvider(skillLevel));
+            ref.invalidate(completedMatchesBySkillLevelProvider(skillLevel));
           },
-          child: Column(
-            children: [
-              // Stats summary
-              _buildStatsHeader(standings),
-              
-              // Rankings list
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  itemCount: standings.length,
-                  itemBuilder: (context, index) {
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Rankings Section
+                _buildSectionHeader('Rankings', Icons.leaderboard),
+                const SizedBox(height: 12),
+                if (standings.isEmpty)
+                  _buildEmptyRankings(skillLevel)
+                else
+                  ...standings.asMap().entries.map((entry) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: StandingCard(
-                        standing: standings[index],
-                        rank: index + 1,
+                        standing: entry.value,
+                        rank: entry.key + 1,
                         skillLevel: skillLevel,
                       ),
                     );
-                  },
-                ),
-              ),
-            ],
+                  }),
+
+                const SizedBox(height: 24),
+
+                // Season Matches Section (Accordion)
+                _buildMatchesAccordion(skillLevel, matchesAsync),
+              ],
+            ),
           ),
         );
       },
@@ -246,6 +251,179 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
         ),
       ),
       error: (error, stack) => _buildErrorState(error.toString(), skillLevel),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.accentBlue, size: 24),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryText,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyRankings(SkillLevel skillLevel) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.lightGray),
+      ),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(Icons.emoji_events_outlined, size: 48, color: AppColors.mediumGray),
+            const SizedBox(height: 12),
+            Text(
+              'No ${skillLevel.displayName} players yet',
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.secondaryText,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMatchesAccordion(SkillLevel skillLevel, AsyncValue<List<Proposal>> matchesAsync) {
+    return ExpansionTile(
+      tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      collapsedBackgroundColor: AppColors.cardBackground,
+      backgroundColor: AppColors.cardBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppColors.lightGray),
+      ),
+      collapsedShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppColors.lightGray),
+      ),
+      leading: const Icon(Icons.sports_tennis, color: AppColors.primaryGreen),
+      title: const Text(
+        'Season Matches',
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: AppColors.primaryText,
+        ),
+      ),
+      subtitle: matchesAsync.when(
+        data: (matches) => Text(
+          '${matches.length} match${matches.length == 1 ? '' : 'es'}',
+          style: const TextStyle(color: AppColors.secondaryText),
+        ),
+        loading: () => const Text('Loading...', style: TextStyle(color: AppColors.secondaryText)),
+        error: (_, __) => const Text('Error loading', style: TextStyle(color: AppColors.errorRed)),
+      ),
+      children: [
+        matchesAsync.when(
+          data: (matches) {
+            if (matches.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: Text(
+                    'No completed matches yet',
+                    style: TextStyle(color: AppColors.secondaryText),
+                  ),
+                ),
+              );
+            }
+            return Column(
+              children: matches.map((match) => _buildMatchRow(match)).toList(),
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, _) => Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text('Error: $error', style: const TextStyle(color: AppColors.errorRed)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMatchRow(Proposal match) {
+    final scores = match.scores;
+    if (scores == null) return const SizedBox.shrink();
+
+    final creatorWon = scores.creatorGamesWon > scores.opponentGamesWon;
+    final winnerName = creatorWon ? match.creatorName : match.acceptedBy?.displayName ?? 'Unknown';
+    final loserName = creatorWon ? match.acceptedBy?.displayName ?? 'Unknown' : match.creatorName;
+    final scoreDisplay = scores.matchScore;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.lightGray, width: 0.5),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Winner/Loser info
+          Expanded(
+            flex: 3,
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(fontSize: 14, color: AppColors.primaryText),
+                children: [
+                  TextSpan(
+                    text: winnerName,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const TextSpan(text: ' def '),
+                  TextSpan(text: loserName),
+                ],
+              ),
+            ),
+          ),
+          // Score
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primaryGreen.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              scoreDisplay,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryGreen,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Location
+          Expanded(
+            flex: 2,
+            child: Text(
+              match.location,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.secondaryText,
+              ),
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

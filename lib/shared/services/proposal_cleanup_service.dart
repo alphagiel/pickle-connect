@@ -10,9 +10,16 @@ class ProposalCleanupService {
 
   ProposalCleanupService(this._repository);
 
+  bool _migrationRun = false;
+
   /// Run cleanup on app startup
   Future<void> runStartupCleanup() async {
     try {
+      // Run migration first (only once per session)
+      if (!_migrationRun) {
+        await _repository.migrateSkillLevels();
+        _migrationRun = true;
+      }
       await _repository.runCleanup();
     } catch (e) {
       print('Error during startup cleanup: $e');
@@ -22,6 +29,11 @@ class ProposalCleanupService {
   /// Run cleanup before fetching proposals
   Future<void> runCleanupBeforeFetch() async {
     try {
+      // Run migration first (only once per session)
+      if (!_migrationRun) {
+        await _repository.migrateSkillLevels();
+        _migrationRun = true;
+      }
       await _repository.runCleanup();
     } catch (e) {
       print('Error during pre-fetch cleanup: $e');

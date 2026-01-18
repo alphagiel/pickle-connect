@@ -8,8 +8,6 @@ import '../../../../shared/repositories/users_repository.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../widgets/proposal_card.dart';
-import '../widgets/skill_level_filter.dart';
-import '../widgets/proposal_filters.dart';
 
 class ProposalsPage extends ConsumerStatefulWidget {
   const ProposalsPage({super.key});
@@ -20,12 +18,11 @@ class ProposalsPage extends ConsumerStatefulWidget {
 
 class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  bool _showFilters = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
 
     // Listen to tab changes to update filter visibility
     _tabController.addListener(() {
@@ -42,7 +39,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(currentUserProvider);
-    final selectedSkillLevel = ref.watch(selectedSkillLevelProvider);
+    final userProfileAsync = ref.watch(currentUserProfileProvider);
 
     // Show login state if user is not authenticated
     if (currentUser == null) {
@@ -147,26 +144,6 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
                             ],
                           ),
                         ),
-                        // Filter button
-                        Container(
-                          margin: const EdgeInsets.only(right: 12),
-                          child: IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _showFilters = !_showFilters;
-                              });
-                            },
-                            icon: Icon(
-                              _showFilters ? Icons.filter_list_off : Icons.filter_list,
-                              color: AppColors.onPrimary,
-                              size: 24,
-                            ),
-                            style: IconButton.styleFrom(
-                              backgroundColor: AppColors.onPrimary.withValues(alpha: 0.2),
-                              padding: const EdgeInsets.all(12),
-                            ),
-                          ),
-                        ),
                         // Add button
                         FloatingActionButton(
                           onPressed: _navigateToCreateProposal,
@@ -179,12 +156,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
                     ),
                     
                     const SizedBox(height: 24),
-                    
-                    // Skill level filter
-                    const SkillLevelFilter(),
-                    
-                    const SizedBox(height: 16),
-                    
+
                     // Tab bar
                     Container(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -209,20 +181,11 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
                         labelPadding: const EdgeInsets.symmetric(horizontal: 16),
                         tabs: const [
                           Tab(text: 'Available'),
-                          Tab(text: 'My Proposals'),
+                          Tab(text: 'My Matches'),
                           Tab(text: 'Completed'),
-                          Tab(text: 'Expired'),
                         ],
                       ),
                     ),
-
-                    // Filters (collapsible)
-                    if (_showFilters) ...[
-                      const SizedBox(height: 16),
-                      ProposalFilters(
-                        showCreatorFilter: _tabController.index == 0, // Only show on Available tab
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -231,14 +194,54 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
 
           // Tab content
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildAvailableProposals(selectedSkillLevel),
-                _buildMyProposals(),
-                _buildCompletedProposals(),
-                _buildExpiredProposals(),
-              ],
+            child: userProfileAsync.when(
+              data: (userProfile) {
+                if (userProfile == null) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.person_outline, size: 64, color: AppColors.mediumGray),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Please complete your profile',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryText),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Set up your profile to see matches at your skill level',
+                          style: TextStyle(color: AppColors.secondaryText),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: () => context.go('/edit-profile'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryGreen,
+                            foregroundColor: AppColors.onPrimary,
+                          ),
+                          child: const Text('Complete Profile'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildAvailableProposals(userProfile.skillLevel),
+                    _buildMyMatches(),
+                    _buildCompletedProposals(),
+                  ],
+                );
+              },
+              loading: () => const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+                ),
+              ),
+              error: (error, stack) => _buildErrorState(error.toString()),
             ),
           ),
         ],
@@ -248,7 +251,6 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
 
   Widget _buildAvailableProposals(SkillLevel skillLevel) {
     final proposalsAsync = ref.watch(filteredProposalsProvider(skillLevel));
-    final userProfileAsync = ref.watch(currentUserProfileProvider);
 
     return proposalsAsync.when(
       data: (proposals) {
@@ -272,39 +274,16 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
               final currentUser = ref.watch(currentUserProvider);
               final isOwnProposal = currentUser?.id == proposal.creatorId;
 
-              // Check if user's skill level matches proposal requirements
-              final userProfile = userProfileAsync.valueOrNull;
-              final userSkillLevel = userProfile?.skillLevel;
-              final isProfileLoaded = userProfile != null;
-
-              // Skill level matches if user's level is in the proposal's allowed levels
-              final skillLevelMatches = isProfileLoaded &&
-                  proposal.skillLevels.contains(userSkillLevel);
-
-              // Can only accept if: not own proposal AND profile loaded AND skill level matches
-              final canAccept = !isOwnProposal && isProfileLoaded && skillLevelMatches;
-
-              // Show disabled state if: not own proposal AND (profile loading OR skill mismatch)
-              final showDisabled = !isOwnProposal && (!isProfileLoaded || !skillLevelMatches);
-
-              // Reason for disabled button
-              String? disabledReason;
-              if (!isOwnProposal && !isProfileLoaded) {
-                disabledReason = "Loading your profile...";
-              } else if (!isOwnProposal && !skillLevelMatches) {
-                disabledReason = "Your skill level doesn't match this proposal";
-              }
-
+              // Since we filter by user's skill level, all proposals match
+              // User can accept any proposal that isn't their own
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: ProposalCard(
                   proposal: proposal,
                   showActions: true,
-                  onAccept: canAccept ? () => _acceptProposal(proposal) : null,
+                  onAccept: !isOwnProposal ? () => _acceptProposal(proposal) : null,
                   onDelete: isOwnProposal ? () => _deleteProposal(proposal) : null,
                   onView: () => _viewProposal(proposal),
-                  acceptDisabled: showDisabled,
-                  acceptDisabledReason: disabledReason,
                 ),
               );
             },
@@ -320,50 +299,85 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
     );
   }
 
-  Widget _buildMyProposals() {
+  Widget _buildMyMatches() {
     // Get current user ID from auth
     final currentUser = ref.watch(currentUserProvider);
     if (currentUser == null) {
       return _buildEmptyState(
         icon: Icons.login_outlined,
         title: 'Please log in',
-        subtitle: 'You need to be logged in to view your proposals',
+        subtitle: 'You need to be logged in to view your matches',
       );
     }
 
-    final proposalsAsync = ref.watch(filteredUserProposalsProvider(currentUser.id));
+    // Watch both created and accepted proposals
+    final createdProposalsAsync = ref.watch(userProposalsProvider(currentUser.id));
+    final acceptedProposalsAsync = ref.watch(acceptedProposalsProvider(currentUser.id));
 
-    return proposalsAsync.when(
-      data: (proposals) {
-        if (proposals.isEmpty) {
-          return _buildEmptyState(
-            icon: Icons.sports_tennis_outlined,
-            title: 'No proposals yet',
-            subtitle: 'Create your first match proposal to get started!',
-          );
-        }
+    // Combine both async values
+    return createdProposalsAsync.when(
+      data: (createdProposals) {
+        return acceptedProposalsAsync.when(
+          data: (acceptedProposals) {
+            // Combine and deduplicate (in case of any overlap)
+            final allProposals = <String, Proposal>{};
+            for (final p in createdProposals) {
+              allProposals[p.proposalId] = p;
+            }
+            for (final p in acceptedProposals) {
+              allProposals[p.proposalId] = p;
+            }
 
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(userProposalsProvider(currentUser.id));
-          },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: proposals.length,
-            itemBuilder: (context, index) {
-              final proposal = proposals[index];
+            // Filter to current season (Winter 2026: Jan 1 - March 31)
+            final seasonStart = DateTime(2026, 1, 1);
+            final seasonEnd = DateTime(2026, 3, 31, 23, 59, 59);
 
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: ProposalCard(
-                  proposal: proposal,
-                  showActions: true,
-                  onDelete: () => _deleteProposal(proposal),
-                  onView: () => _viewProposal(proposal),
-                ),
+            // Sort by date (upcoming first, then recent)
+            final proposals = allProposals.values
+                .where((p) => p.dateTime.isAfter(seasonStart.subtract(const Duration(days: 1))) &&
+                              p.dateTime.isBefore(seasonEnd.add(const Duration(days: 1))))
+                .toList()
+              ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+
+            if (proposals.isEmpty) {
+              return _buildEmptyState(
+                icon: Icons.sports_tennis_outlined,
+                title: 'No matches yet',
+                subtitle: 'Create a proposal or accept one to get started!',
               );
-            },
+            }
+
+            return RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(userProposalsProvider(currentUser.id));
+                ref.invalidate(acceptedProposalsProvider(currentUser.id));
+              },
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: proposals.length,
+                itemBuilder: (context, index) {
+                  final proposal = proposals[index];
+                  final isCreator = currentUser.id == proposal.creatorId;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: ProposalCard(
+                      proposal: proposal,
+                      showActions: true,
+                      onDelete: isCreator ? () => _deleteProposal(proposal) : null,
+                      onView: () => _viewProposal(proposal),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+          loading: () => const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+            ),
           ),
+          error: (error, stack) => _buildErrorState(error.toString()),
         );
       },
       loading: () => const Center(
@@ -429,73 +443,18 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
     );
   }
 
-  Widget _buildExpiredProposals() {
-    final currentUser = ref.watch(currentUserProvider);
-    if (currentUser == null) {
-      return _buildEmptyState(
-        icon: Icons.login_outlined,
-        title: 'Please log in',
-        subtitle: 'You need to be logged in to view expired matches',
-      );
-    }
-
-    final proposalsAsync = ref.watch(expiredProposalsProvider(currentUser.id));
-
-    return proposalsAsync.when(
-      data: (proposals) {
-        if (proposals.isEmpty) {
-          return _buildEmptyState(
-            icon: Icons.history_outlined,
-            title: 'No expired matches',
-            subtitle: 'Expired matches will appear here',
-            showCreateButton: false,
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(expiredProposalsProvider(currentUser.id));
-          },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: proposals.length,
-            itemBuilder: (context, index) {
-              final proposal = proposals[index];
-              final isOwner = currentUser.id == proposal.creatorId;
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: ProposalCard(
-                  proposal: proposal,
-                  showActions: true,
-                  onDelete: isOwner ? () => _deleteProposal(proposal) : null,
-                  onView: () => _viewProposal(proposal),
-                ),
-              );
-            },
-          ),
-        );
-      },
-      loading: () => const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
-        ),
-      ),
-      error: (error, stack) => _buildErrorState(error.toString()),
-    );
-  }
-
   Widget _buildEmptyState({
     required IconData icon,
     required String title,
     required String subtitle,
     bool showCreateButton = true,
   }) {
-    return Center(
+    return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
@@ -544,11 +503,12 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
   }
 
   Widget _buildErrorState(String error) {
-    return Center(
+    return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
               Icons.error_outline,
@@ -577,8 +537,10 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
-                final selectedSkillLevel = ref.read(selectedSkillLevelProvider);
-                ref.invalidate(openProposalsProvider(selectedSkillLevel));
+                final userProfile = ref.read(currentUserProfileProvider).valueOrNull;
+                if (userProfile != null) {
+                  ref.invalidate(openProposalsProvider(userProfile.skillLevel));
+                }
               },
               icon: const Icon(Icons.refresh),
               label: const Text('Try Again'),
@@ -622,8 +584,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
       );
 
       // Invalidate the providers to refresh the streams
-      final selectedSkillLevel = ref.read(selectedSkillLevelProvider);
-      ref.invalidate(openProposalsProvider(selectedSkillLevel));
+      ref.invalidate(openProposalsProvider(proposal.skillLevel));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -686,9 +647,8 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
         await ref.read(proposalActionsProvider).deleteProposal(proposal.proposalId);
 
         // Invalidate the providers to refresh the streams
-        final selectedSkillLevel = ref.read(selectedSkillLevelProvider);
-        ref.invalidate(openProposalsProvider(selectedSkillLevel));
-        ref.invalidate(filteredProposalsProvider(selectedSkillLevel));
+        ref.invalidate(openProposalsProvider(proposal.skillLevel));
+        ref.invalidate(filteredProposalsProvider(proposal.skillLevel));
 
         final currentUser = ref.read(currentUserProvider);
         if (currentUser != null) {

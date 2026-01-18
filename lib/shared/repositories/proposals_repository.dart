@@ -12,56 +12,41 @@ class ProposalsRepository {
   final String _collection = 'proposals';
 
   // Get proposals filtered by skill level
+  // Note: Only filter on status in Firestore, filter skillLevel client-side to avoid needing composite index
   Stream<List<Proposal>> getProposalsForSkillLevel(SkillLevel skillLevel) {
-    // Use the JsonValue instead of displayName
-    String skillLevelValue;
-    switch (skillLevel) {
-      case SkillLevel.beginner:
-        skillLevelValue = 'Beginner';
-        break;
-      case SkillLevel.intermediate:
-        skillLevelValue = 'Intermediate';
-        break;
-      case SkillLevel.advancedPlus:
-        skillLevelValue = 'Advanced+';
-        break;
-    }
-
     return _firestore
         .collection(_collection)
-        .where('skillLevels', arrayContains: skillLevelValue)
         .where('status', isEqualTo: 'open')
-        .orderBy('dateTime')
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) {
-              try {
-                // Extract data and ensure we use the actual Firestore document ID
-                final data = Map<String, dynamic>.from(doc.data());
-                data['proposalId'] = doc.id; // Always use the real Firestore ID
+        .map((snapshot) {
+          final proposals = <Proposal>[];
+          for (final doc in snapshot.docs) {
+            try {
+              final data = Map<String, dynamic>.from(doc.data());
+              data['proposalId'] = doc.id;
 
-                final proposal = Proposal.fromJson(data);
+              final proposal = Proposal.fromJson(data);
 
-                // Check if proposal should be expired and mark it locally
-                if (proposal != null && proposal.shouldExpire && proposal.status != ProposalStatus.expired) {
-                  // Schedule background update to mark as expired in database
-                  _scheduleExpireProposal(proposal.proposalId);
-
-                  // Return expired version for immediate UI update
-                  return proposal.copyWith(status: ProposalStatus.expired);
-                }
-
-                return proposal;
-              } catch (e) {
-                print('Error parsing proposal: $e');
-                print('Document data: ${doc.data()}');
-                return null;
+              // Filter by skill level client-side
+              if (proposal.skillLevel != skillLevel) {
+                continue;
               }
-            })
-            .where((proposal) => proposal != null)
-            .cast<Proposal>()
-            .toList()
-            ..sort(_sortProposals));
+
+              // Check if proposal should be expired and mark it locally
+              if (proposal.shouldExpire && proposal.status != ProposalStatus.expired) {
+                _scheduleExpireProposal(proposal.proposalId);
+                proposals.add(proposal.copyWith(status: ProposalStatus.expired));
+              } else {
+                proposals.add(proposal);
+              }
+            } catch (e) {
+              print('Error parsing proposal: $e');
+              print('Document data: ${doc.data()}');
+            }
+          }
+          proposals.sort(_sortProposals);
+          return proposals;
+        });
   }
 
   // Get all open proposals (only status = 'open')
@@ -136,37 +121,36 @@ class ProposalsRepository {
 
   // Get proposals user accepted
   Stream<List<Proposal>> getAcceptedProposals(String userId) {
+    // Note: No orderBy to avoid needing composite index on acceptedBy.userId + createdAt
     return _firestore
         .collection(_collection)
         .where('acceptedBy.userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) {
-              try {
-                // Extract data and ensure we use the actual Firestore document ID
-                final data = Map<String, dynamic>.from(doc.data());
-                data['proposalId'] = doc.id; // Always use the real Firestore ID
+        .map((snapshot) {
+          final proposals = <Proposal>[];
+          for (final doc in snapshot.docs) {
+            try {
+              final data = Map<String, dynamic>.from(doc.data());
+              data['proposalId'] = doc.id;
 
-                final proposal = Proposal.fromJson(data);
+              final proposal = Proposal.fromJson(data);
 
-                // Check if proposal should be expired and mark it locally
-                if (proposal != null && proposal.shouldExpire && proposal.status != ProposalStatus.expired) {
-                  _scheduleExpireProposal(proposal.proposalId);
-                  return proposal.copyWith(status: ProposalStatus.expired);
-                }
-
-                return proposal;
-              } catch (e) {
-                print('Error parsing proposal: $e');
-                print('Document data: ${doc.data()}');
-                return null;
+              // Check if proposal should be expired and mark it locally
+              if (proposal.shouldExpire && proposal.status != ProposalStatus.expired) {
+                _scheduleExpireProposal(proposal.proposalId);
+                proposals.add(proposal.copyWith(status: ProposalStatus.expired));
+              } else {
+                proposals.add(proposal);
               }
-            })
-            .where((proposal) => proposal != null)
-            .cast<Proposal>()
-            .toList()
-            ..sort(_sortProposals));
+            } catch (e) {
+              print('Error parsing proposal: $e');
+              print('Document data: ${doc.data()}');
+            }
+          }
+          // Sort client-side by createdAt descending
+          proposals.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return proposals;
+        });
   }
 
   // Get completed proposals where user is creator or acceptor
@@ -193,6 +177,34 @@ class ProposalsRepository {
               print('Error parsing completed proposal: $e');
             }
           }
+          proposals.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+          return proposals;
+        });
+  }
+
+  // Get completed proposals by skill level (for standings page)
+  Stream<List<Proposal>> getCompletedProposalsBySkillLevel(SkillLevel skillLevel) {
+    return _firestore
+        .collection(_collection)
+        .where('status', isEqualTo: 'completed')
+        .where('skillLevel', isEqualTo: skillLevel.displayName)
+        .snapshots()
+        .map((snapshot) {
+          final proposals = <Proposal>[];
+          for (final doc in snapshot.docs) {
+            try {
+              final data = Map<String, dynamic>.from(doc.data());
+              data['proposalId'] = doc.id;
+              final proposal = Proposal.fromJson(data);
+              // Only include matches that have scores
+              if (proposal.scores != null) {
+                proposals.add(proposal);
+              }
+            } catch (e) {
+              print('Error parsing completed proposal: $e');
+            }
+          }
+          // Sort by date, most recent first
           proposals.sort((a, b) => b.dateTime.compareTo(a.dateTime));
           return proposals;
         });
@@ -362,7 +374,7 @@ class ProposalsRepository {
   // Update proposal
   Future<void> updateProposal(
     String proposalId, {
-    List<SkillLevel>? skillLevels,
+    SkillLevel? skillLevel,
     String? location,
     DateTime? dateTime,
   }) async {
@@ -370,8 +382,8 @@ class ProposalsRepository {
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
-    if (skillLevels != null) {
-      updates['skillLevels'] = skillLevels.map((level) => level.displayName).toList();
+    if (skillLevel != null) {
+      updates['skillLevel'] = skillLevel.displayName;
     }
 
     if (location != null) {
@@ -383,6 +395,35 @@ class ProposalsRepository {
     }
 
     await _firestore.collection(_collection).doc(proposalId).update(updates);
+  }
+
+  // Update user's display name in all their proposals
+  Future<void> updateUserNameInProposals(String userId, String newDisplayName) async {
+    // Update proposals where user is the creator
+    final createdProposals = await _firestore
+        .collection(_collection)
+        .where('creatorId', isEqualTo: userId)
+        .get();
+
+    for (final doc in createdProposals.docs) {
+      await doc.reference.update({
+        'creatorName': newDisplayName,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Update proposals where user is the acceptor
+    final acceptedProposals = await _firestore
+        .collection(_collection)
+        .where('acceptedBy.userId', isEqualTo: userId)
+        .get();
+
+    for (final doc in acceptedProposals.docs) {
+      await doc.reference.update({
+        'acceptedBy.displayName': newDisplayName,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
   }
 
   // Mark proposal as expired
@@ -420,7 +461,13 @@ class ProposalsRepository {
           }
 
           // Check for required fields before attempting to parse
-          final requiredFields = ['creatorName', 'skillLevels', 'dateTime', 'createdAt', 'updatedAt'];
+          // Accept either skillLevel (new) or skillLevels (old) - migration will fix it
+          final hasSkillField = data.containsKey('skillLevel') || data.containsKey('skillLevels');
+          final requiredFields = ['creatorName', 'dateTime', 'createdAt', 'updatedAt'];
+          if (!hasSkillField) {
+            print('Skipping proposal ${doc.id} - missing skill level field');
+            continue;
+          }
           final missingFields = requiredFields.where((field) => !data.containsKey(field) || data[field] == null).toList();
 
           if (missingFields.isNotEmpty) {
@@ -429,8 +476,8 @@ class ProposalsRepository {
           }
 
           final proposal = Proposal.fromJson({
-            'proposalId': doc.id,
             ...data,
+            'proposalId': doc.id, // Must come LAST to use actual Firestore doc ID
           });
           proposals.add(proposal);
         } catch (e) {
@@ -471,12 +518,10 @@ class ProposalsRepository {
         // Check if the proposal document still exists before processing
         final doc = await _firestore.collection(_collection).doc(proposal.proposalId).get();
         if (!doc.exists) {
-          print('Proposal ${proposal.proposalId} already deleted, skipping cleanup');
           continue;
         }
 
         if (proposal.shouldDelete) {
-          print('Deleting proposal ${proposal.proposalId} (${proposal.daysPastDue} days past due)');
           await deleteProposal(proposal.proposalId);
         } else if (proposal.shouldAutoComplete) {
           print('Auto-completing proposal ${proposal.proposalId} (${proposal.daysPastDue} days past due)');
@@ -521,6 +566,40 @@ class ProposalsRepository {
         }
       }
     });
+  }
+
+  // Migrate old proposals from skillLevels array to skillLevel single value
+  Future<void> migrateSkillLevels() async {
+    print('Starting skillLevel migration...');
+
+    try {
+      // Get all proposals that have skillLevels but not skillLevel
+      final snapshot = await _firestore.collection(_collection).get();
+
+      int migrated = 0;
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+
+        // Check if needs migration (has skillLevels array but no skillLevel)
+        if (data.containsKey('skillLevels') && !data.containsKey('skillLevel')) {
+          final skillLevels = data['skillLevels'] as List<dynamic>;
+          if (skillLevels.isNotEmpty) {
+            final firstSkillLevel = skillLevels.first as String;
+
+            await doc.reference.update({
+              'skillLevel': firstSkillLevel,
+            });
+
+            print('Migrated proposal ${doc.id}: skillLevels=$skillLevels -> skillLevel=$firstSkillLevel');
+            migrated++;
+          }
+        }
+      }
+
+      print('Migration complete. Migrated $migrated proposals.');
+    } catch (e) {
+      print('Error during migration: $e');
+    }
   }
 
   // Sort proposals: Active first (by date), then expired (by date)

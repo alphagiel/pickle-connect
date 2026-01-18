@@ -67,11 +67,10 @@ extension ProposalLifecycle on Proposal {
     return status == ProposalStatus.accepted;
   }
 
-  /// Check if proposal should be deleted (7 days past due and completed)
+  /// Check if proposal should be deleted (expired proposals are deleted immediately)
+  /// Completed proposals are kept for match history
   bool get shouldDelete {
-    if (!isPastDue) return false;
-    final daysPastDue = DateTime.now().difference(dateTime).inDays;
-    return daysPastDue >= 7 && status == ProposalStatus.completed;
+    return status == ProposalStatus.expired;
   }
 
   /// Get the number of days past the scheduled date
@@ -139,7 +138,8 @@ class Proposal with _$Proposal {
     required String proposalId,
     required String creatorId,
     required String creatorName,
-    required List<SkillLevel> skillLevels,
+    @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
+    required SkillLevel skillLevel,
     required String location,
     @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
     required DateTime dateTime,
@@ -153,7 +153,39 @@ class Proposal with _$Proposal {
     required DateTime updatedAt,
   }) = _Proposal;
 
-  factory Proposal.fromJson(Map<String, dynamic> json) => _$ProposalFromJson(json);
+  factory Proposal.fromJson(Map<String, dynamic> json) {
+    // Handle migration from old skillLevels array to new skillLevel single value
+    final modifiedJson = Map<String, dynamic>.from(json);
+    if (json.containsKey('skillLevels') && !json.containsKey('skillLevel')) {
+      final skillLevels = json['skillLevels'] as List<dynamic>;
+      if (skillLevels.isNotEmpty) {
+        modifiedJson['skillLevel'] = skillLevels.first;
+      }
+    }
+    return _$ProposalFromJson(modifiedJson);
+  }
+}
+
+// Custom converter for SkillLevel that handles both old and new formats
+SkillLevel _skillLevelFromJson(dynamic value) {
+  if (value is String) {
+    return SkillLevel.values.firstWhere(
+      (e) => e.displayName == value,
+      orElse: () => SkillLevel.intermediate,
+    );
+  }
+  if (value is List && value.isNotEmpty) {
+    // Handle old array format
+    return SkillLevel.values.firstWhere(
+      (e) => e.displayName == value.first,
+      orElse: () => SkillLevel.intermediate,
+    );
+  }
+  return SkillLevel.intermediate;
+}
+
+String _skillLevelToJson(SkillLevel skillLevel) {
+  return skillLevel.displayName;
 }
 
 DateTime _timestampFromJson(dynamic timestamp) {

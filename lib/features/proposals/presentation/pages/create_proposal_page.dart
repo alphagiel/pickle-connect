@@ -25,7 +25,6 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
   
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _selectedTime = const TimeOfDay(hour: 18, minute: 0);
-  List<SkillLevel> _selectedSkillLevels = [SkillLevel.intermediate];
   bool _isLoading = false;
 
   @override
@@ -212,75 +211,7 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
                 ),
                 
                 const SizedBox(height: 24),
-                
-                // Skill Levels Section
-                _buildSectionCard(
-                  title: 'What skill levels are you open to?',
-                  icon: Icons.group,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Select all that apply:',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.secondaryText,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 8,
-                        children: SkillLevel.values.map((skillLevel) {
-                          final isSelected = _selectedSkillLevels.contains(skillLevel);
-                          return FilterChip(
-                            label: Text(
-                              skillLevel.displayName,
-                              style: TextStyle(
-                                color: isSelected ? AppColors.onPrimary : AppColors.primaryText,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
-                            selected: isSelected,
-                            onSelected: (selected) {
-                              setState(() {
-                                if (selected) {
-                                  _selectedSkillLevels.add(skillLevel);
-                                } else {
-                                  _selectedSkillLevels.remove(skillLevel);
-                                }
-                              });
-                            },
-                            backgroundColor: AppColors.lightGray,
-                            selectedColor: AppColors.primaryGreen,
-                            checkmarkColor: AppColors.onPrimary,
-                            side: BorderSide(
-                              color: isSelected ? AppColors.primaryGreen : AppColors.mediumGray,
-                              width: 1.5,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      if (_selectedSkillLevels.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 8),
-                          child: Text(
-                            'Please select at least one skill level',
-                            style: TextStyle(
-                              color: AppColors.errorRed,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 24),
-                
+
                 // Additional Notes Section
                 _buildSectionCard(
                   title: 'Additional Notes (Optional)',
@@ -532,16 +463,6 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
   void _createProposal() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_selectedSkillLevels.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select at least one skill level'),
-          backgroundColor: AppColors.warningOrange,
-        ),
-      );
-      return;
-    }
-
     setState(() {
       _isLoading = true;
     });
@@ -557,33 +478,12 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
       final usersRepository = ref.read(usersRepositoryProvider);
       final userProfile = await usersRepository.getUserById(currentUser.id);
 
-      print('=== User Profile Debug ===');
-      print('Current user ID: ${currentUser.id}');
-      print('Current user displayName: ${currentUser.displayName}');
-      print('User profile from Firestore: $userProfile');
-      print('User profile displayName: ${userProfile?.displayName}');
+      if (userProfile == null) {
+        throw Exception('Please complete your profile first');
+      }
 
-      // // Show debug info in UI via snackbar
-      // if (mounted) {
-      //   ScaffoldMessenger.of(context).showSnackBar(
-      //     SnackBar(
-      //       content: Column(
-      //         crossAxisAlignment: CrossAxisAlignment.start,
-      //         mainAxisSize: MainAxisSize.min,
-      //         children: [
-      //           const Text('User Debug Info:', style: TextStyle(fontWeight: FontWeight.bold)),
-      //           Text('Firebase Display Name: ${currentUser.displayName ?? "NULL"}'),
-      //           Text('Firestore Display Name: ${userProfile?.displayName ?? "NULL"}'),
-      //           Text('Final Creator Name: ${userProfile?.displayName ?? currentUser.displayName ?? "Unknown User"}'),
-      //         ],
-      //       ),
-      //       backgroundColor: AppColors.accentBlue,
-      //       duration: const Duration(seconds: 5),
-      //     ),
-      //   );
-      // }
-
-      final creatorName = userProfile?.displayName ?? currentUser.displayName ?? 'Unknown User';
+      final creatorName = userProfile.displayName;
+      final skillLevel = userProfile.skillLevel;
 
       final scheduledDateTime = DateTime(
         _selectedDate.year,
@@ -593,18 +493,11 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
         _selectedTime.minute,
       );
 
-      print('=== Creating proposal object ===');
-      print('Current user ID: ${currentUser.id}');
-      print('Creator name: $creatorName');
-      print('Selected skill levels: $_selectedSkillLevels');
-      print('Location: ${_locationController.text.trim()}');
-      print('Scheduled date time: $scheduledDateTime');
-      
       final proposal = Proposal(
         proposalId: DateTime.now().millisecondsSinceEpoch.toString(),
         creatorId: currentUser.id,
         creatorName: creatorName,
-        skillLevels: _selectedSkillLevels,
+        skillLevel: skillLevel,
         location: _locationController.text.trim(),
         dateTime: scheduledDateTime,
         status: ProposalStatus.open,
@@ -614,8 +507,6 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
-      
-      print('Created proposal object: $proposal');
 
       await ref.read(proposalActionsProvider).createProposal(proposal);
 

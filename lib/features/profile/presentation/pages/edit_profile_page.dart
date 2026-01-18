@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/models/user.dart';
 import '../../../../shared/repositories/users_repository.dart';
+import '../../../../shared/repositories/proposals_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 
@@ -267,18 +268,26 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
       final userId = currentProfile?.userId ?? currentUser.id;
 
+      final newDisplayName = _displayNameController.text.trim();
+
       if (currentProfile != null) {
         // Update existing profile
         await usersRepository.updateUser(userId, {
-          'displayName': _displayNameController.text.trim(),
+          'displayName': newDisplayName,
           'skillLevel': _selectedSkillLevel!.displayName,
           'location': _locationController.text.trim(),
         });
+
+        // If display name changed, update it in all user's proposals
+        if (currentProfile.displayName != newDisplayName) {
+          final proposalsRepository = ref.read(proposalsRepositoryProvider);
+          await proposalsRepository.updateUserNameInProposals(userId, newDisplayName);
+        }
       } else {
         // Create new profile
         final newUser = User(
           userId: userId,
-          displayName: _displayNameController.text.trim(),
+          displayName: newDisplayName,
           email: currentUser.email ?? '',
           skillLevel: _selectedSkillLevel!,
           location: _locationController.text.trim(),

@@ -475,7 +475,7 @@ mixin _$Proposal {
   String get proposalId => throw _privateConstructorUsedError;
   String get creatorId => throw _privateConstructorUsedError;
   String get creatorName => throw _privateConstructorUsedError;
-  List<SkillLevel> get skillLevels => throw _privateConstructorUsedError;
+  SkillLevel get skillLevel => throw _privateConstructorUsedError;
   String get location => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
   DateTime get dateTime => throw _privateConstructorUsedError;
@@ -503,7 +503,7 @@ abstract class $ProposalCopyWith<$Res> {
       {String proposalId,
       String creatorId,
       String creatorName,
-      List<SkillLevel> skillLevels,
+      SkillLevel skillLevel,
       String location,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       DateTime dateTime,
@@ -536,7 +536,7 @@ class _$ProposalCopyWithImpl<$Res, $Val extends Proposal>
     Object? proposalId = null,
     Object? creatorId = null,
     Object? creatorName = null,
-    Object? skillLevels = null,
+    Object? skillLevel = null,
     Object? location = null,
     Object? dateTime = null,
     Object? status = null,
@@ -559,10 +559,10 @@ class _$ProposalCopyWithImpl<$Res, $Val extends Proposal>
           ? _value.creatorName
           : creatorName // ignore: cast_nullable_to_non_nullable
               as String,
-      skillLevels: null == skillLevels
-          ? _value.skillLevels
-          : skillLevels // ignore: cast_nullable_to_non_nullable
-              as List<SkillLevel>,
+      skillLevel: null == skillLevel
+          ? _value.skillLevel
+          : skillLevel // ignore: cast_nullable_to_non_nullable
+              as SkillLevel,
       location: null == location
           ? _value.location
           : location // ignore: cast_nullable_to_non_nullable
@@ -635,7 +635,7 @@ abstract class _$$ProposalImplCopyWith<$Res>
       {String proposalId,
       String creatorId,
       String creatorName,
-      List<SkillLevel> skillLevels,
+      SkillLevel skillLevel,
       String location,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       DateTime dateTime,
@@ -668,7 +668,7 @@ class __$$ProposalImplCopyWithImpl<$Res>
     Object? proposalId = null,
     Object? creatorId = null,
     Object? creatorName = null,
-    Object? skillLevels = null,
+    Object? skillLevel = null,
     Object? location = null,
     Object? dateTime = null,
     Object? status = null,
@@ -691,10 +691,10 @@ class __$$ProposalImplCopyWithImpl<$Res>
           ? _value.creatorName
           : creatorName // ignore: cast_nullable_to_non_nullable
               as String,
-      skillLevels: null == skillLevels
-          ? _value._skillLevels
-          : skillLevels // ignore: cast_nullable_to_non_nullable
-              as List<SkillLevel>,
+      skillLevel: null == skillLevel
+          ? _value.skillLevel
+          : skillLevel // ignore: cast_nullable_to_non_nullable
+              as SkillLevel,
       location: null == location
           ? _value.location
           : location // ignore: cast_nullable_to_non_nullable
@@ -738,7 +738,7 @@ class _$ProposalImpl implements _Proposal {
       {required this.proposalId,
       required this.creatorId,
       required this.creatorName,
-      required final List<SkillLevel> skillLevels,
+      required this.skillLevel,
       required this.location,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required this.dateTime,
@@ -750,8 +750,7 @@ class _$ProposalImpl implements _Proposal {
       required this.createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required this.updatedAt})
-      : _skillLevels = skillLevels,
-        _scoreConfirmedBy = scoreConfirmedBy;
+      : _scoreConfirmedBy = scoreConfirmedBy;
 
   factory _$ProposalImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProposalImplFromJson(json);
@@ -762,14 +761,8 @@ class _$ProposalImpl implements _Proposal {
   final String creatorId;
   @override
   final String creatorName;
-  final List<SkillLevel> _skillLevels;
   @override
-  List<SkillLevel> get skillLevels {
-    if (_skillLevels is EqualUnmodifiableListView) return _skillLevels;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_skillLevels);
-  }
-
+  final SkillLevel skillLevel;
   @override
   final String location;
   @override
@@ -800,7 +793,7 @@ class _$ProposalImpl implements _Proposal {
 
   @override
   String toString() {
-    return 'Proposal(proposalId: $proposalId, creatorId: $creatorId, creatorName: $creatorName, skillLevels: $skillLevels, location: $location, dateTime: $dateTime, status: $status, acceptedBy: $acceptedBy, scores: $scores, scoreConfirmedBy: $scoreConfirmedBy, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'Proposal(proposalId: $proposalId, creatorId: $creatorId, creatorName: $creatorName, skillLevel: $skillLevel, location: $location, dateTime: $dateTime, status: $status, acceptedBy: $acceptedBy, scores: $scores, scoreConfirmedBy: $scoreConfirmedBy, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -814,8 +807,8 @@ class _$ProposalImpl implements _Proposal {
                 other.creatorId == creatorId) &&
             (identical(other.creatorName, creatorName) ||
                 other.creatorName == creatorName) &&
-            const DeepCollectionEquality()
-                .equals(other._skillLevels, _skillLevels) &&
+            (identical(other.skillLevel, skillLevel) ||
+                other.skillLevel == skillLevel) &&
             (identical(other.location, location) ||
                 other.location == location) &&
             (identical(other.dateTime, dateTime) ||
@@ -839,7 +832,7 @@ class _$ProposalImpl implements _Proposal {
       proposalId,
       creatorId,
       creatorName,
-      const DeepCollectionEquality().hash(_skillLevels),
+      skillLevel,
       location,
       dateTime,
       status,
@@ -868,7 +861,7 @@ abstract class _Proposal implements Proposal {
       {required final String proposalId,
       required final String creatorId,
       required final String creatorName,
-      required final List<SkillLevel> skillLevels,
+      required final SkillLevel skillLevel,
       required final String location,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required final DateTime dateTime,
@@ -891,7 +884,7 @@ abstract class _Proposal implements Proposal {
   @override
   String get creatorName;
   @override
-  List<SkillLevel> get skillLevels;
+  SkillLevel get skillLevel;
   @override
   String get location;
   @override
