@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
 import '../theme/app_colors.dart';
+import '../models/user.dart';
 
 class MainNavigation extends ConsumerWidget {
   final Widget child;
@@ -17,19 +18,7 @@ class MainNavigation extends ConsumerWidget {
         backgroundColor: AppColors.primaryGreen,
         foregroundColor: Colors.white,
         actions: [
-          PopupMenuButton(
-            icon: const Icon(Icons.account_circle),
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                child: const ListTile(
-                  leading: Icon(Icons.logout),
-                  title: Text('Logout'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-                onTap: () => _handleLogout(context, ref),
-              ),
-            ],
-          ),
+          _buildProfileSection(context, ref),
         ],
       ),
       body: child,
@@ -106,6 +95,57 @@ class MainNavigation extends ConsumerWidget {
         GoRouter.of(context).go('/standings');
         break;
     }
+  }
+
+  Widget _buildProfileSection(BuildContext context, WidgetRef ref) {
+    final userProfileAsync = ref.watch(currentUserProfileProvider);
+    final userProfile = userProfileAsync.valueOrNull;
+    final displayName = userProfile?.displayName ?? 'User';
+
+    // Get first name only for greeting
+    final firstName = displayName.split(' ').first;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Hi $firstName!',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        PopupMenuButton(
+          icon: const Icon(Icons.account_circle),
+          offset: const Offset(0, 45),
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              child: const ListTile(
+                leading: Icon(Icons.edit),
+                title: Text('Edit Profile'),
+                contentPadding: EdgeInsets.zero,
+              ),
+              onTap: () {
+                // Close menu first, then navigate
+                Future.delayed(Duration.zero, () {
+                  if (context.mounted) {
+                    GoRouter.of(context).push('/edit-profile');
+                  }
+                });
+              },
+            ),
+            PopupMenuItem(
+              child: const ListTile(
+                leading: Icon(Icons.logout),
+                title: Text('Logout'),
+                contentPadding: EdgeInsets.zero,
+              ),
+              onTap: () => _handleLogout(context, ref),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   void _handleLogout(BuildContext context, WidgetRef ref) async {

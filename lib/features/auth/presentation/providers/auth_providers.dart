@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/auth_repository.dart';
+import '../../../../shared/repositories/users_repository.dart';
+import '../../../../shared/models/user.dart';
 
 // Auth state provider
 final authStateProvider = StreamProvider<AuthUser?>((ref) {
@@ -16,6 +18,16 @@ final currentUserProvider = Provider<AuthUser?>((ref) {
     loading: () => null,
     error: (_, __) => null,
   );
+});
+
+// Current user profile provider (Firestore profile with skill level)
+final currentUserProfileProvider = StreamProvider<User?>((ref) {
+  final authUser = ref.watch(currentUserProvider);
+  if (authUser == null) {
+    return Stream.value(null);
+  }
+  final usersRepository = ref.watch(usersRepositoryProvider);
+  return usersRepository.getUserStream(authUser.id);
 });
 
 // Auth loading state

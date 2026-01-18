@@ -1,3 +1,7 @@
+
+// THIS SCRIPT WILL NOT WORK - IT REQUIRES FIREBASE CREDENTIALS TO BE SET UP
+// AND A FIREBASE PROJECT CONFIGURED FOR THE APP.
+
 import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';

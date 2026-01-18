@@ -248,6 +248,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
 
   Widget _buildAvailableProposals(SkillLevel skillLevel) {
     final proposalsAsync = ref.watch(filteredProposalsProvider(skillLevel));
+    final userProfileAsync = ref.watch(currentUserProfileProvider);
 
     return proposalsAsync.when(
       data: (proposals) {
@@ -271,14 +272,39 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
               final currentUser = ref.watch(currentUserProvider);
               final isOwnProposal = currentUser?.id == proposal.creatorId;
 
+              // Check if user's skill level matches proposal requirements
+              final userProfile = userProfileAsync.valueOrNull;
+              final userSkillLevel = userProfile?.skillLevel;
+              final isProfileLoaded = userProfile != null;
+
+              // Skill level matches if user's level is in the proposal's allowed levels
+              final skillLevelMatches = isProfileLoaded &&
+                  proposal.skillLevels.contains(userSkillLevel);
+
+              // Can only accept if: not own proposal AND profile loaded AND skill level matches
+              final canAccept = !isOwnProposal && isProfileLoaded && skillLevelMatches;
+
+              // Show disabled state if: not own proposal AND (profile loading OR skill mismatch)
+              final showDisabled = !isOwnProposal && (!isProfileLoaded || !skillLevelMatches);
+
+              // Reason for disabled button
+              String? disabledReason;
+              if (!isOwnProposal && !isProfileLoaded) {
+                disabledReason = "Loading your profile...";
+              } else if (!isOwnProposal && !skillLevelMatches) {
+                disabledReason = "Your skill level doesn't match this proposal";
+              }
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: ProposalCard(
                   proposal: proposal,
                   showActions: true,
-                  onAccept: isOwnProposal ? null : () => _acceptProposal(proposal),
+                  onAccept: canAccept ? () => _acceptProposal(proposal) : null,
                   onDelete: isOwnProposal ? () => _deleteProposal(proposal) : null,
                   onView: () => _viewProposal(proposal),
+                  acceptDisabled: showDisabled,
+                  acceptDisabledReason: disabledReason,
                 ),
               );
             },
@@ -583,15 +609,9 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
         throw Exception('User not authenticated');
       }
 
-      // Get user profile from Firestore
+      // Get user profile from Firestore for display name
       final usersRepository = ref.read(usersRepositoryProvider);
       final userProfile = await usersRepository.getUserById(currentUser.id);
-
-      print('=== Accept Proposal User Debug ===');
-      print('Current user ID: ${currentUser.id}');
-      print('Current user displayName: ${currentUser.displayName}');
-      print('User profile from Firestore: $userProfile');
-      print('User profile displayName: ${userProfile?.displayName}');
 
       final userName = userProfile?.displayName ?? currentUser.displayName ?? 'Unknown User';
 

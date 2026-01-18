@@ -12,6 +12,8 @@ class ProposalCard extends StatelessWidget {
   final VoidCallback? onView;
   final VoidCallback? onEdit;
   final VoidCallback? onCancel;
+  final bool acceptDisabled;
+  final String? acceptDisabledReason;
 
   const ProposalCard({
     super.key,
@@ -22,6 +24,8 @@ class ProposalCard extends StatelessWidget {
     this.onView,
     this.onEdit,
     this.onCancel,
+    this.acceptDisabled = false,
+    this.acceptDisabledReason,
   });
 
   @override
@@ -307,8 +311,11 @@ class ProposalCard extends StatelessWidget {
     final hasScores = proposal.scores != null;
     final canDelete = onDelete != null && !hasScores;
 
+    // Determine if we should show the Accept button (enabled or disabled)
+    final showAcceptButton = (onAccept != null || acceptDisabled) && proposal.status == ProposalStatus.open;
+
     // Determine if we should show the second button (Accept/Delete)
-    final showSecondButton = canDelete || (onAccept != null && proposal.status == ProposalStatus.open);
+    final showSecondButton = canDelete || showAcceptButton;
 
     return Row(
       children: [
@@ -349,24 +356,42 @@ class ProposalCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   )
-                : ElevatedButton.icon(
-                    onPressed: onAccept,
-                    icon: const Icon(Icons.sports_tennis, size: 18),
-                    label: const Text('Accept'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: AppColors.onPrimary,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
+                : _buildAcceptButton(),
           ),
         ],
       ],
     );
+  }
+
+  Widget _buildAcceptButton() {
+    final button = ElevatedButton.icon(
+      onPressed: acceptDisabled ? null : onAccept,
+      icon: const Icon(Icons.sports_tennis, size: 18),
+      label: const Text('Accept'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: acceptDisabled
+            ? AppColors.mediumGray
+            : AppColors.primaryGreen,
+        foregroundColor: AppColors.onPrimary,
+        disabledBackgroundColor: AppColors.mediumGray.withValues(alpha: 0.5),
+        disabledForegroundColor: AppColors.onPrimary.withValues(alpha: 0.6),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+      ),
+    );
+
+    // Wrap with Tooltip if disabled with a reason
+    if (acceptDisabled && acceptDisabledReason != null) {
+      return Tooltip(
+        message: acceptDisabledReason!,
+        child: button,
+      );
+    }
+
+    return button;
   }
 
   String _formatDateTime(DateTime dateTime) {

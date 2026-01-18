@@ -8,6 +8,7 @@ import '../../features/proposals/presentation/pages/create_proposal_page.dart';
 import '../../features/proposals/presentation/pages/edit_proposal_page.dart';
 import '../../features/proposals/presentation/pages/proposal_details_page.dart';
 import '../../features/standings/presentation/pages/standings_page.dart';
+import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../../shared/widgets/main_navigation.dart';
 import '../../shared/models/proposal.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
@@ -79,7 +80,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           return ProposalDetailsPage(proposal: proposal);
         },
       ),
-      
+
+      // Edit profile route (standalone, no shell)
+      GoRoute(
+        path: '/edit-profile',
+        name: 'edit-profile',
+        builder: (context, state) => const EditProfilePage(),
+      ),
+
       // Main app routes with bottom navigation
       ShellRoute(
         builder: (context, state, child) => MainNavigation(child: child),
