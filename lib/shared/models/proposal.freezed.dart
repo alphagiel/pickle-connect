@@ -466,15 +466,12 @@ abstract class _Scores extends Scores {
       throw _privateConstructorUsedError;
 }
 
-Proposal _$ProposalFromJson(Map<String, dynamic> json) {
-  return _Proposal.fromJson(json);
-}
-
 /// @nodoc
 mixin _$Proposal {
   String get proposalId => throw _privateConstructorUsedError;
   String get creatorId => throw _privateConstructorUsedError;
   String get creatorName => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
   SkillLevel get skillLevel => throw _privateConstructorUsedError;
   String get location => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
@@ -488,7 +485,6 @@ mixin _$Proposal {
   @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
   $ProposalCopyWith<Proposal> get copyWith =>
       throw _privateConstructorUsedError;
@@ -503,6 +499,7 @@ abstract class $ProposalCopyWith<$Res> {
       {String proposalId,
       String creatorId,
       String creatorName,
+      @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
       SkillLevel skillLevel,
       String location,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
@@ -635,6 +632,7 @@ abstract class _$$ProposalImplCopyWith<$Res>
       {String proposalId,
       String creatorId,
       String creatorName,
+      @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
       SkillLevel skillLevel,
       String location,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
@@ -732,12 +730,13 @@ class __$$ProposalImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
 class _$ProposalImpl implements _Proposal {
   const _$ProposalImpl(
       {required this.proposalId,
       required this.creatorId,
       required this.creatorName,
+      @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
       required this.skillLevel,
       required this.location,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
@@ -752,9 +751,6 @@ class _$ProposalImpl implements _Proposal {
       required this.updatedAt})
       : _scoreConfirmedBy = scoreConfirmedBy;
 
-  factory _$ProposalImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProposalImplFromJson(json);
-
   @override
   final String proposalId;
   @override
@@ -762,6 +758,7 @@ class _$ProposalImpl implements _Proposal {
   @override
   final String creatorName;
   @override
+  @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
   final SkillLevel skillLevel;
   @override
   final String location;
@@ -825,7 +822,6 @@ class _$ProposalImpl implements _Proposal {
                 other.updatedAt == updatedAt));
   }
 
-  @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
       runtimeType,
@@ -847,13 +843,6 @@ class _$ProposalImpl implements _Proposal {
   @pragma('vm:prefer-inline')
   _$$ProposalImplCopyWith<_$ProposalImpl> get copyWith =>
       __$$ProposalImplCopyWithImpl<_$ProposalImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProposalImplToJson(
-      this,
-    );
-  }
 }
 
 abstract class _Proposal implements Proposal {
@@ -861,6 +850,7 @@ abstract class _Proposal implements Proposal {
       {required final String proposalId,
       required final String creatorId,
       required final String creatorName,
+      @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
       required final SkillLevel skillLevel,
       required final String location,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
@@ -874,9 +864,6 @@ abstract class _Proposal implements Proposal {
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required final DateTime updatedAt}) = _$ProposalImpl;
 
-  factory _Proposal.fromJson(Map<String, dynamic> json) =
-      _$ProposalImpl.fromJson;
-
   @override
   String get proposalId;
   @override
@@ -884,6 +871,7 @@ abstract class _Proposal implements Proposal {
   @override
   String get creatorName;
   @override
+  @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
   SkillLevel get skillLevel;
   @override
   String get location;

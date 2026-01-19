@@ -1,0 +1,19 @@
+# Compiled JavaScript files
+lib/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Node modules
+node_modules/
+
+# Secrets
+.secret.local
+
+# Environment files with secrets (keep templates)
+.env.local
+.env.production
+
+# IDE
+.idea/
+.vscode/

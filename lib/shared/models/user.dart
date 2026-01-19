@@ -4,6 +4,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 part 'user.freezed.dart';
 part 'user.g.dart';
 
+/// Email notification preferences for users
+@freezed
+class EmailNotificationPreferences with _$EmailNotificationPreferences {
+  const factory EmailNotificationPreferences({
+    @Default(true) bool welcome,
+    @Default(true) bool newProposals,
+    @Default(true) bool proposalAccepted,
+    @Default(true) bool proposalUnaccepted,
+    @Default(true) bool matchResults,
+  }) = _EmailNotificationPreferences;
+
+  factory EmailNotificationPreferences.fromJson(Map<String, dynamic> json) =>
+      _$EmailNotificationPreferencesFromJson(json);
+}
+
 enum SkillLevel {
   @JsonValue('Beginner')
   beginner,
@@ -39,10 +54,11 @@ class User with _$User {
     @Default(0) int matchesWon,
     @Default(0) int matchesLost,
     @Default(0.0) double winRate,
-    @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson) 
+    @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
     required DateTime createdAt,
-    @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson) 
+    @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
     required DateTime updatedAt,
+    EmailNotificationPreferences? emailNotifications,
   }) = _User;
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);

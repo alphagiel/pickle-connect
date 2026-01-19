@@ -51,6 +51,12 @@ final completedMatchesBySkillLevelProvider = StreamProvider.family<List<Proposal
   return repository.getCompletedProposalsBySkillLevel(skillLevel);
 });
 
+// Provider for fetching a single proposal by ID (for deep links)
+final proposalByIdProvider = FutureProvider.family<Proposal?, String>((ref, proposalId) async {
+  final repository = ref.watch(proposalsRepositoryProvider);
+  return repository.getProposalById(proposalId);
+});
+
 // Provider for selected skill level filter
 final selectedSkillLevelProvider = StateProvider<SkillLevel>((ref) => SkillLevel.intermediate);
 

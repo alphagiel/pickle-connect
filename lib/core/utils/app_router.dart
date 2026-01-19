@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +12,8 @@ import '../../features/standings/presentation/pages/standings_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../../shared/widgets/main_navigation.dart';
 import '../../shared/models/proposal.dart';
+import '../../shared/providers/proposals_providers.dart';
+import '../../shared/repositories/proposals_repository.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -88,6 +91,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const EditProfilePage(),
       ),
 
+      // Deep link route for proposals (from email notifications)
+      GoRoute(
+        path: '/proposal/:proposalId',
+        name: 'proposal-deep-link',
+        builder: (context, state) {
+          final proposalId = state.pathParameters['proposalId'];
+          if (proposalId == null) {
+            return const ProposalsPage();
+          }
+          return _ProposalDeepLinkPage(proposalId: proposalId);
+        },
+      ),
+
       // Main app routes with bottom navigation
       ShellRoute(
         builder: (context, state, child) => MainNavigation(child: child),
@@ -112,3 +128,65 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// Page that loads a proposal by ID and navigates to the details page
+class _ProposalDeepLinkPage extends ConsumerWidget {
+  final String proposalId;
+
+  const _ProposalDeepLinkPage({required this.proposalId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final proposalAsync = ref.watch(proposalByIdProvider(proposalId));
+
+    return proposalAsync.when(
+      data: (proposal) {
+        if (proposal == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Proposal Not Found')),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'This proposal could not be found.',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => context.go('/'),
+                    child: const Text('Go to Home'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        return ProposalDetailsPage(proposal: proposal);
+      },
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => Scaffold(
+        appBar: AppBar(title: const Text('Error')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error loading proposal: $error'),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => context.go('/'),
+                child: const Text('Go to Home'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

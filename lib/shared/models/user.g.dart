@@ -6,6 +6,26 @@ part of 'user.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_$EmailNotificationPreferencesImpl _$$EmailNotificationPreferencesImplFromJson(
+        Map<String, dynamic> json) =>
+    _$EmailNotificationPreferencesImpl(
+      welcome: json['welcome'] as bool? ?? true,
+      newProposals: json['newProposals'] as bool? ?? true,
+      proposalAccepted: json['proposalAccepted'] as bool? ?? true,
+      proposalUnaccepted: json['proposalUnaccepted'] as bool? ?? true,
+      matchResults: json['matchResults'] as bool? ?? true,
+    );
+
+Map<String, dynamic> _$$EmailNotificationPreferencesImplToJson(
+        _$EmailNotificationPreferencesImpl instance) =>
+    <String, dynamic>{
+      'welcome': instance.welcome,
+      'newProposals': instance.newProposals,
+      'proposalAccepted': instance.proposalAccepted,
+      'proposalUnaccepted': instance.proposalUnaccepted,
+      'matchResults': instance.matchResults,
+    };
+
 _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
       userId: json['userId'] as String,
       displayName: json['displayName'] as String,
@@ -19,6 +39,10 @@ _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
       winRate: (json['winRate'] as num?)?.toDouble() ?? 0.0,
       createdAt: _timestampFromJson(json['createdAt']),
       updatedAt: _timestampFromJson(json['updatedAt']),
+      emailNotifications: json['emailNotifications'] == null
+          ? null
+          : EmailNotificationPreferences.fromJson(
+              json['emailNotifications'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
@@ -35,6 +59,7 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'winRate': instance.winRate,
       'createdAt': _timestampToJson(instance.createdAt),
       'updatedAt': _timestampToJson(instance.updatedAt),
+      'emailNotifications': instance.emailNotifications,
     };
 
 const _$SkillLevelEnumMap = {

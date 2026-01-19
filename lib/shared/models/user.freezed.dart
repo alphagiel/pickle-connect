@@ -14,6 +14,249 @@ T _$identity<T>(T value) => value;
 final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
+EmailNotificationPreferences _$EmailNotificationPreferencesFromJson(
+    Map<String, dynamic> json) {
+  return _EmailNotificationPreferences.fromJson(json);
+}
+
+/// @nodoc
+mixin _$EmailNotificationPreferences {
+  bool get welcome => throw _privateConstructorUsedError;
+  bool get newProposals => throw _privateConstructorUsedError;
+  bool get proposalAccepted => throw _privateConstructorUsedError;
+  bool get proposalUnaccepted => throw _privateConstructorUsedError;
+  bool get matchResults => throw _privateConstructorUsedError;
+
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  @JsonKey(ignore: true)
+  $EmailNotificationPreferencesCopyWith<EmailNotificationPreferences>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $EmailNotificationPreferencesCopyWith<$Res> {
+  factory $EmailNotificationPreferencesCopyWith(
+          EmailNotificationPreferences value,
+          $Res Function(EmailNotificationPreferences) then) =
+      _$EmailNotificationPreferencesCopyWithImpl<$Res,
+          EmailNotificationPreferences>;
+  @useResult
+  $Res call(
+      {bool welcome,
+      bool newProposals,
+      bool proposalAccepted,
+      bool proposalUnaccepted,
+      bool matchResults});
+}
+
+/// @nodoc
+class _$EmailNotificationPreferencesCopyWithImpl<$Res,
+        $Val extends EmailNotificationPreferences>
+    implements $EmailNotificationPreferencesCopyWith<$Res> {
+  _$EmailNotificationPreferencesCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? welcome = null,
+    Object? newProposals = null,
+    Object? proposalAccepted = null,
+    Object? proposalUnaccepted = null,
+    Object? matchResults = null,
+  }) {
+    return _then(_value.copyWith(
+      welcome: null == welcome
+          ? _value.welcome
+          : welcome // ignore: cast_nullable_to_non_nullable
+              as bool,
+      newProposals: null == newProposals
+          ? _value.newProposals
+          : newProposals // ignore: cast_nullable_to_non_nullable
+              as bool,
+      proposalAccepted: null == proposalAccepted
+          ? _value.proposalAccepted
+          : proposalAccepted // ignore: cast_nullable_to_non_nullable
+              as bool,
+      proposalUnaccepted: null == proposalUnaccepted
+          ? _value.proposalUnaccepted
+          : proposalUnaccepted // ignore: cast_nullable_to_non_nullable
+              as bool,
+      matchResults: null == matchResults
+          ? _value.matchResults
+          : matchResults // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$EmailNotificationPreferencesImplCopyWith<$Res>
+    implements $EmailNotificationPreferencesCopyWith<$Res> {
+  factory _$$EmailNotificationPreferencesImplCopyWith(
+          _$EmailNotificationPreferencesImpl value,
+          $Res Function(_$EmailNotificationPreferencesImpl) then) =
+      __$$EmailNotificationPreferencesImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {bool welcome,
+      bool newProposals,
+      bool proposalAccepted,
+      bool proposalUnaccepted,
+      bool matchResults});
+}
+
+/// @nodoc
+class __$$EmailNotificationPreferencesImplCopyWithImpl<$Res>
+    extends _$EmailNotificationPreferencesCopyWithImpl<$Res,
+        _$EmailNotificationPreferencesImpl>
+    implements _$$EmailNotificationPreferencesImplCopyWith<$Res> {
+  __$$EmailNotificationPreferencesImplCopyWithImpl(
+      _$EmailNotificationPreferencesImpl _value,
+      $Res Function(_$EmailNotificationPreferencesImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? welcome = null,
+    Object? newProposals = null,
+    Object? proposalAccepted = null,
+    Object? proposalUnaccepted = null,
+    Object? matchResults = null,
+  }) {
+    return _then(_$EmailNotificationPreferencesImpl(
+      welcome: null == welcome
+          ? _value.welcome
+          : welcome // ignore: cast_nullable_to_non_nullable
+              as bool,
+      newProposals: null == newProposals
+          ? _value.newProposals
+          : newProposals // ignore: cast_nullable_to_non_nullable
+              as bool,
+      proposalAccepted: null == proposalAccepted
+          ? _value.proposalAccepted
+          : proposalAccepted // ignore: cast_nullable_to_non_nullable
+              as bool,
+      proposalUnaccepted: null == proposalUnaccepted
+          ? _value.proposalUnaccepted
+          : proposalUnaccepted // ignore: cast_nullable_to_non_nullable
+              as bool,
+      matchResults: null == matchResults
+          ? _value.matchResults
+          : matchResults // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$EmailNotificationPreferencesImpl
+    implements _EmailNotificationPreferences {
+  const _$EmailNotificationPreferencesImpl(
+      {this.welcome = true,
+      this.newProposals = true,
+      this.proposalAccepted = true,
+      this.proposalUnaccepted = true,
+      this.matchResults = true});
+
+  factory _$EmailNotificationPreferencesImpl.fromJson(
+          Map<String, dynamic> json) =>
+      _$$EmailNotificationPreferencesImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final bool welcome;
+  @override
+  @JsonKey()
+  final bool newProposals;
+  @override
+  @JsonKey()
+  final bool proposalAccepted;
+  @override
+  @JsonKey()
+  final bool proposalUnaccepted;
+  @override
+  @JsonKey()
+  final bool matchResults;
+
+  @override
+  String toString() {
+    return 'EmailNotificationPreferences(welcome: $welcome, newProposals: $newProposals, proposalAccepted: $proposalAccepted, proposalUnaccepted: $proposalUnaccepted, matchResults: $matchResults)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$EmailNotificationPreferencesImpl &&
+            (identical(other.welcome, welcome) || other.welcome == welcome) &&
+            (identical(other.newProposals, newProposals) ||
+                other.newProposals == newProposals) &&
+            (identical(other.proposalAccepted, proposalAccepted) ||
+                other.proposalAccepted == proposalAccepted) &&
+            (identical(other.proposalUnaccepted, proposalUnaccepted) ||
+                other.proposalUnaccepted == proposalUnaccepted) &&
+            (identical(other.matchResults, matchResults) ||
+                other.matchResults == matchResults));
+  }
+
+  @JsonKey(ignore: true)
+  @override
+  int get hashCode => Object.hash(runtimeType, welcome, newProposals,
+      proposalAccepted, proposalUnaccepted, matchResults);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$EmailNotificationPreferencesImplCopyWith<
+          _$EmailNotificationPreferencesImpl>
+      get copyWith => __$$EmailNotificationPreferencesImplCopyWithImpl<
+          _$EmailNotificationPreferencesImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$EmailNotificationPreferencesImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _EmailNotificationPreferences
+    implements EmailNotificationPreferences {
+  const factory _EmailNotificationPreferences(
+      {final bool welcome,
+      final bool newProposals,
+      final bool proposalAccepted,
+      final bool proposalUnaccepted,
+      final bool matchResults}) = _$EmailNotificationPreferencesImpl;
+
+  factory _EmailNotificationPreferences.fromJson(Map<String, dynamic> json) =
+      _$EmailNotificationPreferencesImpl.fromJson;
+
+  @override
+  bool get welcome;
+  @override
+  bool get newProposals;
+  @override
+  bool get proposalAccepted;
+  @override
+  bool get proposalUnaccepted;
+  @override
+  bool get matchResults;
+  @override
+  @JsonKey(ignore: true)
+  _$$EmailNotificationPreferencesImplCopyWith<
+          _$EmailNotificationPreferencesImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 User _$UserFromJson(Map<String, dynamic> json) {
   return _User.fromJson(json);
 }
@@ -34,6 +277,8 @@ mixin _$User {
   DateTime get createdAt => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
   DateTime get updatedAt => throw _privateConstructorUsedError;
+  EmailNotificationPreferences? get emailNotifications =>
+      throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -59,7 +304,10 @@ abstract class $UserCopyWith<$Res> {
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       DateTime createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
-      DateTime updatedAt});
+      DateTime updatedAt,
+      EmailNotificationPreferences? emailNotifications});
+
+  $EmailNotificationPreferencesCopyWith<$Res>? get emailNotifications;
 }
 
 /// @nodoc
@@ -87,6 +335,7 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? winRate = null,
     Object? createdAt = null,
     Object? updatedAt = null,
+    Object? emailNotifications = freezed,
   }) {
     return _then(_value.copyWith(
       userId: null == userId
@@ -137,7 +386,24 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      emailNotifications: freezed == emailNotifications
+          ? _value.emailNotifications
+          : emailNotifications // ignore: cast_nullable_to_non_nullable
+              as EmailNotificationPreferences?,
     ) as $Val);
+  }
+
+  @override
+  @pragma('vm:prefer-inline')
+  $EmailNotificationPreferencesCopyWith<$Res>? get emailNotifications {
+    if (_value.emailNotifications == null) {
+      return null;
+    }
+
+    return $EmailNotificationPreferencesCopyWith<$Res>(
+        _value.emailNotifications!, (value) {
+      return _then(_value.copyWith(emailNotifications: value) as $Val);
+    });
   }
 }
 
@@ -162,7 +428,11 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       DateTime createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
-      DateTime updatedAt});
+      DateTime updatedAt,
+      EmailNotificationPreferences? emailNotifications});
+
+  @override
+  $EmailNotificationPreferencesCopyWith<$Res>? get emailNotifications;
 }
 
 /// @nodoc
@@ -187,6 +457,7 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? winRate = null,
     Object? createdAt = null,
     Object? updatedAt = null,
+    Object? emailNotifications = freezed,
   }) {
     return _then(_$UserImpl(
       userId: null == userId
@@ -237,6 +508,10 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      emailNotifications: freezed == emailNotifications
+          ? _value.emailNotifications
+          : emailNotifications // ignore: cast_nullable_to_non_nullable
+              as EmailNotificationPreferences?,
     ));
   }
 }
@@ -258,7 +533,8 @@ class _$UserImpl implements _User {
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required this.createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
-      required this.updatedAt});
+      required this.updatedAt,
+      this.emailNotifications});
 
   factory _$UserImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserImplFromJson(json);
@@ -293,10 +569,12 @@ class _$UserImpl implements _User {
   @override
   @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
   final DateTime updatedAt;
+  @override
+  final EmailNotificationPreferences? emailNotifications;
 
   @override
   String toString() {
-    return 'User(userId: $userId, displayName: $displayName, email: $email, skillLevel: $skillLevel, location: $location, profileImageURL: $profileImageURL, matchesPlayed: $matchesPlayed, matchesWon: $matchesWon, matchesLost: $matchesLost, winRate: $winRate, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'User(userId: $userId, displayName: $displayName, email: $email, skillLevel: $skillLevel, location: $location, profileImageURL: $profileImageURL, matchesPlayed: $matchesPlayed, matchesWon: $matchesWon, matchesLost: $matchesLost, winRate: $winRate, createdAt: $createdAt, updatedAt: $updatedAt, emailNotifications: $emailNotifications)';
   }
 
   @override
@@ -324,7 +602,9 @@ class _$UserImpl implements _User {
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
-                other.updatedAt == updatedAt));
+                other.updatedAt == updatedAt) &&
+            (identical(other.emailNotifications, emailNotifications) ||
+                other.emailNotifications == emailNotifications));
   }
 
   @JsonKey(ignore: true)
@@ -342,7 +622,8 @@ class _$UserImpl implements _User {
       matchesLost,
       winRate,
       createdAt,
-      updatedAt);
+      updatedAt,
+      emailNotifications);
 
   @JsonKey(ignore: true)
   @override
@@ -373,7 +654,8 @@ abstract class _User implements User {
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required final DateTime createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
-      required final DateTime updatedAt}) = _$UserImpl;
+      required final DateTime updatedAt,
+      final EmailNotificationPreferences? emailNotifications}) = _$UserImpl;
 
   factory _User.fromJson(Map<String, dynamic> json) = _$UserImpl.fromJson;
 
@@ -403,6 +685,8 @@ abstract class _User implements User {
   @override
   @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
   DateTime get updatedAt;
+  @override
+  EmailNotificationPreferences? get emailNotifications;
   @override
   @JsonKey(ignore: true)
   _$$UserImplCopyWith<_$UserImpl> get copyWith =>

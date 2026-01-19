@@ -45,5 +45,20 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Deep linking URL scheme -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>pickleconnect</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.pickleconnect.app</string>
+		</dict>
+	</array>
+	<!-- Universal links -->
+	<key>FlutterDeepLinkingEnabled</key>
+	<true/>
 </dict>
 </plist>

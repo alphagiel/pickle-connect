@@ -239,6 +239,22 @@ class ProposalsRepository {
         });
   }
 
+  // Get a single proposal by ID
+  Future<Proposal?> getProposalById(String proposalId) async {
+    try {
+      final doc = await _firestore.collection(_collection).doc(proposalId).get();
+      if (!doc.exists) {
+        return null;
+      }
+      final data = Map<String, dynamic>.from(doc.data()!);
+      data['proposalId'] = doc.id;
+      return Proposal.fromJson(data);
+    } catch (e) {
+      print('Error fetching proposal $proposalId: $e');
+      return null;
+    }
+  }
+
   // Create new proposal
   Future<void> createProposal(Proposal proposal) async {
     print('=== Creating proposal ===');
