@@ -153,17 +153,22 @@ class Proposal with _$Proposal {
     required DateTime updatedAt,
   }) = _Proposal;
 
-  factory Proposal.fromJson(Map<String, dynamic> json) {
-    // Handle migration from old skillLevels array to new skillLevel single value
+  factory Proposal.fromJson(Map<String, dynamic> json) =>
+      _$ProposalFromJson(_migrateProposalJson(json));
+}
+
+/// Migrate old proposal JSON format to new format
+Map<String, dynamic> _migrateProposalJson(Map<String, dynamic> json) {
+  // Handle migration from old skillLevels array to new skillLevel single value
+  if (json.containsKey('skillLevels') && !json.containsKey('skillLevel')) {
     final modifiedJson = Map<String, dynamic>.from(json);
-    if (json.containsKey('skillLevels') && !json.containsKey('skillLevel')) {
-      final skillLevels = json['skillLevels'] as List<dynamic>;
-      if (skillLevels.isNotEmpty) {
-        modifiedJson['skillLevel'] = skillLevels.first;
-      }
+    final skillLevels = json['skillLevels'] as List<dynamic>;
+    if (skillLevels.isNotEmpty) {
+      modifiedJson['skillLevel'] = skillLevels.first;
     }
-    return _$ProposalFromJson(modifiedJson);
+    return modifiedJson;
   }
+  return json;
 }
 
 // Custom converter for SkillLevel that handles both old and new formats

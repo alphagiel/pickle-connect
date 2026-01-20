@@ -40,3 +40,50 @@ Map<String, dynamic> _$$ScoresImplToJson(_$ScoresImpl instance) =>
     <String, dynamic>{
       'games': instance.games,
     };
+
+_$ProposalImpl _$$ProposalImplFromJson(Map<String, dynamic> json) =>
+    _$ProposalImpl(
+      proposalId: json['proposalId'] as String,
+      creatorId: json['creatorId'] as String,
+      creatorName: json['creatorName'] as String,
+      skillLevel: _skillLevelFromJson(json['skillLevel']),
+      location: json['location'] as String,
+      dateTime: _timestampFromJson(json['dateTime']),
+      status: $enumDecode(_$ProposalStatusEnumMap, json['status']),
+      acceptedBy: json['acceptedBy'] == null
+          ? null
+          : AcceptedBy.fromJson(json['acceptedBy'] as Map<String, dynamic>),
+      scores: json['scores'] == null
+          ? null
+          : Scores.fromJson(json['scores'] as Map<String, dynamic>),
+      scoreConfirmedBy: (json['scoreConfirmedBy'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      createdAt: _timestampFromJson(json['createdAt']),
+      updatedAt: _timestampFromJson(json['updatedAt']),
+    );
+
+Map<String, dynamic> _$$ProposalImplToJson(_$ProposalImpl instance) =>
+    <String, dynamic>{
+      'proposalId': instance.proposalId,
+      'creatorId': instance.creatorId,
+      'creatorName': instance.creatorName,
+      'skillLevel': _skillLevelToJson(instance.skillLevel),
+      'location': instance.location,
+      'dateTime': _timestampToJson(instance.dateTime),
+      'status': _$ProposalStatusEnumMap[instance.status]!,
+      'acceptedBy': instance.acceptedBy,
+      'scores': instance.scores,
+      'scoreConfirmedBy': instance.scoreConfirmedBy,
+      'createdAt': _timestampToJson(instance.createdAt),
+      'updatedAt': _timestampToJson(instance.updatedAt),
+    };
+
+const _$ProposalStatusEnumMap = {
+  ProposalStatus.open: 'open',
+  ProposalStatus.accepted: 'accepted',
+  ProposalStatus.expired: 'expired',
+  ProposalStatus.completed: 'completed',
+  ProposalStatus.canceled: 'canceled',
+};

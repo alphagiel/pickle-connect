@@ -466,6 +466,10 @@ abstract class _Scores extends Scores {
       throw _privateConstructorUsedError;
 }
 
+Proposal _$ProposalFromJson(Map<String, dynamic> json) {
+  return _Proposal.fromJson(json);
+}
+
 /// @nodoc
 mixin _$Proposal {
   String get proposalId => throw _privateConstructorUsedError;
@@ -485,6 +489,7 @@ mixin _$Proposal {
   @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
   $ProposalCopyWith<Proposal> get copyWith =>
       throw _privateConstructorUsedError;
@@ -730,7 +735,7 @@ class __$$ProposalImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-
+@JsonSerializable()
 class _$ProposalImpl implements _Proposal {
   const _$ProposalImpl(
       {required this.proposalId,
@@ -750,6 +755,9 @@ class _$ProposalImpl implements _Proposal {
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required this.updatedAt})
       : _scoreConfirmedBy = scoreConfirmedBy;
+
+  factory _$ProposalImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProposalImplFromJson(json);
 
   @override
   final String proposalId;
@@ -822,6 +830,7 @@ class _$ProposalImpl implements _Proposal {
                 other.updatedAt == updatedAt));
   }
 
+  @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
       runtimeType,
@@ -843,6 +852,13 @@ class _$ProposalImpl implements _Proposal {
   @pragma('vm:prefer-inline')
   _$$ProposalImplCopyWith<_$ProposalImpl> get copyWith =>
       __$$ProposalImplCopyWithImpl<_$ProposalImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProposalImplToJson(
+      this,
+    );
+  }
 }
 
 abstract class _Proposal implements Proposal {
@@ -863,6 +879,9 @@ abstract class _Proposal implements Proposal {
       required final DateTime createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required final DateTime updatedAt}) = _$ProposalImpl;
+
+  factory _Proposal.fromJson(Map<String, dynamic> json) =
+      _$ProposalImpl.fromJson;
 
   @override
   String get proposalId;
