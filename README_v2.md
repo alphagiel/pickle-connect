@@ -193,13 +193,13 @@ Open:
 * Set secret:
 
 ```bash
-firebase functions:secrets:set SENDGRID_API_KEY
+firebase.cmd functions:secrets:set SENDGRID_API_KEY
 ```
 
 * Deploy:
 
 ```bash
-firebase deploy --only functions
+firebase.cmd deploy --only functions
 ```
 
 ---
@@ -324,7 +324,7 @@ flutter run -d chrome --dart-define=USE_EMULATORS=true
 ```bash
 cd C:\Users\lfage\Sandbox\mobile-apps\pickle-connect\functions
 npm run build
-firebase deploy --only functions --project myapp1-c6012
+firebase.cmd deploy --only functions --project myapp1-c6012
 ```
 
 **Run Flutter App** (production Firebase)
