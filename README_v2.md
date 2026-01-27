@@ -155,6 +155,8 @@ EmailNotificationPreferences({
 
 ### Quick Start
 
+**Note:** Mailpit runs in Docker. Make sure **Docker Desktop is running** first, then run `docker-compose up -d` before accessing http://localhost:8025
+
 ```bash
 docker-compose up -d
 cd functions
@@ -164,7 +166,7 @@ npm run serve
 Open:
 
 * Firebase Emulator UI: `http://127.0.0.1:4000`
-* Mailpit Inbox: `http://localhost:8025`
+* Mailpit Inbox: `http://localhost:8025` (requires Docker container running)
 
 ---
 
@@ -221,6 +223,8 @@ A **production-ready, testable, and extensible email notification system** with:
 ---
 
 ### How to Start Everything
+
+**Important:** Mailpit runs in Docker. Start **Docker Desktop** first, then run the commands below before accessing http://localhost:8025
 
 ```bash
 # 1. Start Mailpit (from project root)
