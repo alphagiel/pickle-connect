@@ -4,4 +4,4 @@ import * as admin from "firebase-admin";
 admin.initializeApp();
 
 // Export all triggers
-export { onUserCreated, onProposalCreated, onProposalUpdated } from "./triggers";
+export { onUserCreated, onProposalCreated, onProposalUpdated, onProposalDeleted } from "./triggers";

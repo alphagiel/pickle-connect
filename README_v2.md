@@ -149,7 +149,7 @@ EmailNotificationPreferences({
 
 | Terminal | Purpose            | Command                                              |
 | -------- | ------------------ | ---------------------------------------------------- |
-| 1        | Firebase emulators | `firebase emulators:start --only auth,functions,firestore` (from project root) |
+| 1        | Firebase emulators | `firebase.cmd emulators:start --only auth,functions,firestore` (from project root) |
 | 2        | Flutter app        | `flutter run -d chrome --dart-define=USE_EMULATORS=true` |
 | (opt)    | One-off tasks      | git, build_runner, etc                               |
 
@@ -167,7 +167,7 @@ npm run build
 
 # Start emulators (from project root)
 cd ..
-firebase emulators:start --only auth,functions,firestore
+firebase.cmd emulators:start --only auth,functions,firestore
 ```
 
 Open:
@@ -243,7 +243,7 @@ npm run build
 
 # 3. Start Firebase Emulators (from project root)
 cd ..
-firebase emulators:start --only auth,functions,firestore
+firebase.cmd emulators:start --only auth,functions,firestore
 ```
 
 ---
@@ -298,7 +298,7 @@ npm run build
 
 # Then start emulators (from project root)
 cd C:\Users\lfage\Sandbox\mobile-apps\pickle-connect
-firebase emulators:start --only auth,functions,firestore --project myapp1-c6012
+firebase.cmd emulators:start --only auth,functions,firestore --project myapp1-c6012
 ```
 
 **Terminal 3: Run Flutter App (with emulators)**
@@ -350,7 +350,7 @@ No `--dart-define` flag = uses production Firebase.
 cd functions && npm run build && cd ..
 
 # Start emulators (from project root)
-firebase emulators:start --only auth,functions,firestore
+firebase.cmd emulators:start --only auth,functions,firestore
 
 # In another terminal, run Flutter
 flutter run -d chrome --dart-define=USE_EMULATORS=true

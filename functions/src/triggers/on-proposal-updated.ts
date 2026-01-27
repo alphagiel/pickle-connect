@@ -6,6 +6,8 @@ import {
   proposalAcceptedEmailSubject,
   proposalUnacceptedEmail,
   proposalUnacceptedEmailSubject,
+  proposalCancelledEmail,
+  proposalCancelledEmailSubject,
   matchResultEmail,
   matchResultEmailSubject,
 } from "../templates";
@@ -60,6 +62,21 @@ export const onProposalUpdated = functions.firestore
       beforeData.acceptedBy
     ) {
       await handleProposalUnaccepted(
+        db,
+        emailService,
+        proposalId,
+        afterData,
+        beforeData.acceptedBy
+      );
+    }
+
+    // Handle proposal cancelled (status changed to cancelled)
+    if (
+      statusChanged &&
+      afterData.status === "cancelled" &&
+      beforeData.acceptedBy
+    ) {
+      await handleProposalCancelled(
         db,
         emailService,
         proposalId,
@@ -189,6 +206,62 @@ async function handleProposalUnaccepted(
     console.log(`[onProposalUpdated] Proposal unaccepted email sent to ${creatorData.email}`);
   } else {
     console.error(`[onProposalUpdated] Failed to send proposal unaccepted email: ${result.error}`);
+  }
+}
+
+async function handleProposalCancelled(
+  db: admin.firestore.Firestore,
+  emailService: ReturnType<typeof getEmailService>,
+  proposalId: string,
+  proposalData: admin.firestore.DocumentData,
+  acceptedBy: { userId: string; displayName: string }
+): Promise<void> {
+  console.log(`[onProposalUpdated] Proposal ${proposalId} was cancelled`);
+
+  // Get the accepter's user document to notify them
+  const accepterDoc = await db.collection("users").doc(acceptedBy.userId).get();
+  if (!accepterDoc.exists) {
+    console.log(`[onProposalUpdated] Accepter ${acceptedBy.userId} not found`);
+    return;
+  }
+
+  const accepterData = accepterDoc.data()!;
+
+  // Check email preferences
+  const emailPrefs = accepterData.emailNotifications;
+  if (emailPrefs && emailPrefs.proposalCancelled === false) {
+    console.log(`[onProposalUpdated] Accepter has proposal cancelled emails disabled`);
+    return;
+  }
+
+  if (!accepterData.email) {
+    console.log(`[onProposalUpdated] Accepter has no email`);
+    return;
+  }
+
+  const proposalDateTime = proposalData.dateTime?.toDate
+    ? proposalData.dateTime.toDate()
+    : new Date(proposalData.dateTime);
+
+  const html = proposalCancelledEmail({
+    recipientName: accepterData.displayName || "Pickleballer",
+    creatorName: proposalData.creatorName,
+    skillLevel: proposalData.skillLevel,
+    location: proposalData.location,
+    dateTime: formatDateTime(proposalDateTime),
+    preferencesUrl: getPreferencesUrl(acceptedBy.userId),
+  });
+
+  const result = await emailService.send({
+    to: accepterData.email,
+    subject: proposalCancelledEmailSubject(proposalData.creatorName),
+    html,
+  });
+
+  if (result.success) {
+    console.log(`[onProposalUpdated] Proposal cancelled email sent to ${accepterData.email}`);
+  } else {
+    console.error(`[onProposalUpdated] Failed to send proposal cancelled email: ${result.error}`);
   }
 }
 
