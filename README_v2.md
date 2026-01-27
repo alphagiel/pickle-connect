@@ -147,20 +147,27 @@ EmailNotificationPreferences({
 
 ### Terminals
 
-| Terminal | Purpose            | Command                         |
-| -------- | ------------------ | ------------------------------- |
-| 1        | Firebase emulators | `cd functions && npm run serve` |
-| 2        | Flutter app        | `flutter run`                   |
-| (opt)    | One-off tasks      | git, build_runner, etc          |
+| Terminal | Purpose            | Command                                              |
+| -------- | ------------------ | ---------------------------------------------------- |
+| 1        | Firebase emulators | `firebase emulators:start --only auth,functions,firestore` (from project root) |
+| 2        | Flutter app        | `flutter run -d chrome --dart-define=USE_EMULATORS=true` |
+| (opt)    | One-off tasks      | git, build_runner, etc                               |
 
 ### Quick Start
 
 **Note:** Mailpit runs in Docker. Make sure **Docker Desktop is running** first, then run `docker-compose up -d` before accessing http://localhost:8025
 
 ```bash
+# From project root
 docker-compose up -d
+
+# Build functions
 cd functions
-npm run serve
+npm run build
+
+# Start emulators (from project root)
+cd ..
+firebase emulators:start --only auth,functions,firestore
 ```
 
 Open:
@@ -230,10 +237,13 @@ A **production-ready, testable, and extensible email notification system** with:
 # 1. Start Mailpit (from project root)
 docker-compose up -d
 
-# 2. Start Firebase Emulators (from functions folder)
+# 2. Build functions (from functions folder)
 cd functions
 npm run build
-npm run serve
+
+# 3. Start Firebase Emulators (from project root)
+cd ..
+firebase emulators:start --only auth,functions,firestore
 ```
 
 ---
@@ -280,10 +290,14 @@ cd C:\Users\lfage\Sandbox\mobile-apps\pickle-connect
 docker-compose up -d
 ```
 
-**Terminal 2: Start Firebase Emulators**
+**Terminal 2: Build Functions & Start Firebase Emulators**
 ```bash
+# First, build the functions (from functions folder)
 cd C:\Users\lfage\Sandbox\mobile-apps\pickle-connect\functions
 npm run build
+
+# Then start emulators (from project root)
+cd C:\Users\lfage\Sandbox\mobile-apps\pickle-connect
 firebase emulators:start --only auth,functions,firestore --project myapp1-c6012
 ```
 
@@ -332,6 +346,12 @@ No `--dart-define` flag = uses production Firebase.
 | Prod | `flutter run -d chrome`                               | Real Firebase    |
 
 ```bash
-firebase.cmd emulators:start --only auth,functions,firestore
+# Build functions first (from functions folder)
+cd functions && npm run build && cd ..
+
+# Start emulators (from project root)
+firebase emulators:start --only auth,functions,firestore
+
+# In another terminal, run Flutter
 flutter run -d chrome --dart-define=USE_EMULATORS=true
 ```

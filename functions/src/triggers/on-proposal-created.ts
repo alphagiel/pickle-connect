@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { getEmailService } from "../services/email";
-import { newProposalEmail, newProposalEmailSubject } from "../templates";
+import { newProposalEmail, newProposalEmailSubject, proposalLiveConfirmationEmail, proposalLiveConfirmationEmailSubject } from "../templates";
 import { getProposalUrl, getPreferencesUrl, formatDateTime } from "../config";
 
 /**
@@ -88,4 +88,32 @@ export const onProposalCreated = functions.firestore
     }
 
     console.log(`[onProposalCreated] Sent ${emailsSent} emails, skipped ${emailsSkipped}`);
+
+    // Send confirmation email to the proposal creator
+    const creatorDoc = await db.collection("users").doc(proposalData.creatorId).get();
+    if (creatorDoc.exists) {
+      const creatorData = creatorDoc.data();
+      if (creatorData?.email) {
+        const creatorHtml = proposalLiveConfirmationEmail({
+          creatorName: proposalData.creatorName || creatorData.displayName || "Pickleballer",
+          skillLevel: proposalData.skillLevel,
+          location: proposalData.location,
+          dateTime: formatDateTime(proposalDateTime),
+          proposalUrl: getProposalUrl(proposalId),
+          preferencesUrl: getPreferencesUrl(proposalData.creatorId),
+        });
+
+        const creatorResult = await emailService.send({
+          to: creatorData.email,
+          subject: proposalLiveConfirmationEmailSubject(),
+          html: creatorHtml,
+        });
+
+        if (creatorResult.success) {
+          console.log(`[onProposalCreated] Sent confirmation email to creator ${creatorData.email}`);
+        } else {
+          console.error(`[onProposalCreated] Failed to send confirmation to creator: ${creatorResult.error}`);
+        }
+      }
+    }
   });
