@@ -2,10 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/proposal.dart';
 import '../models/user.dart';
 import '../repositories/proposals_repository.dart';
+import '../../core/utils/stream_retry.dart';
 // NOTE: Cleanup service disabled - should be handled by Cloud Functions
 // import '../services/proposal_cleanup_service.dart';
 
 // Provider for open proposals filtered by skill bracket (for interactibility)
+// Uses retry logic to handle transient auth token refresh issues
 final openProposalsProvider = StreamProvider.family<List<Proposal>, SkillBracket>((ref, bracket) {
   final repository = ref.watch(proposalsRepositoryProvider);
 
@@ -14,7 +16,7 @@ final openProposalsProvider = StreamProvider.family<List<Proposal>, SkillBracket
   // final cleanupService = ref.watch(proposalCleanupServiceProvider);
   // cleanupService.runCleanupBeforeFetch();
 
-  return repository.getProposalsForBracket(bracket);
+  return retryStream(() => repository.getProposalsForBracket(bracket));
 });
 
 // Provider for all open proposals (admin only - bypasses skill level filter)
@@ -49,9 +51,10 @@ final expiredProposalsProvider = StreamProvider.family<List<Proposal>, String>((
 });
 
 // Provider for completed matches by skill bracket (for standings page)
+// Uses retry logic to handle transient auth token refresh issues
 final completedMatchesByBracketProvider = StreamProvider.family<List<Proposal>, SkillBracket>((ref, bracket) {
   final repository = ref.watch(proposalsRepositoryProvider);
-  return repository.getCompletedProposalsByBracket(bracket);
+  return retryStream(() => repository.getCompletedProposalsByBracket(bracket));
 });
 
 // Legacy alias - redirects to bracket-based filtering

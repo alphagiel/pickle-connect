@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../repositories/proposals_repository.dart';
 
@@ -12,9 +13,18 @@ class ProposalCleanupService {
 
   bool _migrationRun = false;
 
-  /// Run cleanup on app startup
+  /// Run cleanup on app startup (waits for auth to be ready)
   Future<void> runStartupCleanup() async {
     try {
+      // Wait for auth to be established before running cleanup
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('[ProposalCleanup] No authenticated user, skipping startup cleanup');
+        return;
+      }
+
+      print('[ProposalCleanup] Running cleanup for user: ${user.uid}');
+
       // Run migration first (only once per session)
       if (!_migrationRun) {
         await _repository.migrateSkillLevels();

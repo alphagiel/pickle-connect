@@ -4,24 +4,27 @@ import '../models/standing.dart';
 import '../models/ladder.dart';
 import '../models/user.dart';
 import '../repositories/standings_repository.dart';
+import '../../core/utils/stream_retry.dart';
 
 // Provider for the current active season
 final activeSeasonProvider = StreamProvider<Season?>((ref) {
-  return FirebaseFirestore.instance
-      .collection('seasons')
-      .where('status', isEqualTo: 'active')
-      .limit(1)
-      .snapshots()
-      .map((snapshot) {
-        if (snapshot.docs.isEmpty) return null;
-        return Season.fromJson(snapshot.docs.first.data());
-      });
+  return retryStream(
+    () => FirebaseFirestore.instance
+        .collection('seasons')
+        .where('status', isEqualTo: 'active')
+        .limit(1)
+        .snapshots()
+        .map((snapshot) {
+          if (snapshot.docs.isEmpty) return null;
+          return Season.fromJson(snapshot.docs.first.data());
+        }),
+  );
 });
 
-// Provider for standings filtered by skill bracket
+// Provider for standings filtered by skill bracket (with retry for transient auth errors)
 final standingsProvider = StreamProvider.family<List<Standing>, SkillBracket>((ref, bracket) {
   final repository = ref.watch(standingsRepositoryProvider);
-  return repository.getStandingsForBracket(bracket);
+  return retryStream(() => repository.getStandingsForBracket(bracket));
 });
 
 // Provider for all standings across skill brackets

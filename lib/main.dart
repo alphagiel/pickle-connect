@@ -10,7 +10,7 @@ import 'core/theme/app_theme.dart';
 import 'core/utils/app_router.dart';
 import 'firebase_options.dart';
 // import 'shared/services/notification_service.dart';  // Temporarily disabled
-import 'shared/services/proposal_cleanup_service.dart';
+// import 'shared/services/proposal_cleanup_service.dart';  // Disabled - handled by Cloud Functions
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,8 +21,8 @@ void main() async {
   );
 
   // Connect to Firebase Emulators in debug mode
-  // Set to true to use local emulators, false for production Firebase
-  const useEmulators = bool.fromEnvironment('USE_EMULATORS', defaultValue: false);
+  // Set USE_EMULATORS=false to use production Firebase in debug mode
+  const useEmulators = bool.fromEnvironment('USE_EMULATORS', defaultValue: true);
   if (kDebugMode && useEmulators) {
     await _connectToEmulators();
   }
@@ -47,8 +47,8 @@ class PickleConnectApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
 
-    // Run cleanup on app startup
-    ref.read(proposalCleanupServiceProvider).runStartupCleanup();
+    // NOTE: Proposal cleanup is handled by Cloud Functions, not client-side
+    // This avoids permission issues since clients can't query all proposals
 
     return MaterialApp.router(
       title: 'Pickle Connect',
