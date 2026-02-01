@@ -6,6 +6,7 @@ import '../../../../shared/models/standing.dart';
 import '../../../../shared/models/proposal.dart';
 import '../../../../shared/providers/standings_providers.dart';
 import '../../../../shared/providers/proposals_providers.dart';
+import '../../../../core/utils/season_utils.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
 
@@ -226,7 +227,7 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Rankings Section
-                _buildSectionHeader('Rankings', Icons.leaderboard),
+                _buildSectionHeader('Rankings (${bracket.skillRange})', Icons.leaderboard),
                 const SizedBox(height: 12),
                 if (standings.isEmpty)
                   _buildEmptyRankings(bracket)
@@ -516,9 +517,9 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
         side: BorderSide(color: AppColors.lightGray),
       ),
       leading: const Icon(Icons.sports_tennis, color: AppColors.primaryGreen),
-      title: const Text(
-        'Season Matches',
-        style: TextStyle(
+      title: Text(
+        'Season - ${SeasonUtils.getSeasonDisplay()}',
+        style: const TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
           color: AppColors.primaryText,

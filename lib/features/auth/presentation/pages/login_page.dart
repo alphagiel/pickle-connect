@@ -71,8 +71,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       data: (user) {
         if (user != null) {
           // Navigate to proposals page when user is authenticated
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            context.go('/proposals');
+          // Add small delay to ensure Firestore auth token is ready
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            await Future.delayed(const Duration(milliseconds: 500));
+            if (context.mounted) {
+              context.go('/proposals');
+            }
           });
         }
       },

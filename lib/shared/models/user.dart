@@ -63,6 +63,22 @@ extension SkillBracketExtension on SkillBracket {
         return 'Expert';
     }
   }
+
+  /// Returns just the skill range portion (e.g., "3.5 - 4.0")
+  String get skillRange {
+    switch (this) {
+      case SkillBracket.beginner:
+        return '1.0 - 2.0';
+      case SkillBracket.novice:
+        return '2.5';
+      case SkillBracket.intermediate:
+        return '3.0 - 3.5';
+      case SkillBracket.advanced:
+        return '4.0 - 4.5';
+      case SkillBracket.expert:
+        return '5.0+';
+    }
+  }
 }
 
 /// Specific skill ratings (what users select)
