@@ -7,8 +7,6 @@ import '../../../../shared/models/proposal.dart';
 import '../../../../shared/providers/standings_providers.dart';
 import '../../../../shared/providers/proposals_providers.dart';
 import '../../../../shared/theme/app_colors.dart';
-import '../widgets/standing_card.dart';
-import '../widgets/skill_level_tabs.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
 
 class StandingsPage extends ConsumerStatefulWidget {
@@ -20,12 +18,11 @@ class StandingsPage extends ConsumerStatefulWidget {
 
 class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  SkillLevel _selectedSkillLevel = SkillLevel.intermediate;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this, initialIndex: 1);
+    _tabController = TabController(length: 5, vsync: this, initialIndex: 2);
     _tabController.addListener(_onTabChanged);
   }
 
@@ -38,9 +35,7 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) {
-      setState(() {
-        _selectedSkillLevel = SkillLevel.values[_tabController.index];
-      });
+      setState(() {});
     }
   }
 
@@ -176,8 +171,10 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
                         ),
                         tabs: const [
                           Tab(text: 'Beginner'),
+                          Tab(text: 'Novice'),
                           Tab(text: 'Intermediate'),
-                          Tab(text: 'Advanced+'),
+                          Tab(text: 'Advanced'),
+                          Tab(text: 'Expert'),
                         ],
                       ),
                     ),
@@ -192,9 +189,11 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildStandingsContent(SkillLevel.beginner),
-                _buildStandingsContent(SkillLevel.intermediate),
-                _buildStandingsContent(SkillLevel.advancedPlus),
+                _buildStandingsContent(SkillBracket.beginner),
+                _buildStandingsContent(SkillBracket.novice),
+                _buildStandingsContent(SkillBracket.intermediate),
+                _buildStandingsContent(SkillBracket.advanced),
+                _buildStandingsContent(SkillBracket.expert),
               ],
             ),
           ),
@@ -203,16 +202,23 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
     );
   }
 
-  Widget _buildStandingsContent(SkillLevel skillLevel) {
-    final standingsAsync = ref.watch(standingsProvider(skillLevel));
-    final matchesAsync = ref.watch(completedMatchesBySkillLevelProvider(skillLevel));
+  Widget _buildStandingsContent(SkillBracket bracket) {
+    final standingsAsync = ref.watch(standingsProvider(bracket));
+    final matchesAsync = ref.watch(completedMatchesByBracketProvider(bracket));
+
+    // Debug logging
+    print('[StandingsPage] Loading standings for bracket: ${bracket.jsonValue}');
 
     return standingsAsync.when(
       data: (standings) {
+        print('[StandingsPage] Received ${standings.length} standings for ${bracket.jsonValue}');
+        for (final s in standings) {
+          print('[StandingsPage] - ${s.displayName}: W${s.matchesWon} L${s.matchesLost} streak:${s.streak}');
+        }
         return RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(standingsProvider(skillLevel));
-            ref.invalidate(completedMatchesBySkillLevelProvider(skillLevel));
+            ref.invalidate(standingsProvider(bracket));
+            ref.invalidate(completedMatchesByBracketProvider(bracket));
           },
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -223,23 +229,14 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
                 _buildSectionHeader('Rankings', Icons.leaderboard),
                 const SizedBox(height: 12),
                 if (standings.isEmpty)
-                  _buildEmptyRankings(skillLevel)
+                  _buildEmptyRankings(bracket)
                 else
-                  ...standings.asMap().entries.map((entry) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: StandingCard(
-                        standing: entry.value,
-                        rank: entry.key + 1,
-                        skillLevel: skillLevel,
-                      ),
-                    );
-                  }),
+                  _buildRankingsTable(standings, bracket),
 
                 const SizedBox(height: 24),
 
                 // Season Matches Section (Accordion)
-                _buildMatchesAccordion(skillLevel, matchesAsync),
+                _buildMatchesAccordion(bracket, matchesAsync),
               ],
             ),
           ),
@@ -250,7 +247,7 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
           valueColor: AlwaysStoppedAnimation<Color>(AppColors.accentBlue),
         ),
       ),
-      error: (error, stack) => _buildErrorState(error.toString(), skillLevel),
+      error: (error, stack) => _buildErrorState(error.toString(), bracket),
     );
   }
 
@@ -271,7 +268,7 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
     );
   }
 
-  Widget _buildEmptyRankings(SkillLevel skillLevel) {
+  Widget _buildEmptyRankings(SkillBracket bracket) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -285,7 +282,7 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
             Icon(Icons.emoji_events_outlined, size: 48, color: AppColors.mediumGray),
             const SizedBox(height: 12),
             Text(
-              'No ${skillLevel.displayName} players yet',
+              'No ${bracket.displayName} players yet',
               style: const TextStyle(
                 fontSize: 16,
                 color: AppColors.secondaryText,
@@ -297,7 +294,215 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
     );
   }
 
-  Widget _buildMatchesAccordion(SkillLevel skillLevel, AsyncValue<List<Proposal>> matchesAsync) {
+  Widget _buildRankingsTable(List<Standing> standings, SkillBracket bracket) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.lightGray),
+      ),
+      child: Column(
+        children: [
+          // Table header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.accentBlue.withValues(alpha: 0.1),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+            ),
+            child: Row(
+              children: [
+                const SizedBox(width: 40, child: Text('#', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.secondaryText))),
+                const Expanded(flex: 3, child: Text('Player', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.secondaryText))),
+                const SizedBox(width: 50, child: Text('W', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.secondaryText))),
+                const SizedBox(width: 50, child: Text('L', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.secondaryText))),
+                const SizedBox(width: 60, child: Text('Streak', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.secondaryText))),
+              ],
+            ),
+          ),
+          // Table rows
+          ...standings.asMap().entries.map((entry) {
+            final rank = entry.key + 1;
+            final standing = entry.value;
+            final isLast = entry.key == standings.length - 1;
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                border: isLast ? null : Border(bottom: BorderSide(color: AppColors.lightGray, width: 0.5)),
+              ),
+              child: Row(
+                children: [
+                  // Rank
+                  SizedBox(
+                    width: 40,
+                    child: _buildRankIndicator(rank),
+                  ),
+                  // Player name with level pill
+                  Expanded(
+                    flex: 3,
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            standing.displayName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              color: AppColors.primaryText,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildSkillPill(standing.skillLevel),
+                      ],
+                    ),
+                  ),
+                  // Wins
+                  SizedBox(
+                    width: 50,
+                    child: Text(
+                      standing.matchesWon.toString(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: AppColors.successGreen,
+                      ),
+                    ),
+                  ),
+                  // Losses
+                  SizedBox(
+                    width: 50,
+                    child: Text(
+                      standing.matchesLost.toString(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: AppColors.errorRed,
+                      ),
+                    ),
+                  ),
+                  // Streak
+                  SizedBox(
+                    width: 60,
+                    child: _buildStreakIndicator(standing.streak),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRankIndicator(int rank) {
+    if (rank <= 3) {
+      final colors = [
+        const Color(0xFFFFD700), // Gold
+        const Color(0xFFC0C0C0), // Silver
+        const Color(0xFFCD7F32), // Bronze
+      ];
+      return Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: colors[rank - 1].withValues(alpha: 0.2),
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(
+            rank.toString(),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: colors[rank - 1],
+            ),
+          ),
+        ),
+      );
+    }
+    return Text(
+      rank.toString(),
+      style: const TextStyle(
+        fontWeight: FontWeight.w500,
+        fontSize: 14,
+        color: AppColors.secondaryText,
+      ),
+    );
+  }
+
+  Widget _buildSkillPill(SkillLevel skillLevel) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: _getSkillLevelColor(skillLevel.bracket).withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        skillLevel.displayName,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: _getSkillLevelColor(skillLevel.bracket),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStreakIndicator(int streak) {
+    if (streak == 0) {
+      return const Text(
+        '-',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 14,
+          color: AppColors.secondaryText,
+        ),
+      );
+    }
+
+    final isPositive = streak > 0;
+    final color = isPositive ? AppColors.successGreen : AppColors.errorRed;
+    final text = isPositive ? '+$streak' : '$streak';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 13,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Color _getSkillLevelColor(SkillBracket bracket) {
+    switch (bracket) {
+      case SkillBracket.beginner:
+        return AppColors.beginnerColor;
+      case SkillBracket.novice:
+        return AppColors.noviceColor;
+      case SkillBracket.intermediate:
+        return AppColors.intermediateColor;
+      case SkillBracket.advanced:
+        return AppColors.advancedColor;
+      case SkillBracket.expert:
+        return AppColors.expertColor;
+    }
+  }
+
+  Widget _buildMatchesAccordion(SkillBracket bracket, AsyncValue<List<Proposal>> matchesAsync) {
     return ExpansionTile(
       tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       collapsedBackgroundColor: AppColors.cardBackground,
@@ -509,7 +714,7 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
     );
   }
 
-  Widget _buildEmptyState(SkillLevel skillLevel) {
+  Widget _buildEmptyState(SkillBracket bracket) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -523,7 +728,7 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
             ),
             const SizedBox(height: 24),
             Text(
-              'No ${skillLevel.displayName} Players Yet',
+              'No ${bracket.displayName} Players Yet',
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -563,7 +768,7 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
     );
   }
 
-  Widget _buildErrorState(String error, SkillLevel skillLevel) {
+  Widget _buildErrorState(String error, SkillBracket bracket) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -597,7 +802,7 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
-                ref.invalidate(standingsProvider(skillLevel));
+                ref.invalidate(standingsProvider(bracket));
               },
               icon: const Icon(Icons.refresh),
               label: const Text('Try Again'),

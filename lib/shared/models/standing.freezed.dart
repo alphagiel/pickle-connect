@@ -28,6 +28,8 @@ mixin _$Standing {
   int get matchesLost => throw _privateConstructorUsedError;
   double get winRate => throw _privateConstructorUsedError;
   int get rankingPoints => throw _privateConstructorUsedError;
+  int get streak =>
+      throw _privateConstructorUsedError; // Positive for consecutive wins, negative for losses (e.g., +3 or -2)
   @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
   DateTime get lastUpdated => throw _privateConstructorUsedError;
 
@@ -51,6 +53,7 @@ abstract class $StandingCopyWith<$Res> {
       int matchesLost,
       double winRate,
       int rankingPoints,
+      int streak,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       DateTime lastUpdated});
 }
@@ -76,6 +79,7 @@ class _$StandingCopyWithImpl<$Res, $Val extends Standing>
     Object? matchesLost = null,
     Object? winRate = null,
     Object? rankingPoints = null,
+    Object? streak = null,
     Object? lastUpdated = null,
   }) {
     return _then(_value.copyWith(
@@ -111,6 +115,10 @@ class _$StandingCopyWithImpl<$Res, $Val extends Standing>
           ? _value.rankingPoints
           : rankingPoints // ignore: cast_nullable_to_non_nullable
               as int,
+      streak: null == streak
+          ? _value.streak
+          : streak // ignore: cast_nullable_to_non_nullable
+              as int,
       lastUpdated: null == lastUpdated
           ? _value.lastUpdated
           : lastUpdated // ignore: cast_nullable_to_non_nullable
@@ -136,6 +144,7 @@ abstract class _$$StandingImplCopyWith<$Res>
       int matchesLost,
       double winRate,
       int rankingPoints,
+      int streak,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       DateTime lastUpdated});
 }
@@ -159,6 +168,7 @@ class __$$StandingImplCopyWithImpl<$Res>
     Object? matchesLost = null,
     Object? winRate = null,
     Object? rankingPoints = null,
+    Object? streak = null,
     Object? lastUpdated = null,
   }) {
     return _then(_$StandingImpl(
@@ -194,6 +204,10 @@ class __$$StandingImplCopyWithImpl<$Res>
           ? _value.rankingPoints
           : rankingPoints // ignore: cast_nullable_to_non_nullable
               as int,
+      streak: null == streak
+          ? _value.streak
+          : streak // ignore: cast_nullable_to_non_nullable
+              as int,
       lastUpdated: null == lastUpdated
           ? _value.lastUpdated
           : lastUpdated // ignore: cast_nullable_to_non_nullable
@@ -214,6 +228,7 @@ class _$StandingImpl implements _Standing {
       this.matchesLost = 0,
       this.winRate = 0.0,
       this.rankingPoints = 1000,
+      this.streak = 0,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required this.lastUpdated});
 
@@ -242,12 +257,16 @@ class _$StandingImpl implements _Standing {
   @JsonKey()
   final int rankingPoints;
   @override
+  @JsonKey()
+  final int streak;
+// Positive for consecutive wins, negative for losses (e.g., +3 or -2)
+  @override
   @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
   final DateTime lastUpdated;
 
   @override
   String toString() {
-    return 'Standing(userId: $userId, displayName: $displayName, skillLevel: $skillLevel, matchesPlayed: $matchesPlayed, matchesWon: $matchesWon, matchesLost: $matchesLost, winRate: $winRate, rankingPoints: $rankingPoints, lastUpdated: $lastUpdated)';
+    return 'Standing(userId: $userId, displayName: $displayName, skillLevel: $skillLevel, matchesPlayed: $matchesPlayed, matchesWon: $matchesWon, matchesLost: $matchesLost, winRate: $winRate, rankingPoints: $rankingPoints, streak: $streak, lastUpdated: $lastUpdated)';
   }
 
   @override
@@ -269,6 +288,7 @@ class _$StandingImpl implements _Standing {
             (identical(other.winRate, winRate) || other.winRate == winRate) &&
             (identical(other.rankingPoints, rankingPoints) ||
                 other.rankingPoints == rankingPoints) &&
+            (identical(other.streak, streak) || other.streak == streak) &&
             (identical(other.lastUpdated, lastUpdated) ||
                 other.lastUpdated == lastUpdated));
   }
@@ -285,6 +305,7 @@ class _$StandingImpl implements _Standing {
       matchesLost,
       winRate,
       rankingPoints,
+      streak,
       lastUpdated);
 
   @JsonKey(ignore: true)
@@ -311,6 +332,7 @@ abstract class _Standing implements Standing {
       final int matchesLost,
       final double winRate,
       final int rankingPoints,
+      final int streak,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required final DateTime lastUpdated}) = _$StandingImpl;
 
@@ -334,6 +356,8 @@ abstract class _Standing implements Standing {
   @override
   int get rankingPoints;
   @override
+  int get streak;
+  @override // Positive for consecutive wins, negative for losses (e.g., +3 or -2)
   @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
   DateTime get lastUpdated;
   @override

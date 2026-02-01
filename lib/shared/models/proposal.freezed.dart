@@ -477,6 +477,10 @@ mixin _$Proposal {
   String get creatorName => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
   SkillLevel get skillLevel => throw _privateConstructorUsedError;
+
+  /// Bracket for filtering - derived from skillLevel but stored for efficient queries
+  @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
+  SkillBracket get skillBracket => throw _privateConstructorUsedError;
   String get location => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
   DateTime get dateTime => throw _privateConstructorUsedError;
@@ -506,6 +510,8 @@ abstract class $ProposalCopyWith<$Res> {
       String creatorName,
       @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
       SkillLevel skillLevel,
+      @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
+      SkillBracket skillBracket,
       String location,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       DateTime dateTime,
@@ -539,6 +545,7 @@ class _$ProposalCopyWithImpl<$Res, $Val extends Proposal>
     Object? creatorId = null,
     Object? creatorName = null,
     Object? skillLevel = null,
+    Object? skillBracket = null,
     Object? location = null,
     Object? dateTime = null,
     Object? status = null,
@@ -565,6 +572,10 @@ class _$ProposalCopyWithImpl<$Res, $Val extends Proposal>
           ? _value.skillLevel
           : skillLevel // ignore: cast_nullable_to_non_nullable
               as SkillLevel,
+      skillBracket: null == skillBracket
+          ? _value.skillBracket
+          : skillBracket // ignore: cast_nullable_to_non_nullable
+              as SkillBracket,
       location: null == location
           ? _value.location
           : location // ignore: cast_nullable_to_non_nullable
@@ -639,6 +650,8 @@ abstract class _$$ProposalImplCopyWith<$Res>
       String creatorName,
       @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
       SkillLevel skillLevel,
+      @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
+      SkillBracket skillBracket,
       String location,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       DateTime dateTime,
@@ -672,6 +685,7 @@ class __$$ProposalImplCopyWithImpl<$Res>
     Object? creatorId = null,
     Object? creatorName = null,
     Object? skillLevel = null,
+    Object? skillBracket = null,
     Object? location = null,
     Object? dateTime = null,
     Object? status = null,
@@ -698,6 +712,10 @@ class __$$ProposalImplCopyWithImpl<$Res>
           ? _value.skillLevel
           : skillLevel // ignore: cast_nullable_to_non_nullable
               as SkillLevel,
+      skillBracket: null == skillBracket
+          ? _value.skillBracket
+          : skillBracket // ignore: cast_nullable_to_non_nullable
+              as SkillBracket,
       location: null == location
           ? _value.location
           : location // ignore: cast_nullable_to_non_nullable
@@ -736,13 +754,15 @@ class __$$ProposalImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$ProposalImpl implements _Proposal {
+class _$ProposalImpl extends _Proposal {
   const _$ProposalImpl(
       {required this.proposalId,
       required this.creatorId,
       required this.creatorName,
       @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
       required this.skillLevel,
+      @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
+      required this.skillBracket,
       required this.location,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required this.dateTime,
@@ -754,7 +774,8 @@ class _$ProposalImpl implements _Proposal {
       required this.createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required this.updatedAt})
-      : _scoreConfirmedBy = scoreConfirmedBy;
+      : _scoreConfirmedBy = scoreConfirmedBy,
+        super._();
 
   factory _$ProposalImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProposalImplFromJson(json);
@@ -768,6 +789,11 @@ class _$ProposalImpl implements _Proposal {
   @override
   @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
   final SkillLevel skillLevel;
+
+  /// Bracket for filtering - derived from skillLevel but stored for efficient queries
+  @override
+  @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
+  final SkillBracket skillBracket;
   @override
   final String location;
   @override
@@ -798,7 +824,7 @@ class _$ProposalImpl implements _Proposal {
 
   @override
   String toString() {
-    return 'Proposal(proposalId: $proposalId, creatorId: $creatorId, creatorName: $creatorName, skillLevel: $skillLevel, location: $location, dateTime: $dateTime, status: $status, acceptedBy: $acceptedBy, scores: $scores, scoreConfirmedBy: $scoreConfirmedBy, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'Proposal(proposalId: $proposalId, creatorId: $creatorId, creatorName: $creatorName, skillLevel: $skillLevel, skillBracket: $skillBracket, location: $location, dateTime: $dateTime, status: $status, acceptedBy: $acceptedBy, scores: $scores, scoreConfirmedBy: $scoreConfirmedBy, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -814,6 +840,8 @@ class _$ProposalImpl implements _Proposal {
                 other.creatorName == creatorName) &&
             (identical(other.skillLevel, skillLevel) ||
                 other.skillLevel == skillLevel) &&
+            (identical(other.skillBracket, skillBracket) ||
+                other.skillBracket == skillBracket) &&
             (identical(other.location, location) ||
                 other.location == location) &&
             (identical(other.dateTime, dateTime) ||
@@ -838,6 +866,7 @@ class _$ProposalImpl implements _Proposal {
       creatorId,
       creatorName,
       skillLevel,
+      skillBracket,
       location,
       dateTime,
       status,
@@ -861,13 +890,15 @@ class _$ProposalImpl implements _Proposal {
   }
 }
 
-abstract class _Proposal implements Proposal {
+abstract class _Proposal extends Proposal {
   const factory _Proposal(
       {required final String proposalId,
       required final String creatorId,
       required final String creatorName,
       @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
       required final SkillLevel skillLevel,
+      @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
+      required final SkillBracket skillBracket,
       required final String location,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required final DateTime dateTime,
@@ -879,6 +910,7 @@ abstract class _Proposal implements Proposal {
       required final DateTime createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required final DateTime updatedAt}) = _$ProposalImpl;
+  const _Proposal._() : super._();
 
   factory _Proposal.fromJson(Map<String, dynamic> json) =
       _$ProposalImpl.fromJson;
@@ -892,6 +924,11 @@ abstract class _Proposal implements Proposal {
   @override
   @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
   SkillLevel get skillLevel;
+  @override
+
+  /// Bracket for filtering - derived from skillLevel but stored for efficient queries
+  @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
+  SkillBracket get skillBracket;
   @override
   String get location;
   @override

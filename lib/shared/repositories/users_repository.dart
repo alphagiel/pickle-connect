@@ -76,7 +76,7 @@ class UsersRepository {
   Stream<List<User>> getUsersBySkillLevel(SkillLevel skillLevel) {
     return _firestore
         .collection(_collection)
-        .where('skillLevel', isEqualTo: skillLevel.displayName)
+        .where('skillLevel', isEqualTo: skillLevel.jsonValue)
         .orderBy('displayName')
         .snapshots()
         .map((snapshot) => snapshot.docs

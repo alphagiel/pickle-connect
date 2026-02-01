@@ -22,7 +22,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _ratingController = TextEditingController();
+  SkillLevel? _selectedSkillLevel;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
@@ -35,7 +35,6 @@ class _SignupPageState extends ConsumerState<SignupPage> {
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _ratingController.dispose();
     super.dispose();
   }
 
@@ -68,7 +67,8 @@ class _SignupPageState extends ConsumerState<SignupPage> {
           userId: authUser.id,
           displayName: _fullNameController.text.trim(),
           email: _emailController.text.trim(),
-          skillLevel: SkillLevel.intermediate, // Default skill level
+          skillLevel: _selectedSkillLevel!,
+          skillBracket: _selectedSkillLevel!.bracket, // Derived from specific level
           location: 'Club Member', // Default location
           profileImageURL: null,
           createdAt: DateTime.now(),
@@ -310,10 +310,10 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                           ),
                           const SizedBox(height: 16),
 
-                          TextFormField(
-                            controller: _ratingController,
+                          DropdownButtonFormField<SkillLevel>(
+                            value: _selectedSkillLevel,
                             decoration: InputDecoration(
-                              labelText: 'USTA/UTR Rating (Optional)',
+                              labelText: 'Skill Level *',
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -321,9 +321,50 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
                               ),
-                              helperText: 'Helps with skill division placement',
                               prefixIcon: Icon(Icons.star),
                             ),
+                            isExpanded: true,
+                            items: SkillLevel.values.map((level) {
+                              return DropdownMenuItem<SkillLevel>(
+                                value: level,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      level.displayName,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      level.description,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.secondaryText,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            selectedItemBuilder: (BuildContext context) {
+                              return SkillLevel.values.map((level) {
+                                return Text(level.displayName);
+                              }).toList();
+                            },
+                            onChanged: (SkillLevel? value) {
+                              setState(() {
+                                _selectedSkillLevel = value;
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null) {
+                                return 'Please select your skill level';
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 24),
 

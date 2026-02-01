@@ -2,24 +2,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/proposal.dart';
 import '../models/user.dart';
 import '../repositories/proposals_repository.dart';
-import '../services/proposal_cleanup_service.dart';
+// NOTE: Cleanup service disabled - should be handled by Cloud Functions
+// import '../services/proposal_cleanup_service.dart';
 
-// Provider for open proposals filtered by skill level
-final openProposalsProvider = StreamProvider.family<List<Proposal>, SkillLevel>((ref, skillLevel) {
+// Provider for open proposals filtered by skill bracket (for interactibility)
+final openProposalsProvider = StreamProvider.family<List<Proposal>, SkillBracket>((ref, bracket) {
   final repository = ref.watch(proposalsRepositoryProvider);
-  final cleanupService = ref.watch(proposalCleanupServiceProvider);
 
-  // Run cleanup before fetching
-  cleanupService.runCleanupBeforeFetch();
+  // NOTE: Client-side cleanup disabled - should be handled by Cloud Functions
+  // The security rules don't allow querying all proposals for cleanup
+  // final cleanupService = ref.watch(proposalCleanupServiceProvider);
+  // cleanupService.runCleanupBeforeFetch();
 
-  return repository.getProposalsForSkillLevel(skillLevel);
+  return repository.getProposalsForBracket(bracket);
 });
 
-// Provider for all open proposals
-final allOpenProposalsProvider = StreamProvider<List<Proposal>>((ref) {
-  final repository = ref.watch(proposalsRepositoryProvider);
-  return repository.getOpenProposals();
-});
+// Provider for all open proposals (admin only - bypasses skill level filter)
+// NOTE: Not used in normal user flows. Keep for potential admin features.
+// final allOpenProposalsProvider = StreamProvider<List<Proposal>>((ref) {
+//   final repository = ref.watch(proposalsRepositoryProvider);
+//   return repository.getOpenProposals();
+// });
 
 // Provider for user's created proposals
 final userProposalsProvider = StreamProvider.family<List<Proposal>, String>((ref, userId) {
@@ -45,10 +48,16 @@ final expiredProposalsProvider = StreamProvider.family<List<Proposal>, String>((
   return repository.getExpiredProposals(userId);
 });
 
-// Provider for completed matches by skill level (for standings page)
+// Provider for completed matches by skill bracket (for standings page)
+final completedMatchesByBracketProvider = StreamProvider.family<List<Proposal>, SkillBracket>((ref, bracket) {
+  final repository = ref.watch(proposalsRepositoryProvider);
+  return repository.getCompletedProposalsByBracket(bracket);
+});
+
+// Legacy alias - redirects to bracket-based filtering
 final completedMatchesBySkillLevelProvider = StreamProvider.family<List<Proposal>, SkillLevel>((ref, skillLevel) {
   final repository = ref.watch(proposalsRepositoryProvider);
-  return repository.getCompletedProposalsBySkillLevel(skillLevel);
+  return repository.getCompletedProposalsByBracket(skillLevel.bracket);
 });
 
 // Provider for fetching a single proposal by ID (for deep links)
@@ -58,7 +67,7 @@ final proposalByIdProvider = FutureProvider.family<Proposal?, String>((ref, prop
 });
 
 // Provider for selected skill level filter
-final selectedSkillLevelProvider = StateProvider<SkillLevel>((ref) => SkillLevel.intermediate);
+final selectedSkillLevelProvider = StateProvider<SkillLevel>((ref) => SkillLevel.level3_5);
 
 // Provider for editing proposal - holds the proposal being edited (null when not editing)
 final editingProposalProvider = StateProvider<Proposal?>((ref) => null);
@@ -82,8 +91,8 @@ final dateFilterProvider = StateProvider<DateSortFilter>((ref) => DateSortFilter
 final creatorFilterProvider = StateProvider<String?>((ref) => null); // null means no filter
 
 // Filtered proposals provider that applies all filters and sorting
-final filteredProposalsProvider = Provider.family<AsyncValue<List<Proposal>>, SkillLevel>((ref, skillLevel) {
-  final proposalsAsync = ref.watch(openProposalsProvider(skillLevel));
+final filteredProposalsProvider = Provider.family<AsyncValue<List<Proposal>>, SkillBracket>((ref, bracket) {
+  final proposalsAsync = ref.watch(openProposalsProvider(bracket));
   final statusFilter = ref.watch(proposalStatusFilterProvider);
   final dateFilter = ref.watch(dateFilterProvider);
   final creatorFilter = ref.watch(creatorFilterProvider);

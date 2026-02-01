@@ -41,15 +41,21 @@ class AppColors {
   static const onPrimary = Colors.white;
   static const onSurface = Color(0xFF212121);
 
-  // Skill level colors
-  static const beginnerColor = Color(0xFF4CAF50);
+  // Skill level colors (5-tier system)
+  static const beginnerColor = Color(0xFF4CAF50);     // Green - New players
   static const beginnerLight = Color(0xFFE8F5E8);
-  
-  static const intermediateColor = Color(0xFF2196F3);
+
+  static const noviceColor = Color(0xFF8BC34A);        // Light green - Learning
+  static const noviceLight = Color(0xFFF1F8E9);
+
+  static const intermediateColor = Color(0xFF2196F3); // Blue - Developing
   static const intermediateLight = Color(0xFFE3F2FD);
-  
-  static const advancedColor = Color(0xFF9C27B0);
+
+  static const advancedColor = Color(0xFF9C27B0);     // Purple - Competitive
   static const advancedLight = Color(0xFFF3E5F5);
+
+  static const expertColor = Color(0xFFFF5722);       // Deep orange - Tournament level
+  static const expertLight = Color(0xFFFBE9E7);
 
   // Status colors for proposals
   static const openStatus = Color(0xFF4CAF50);

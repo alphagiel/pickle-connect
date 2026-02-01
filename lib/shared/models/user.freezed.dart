@@ -267,6 +267,10 @@ mixin _$User {
   String get displayName => throw _privateConstructorUsedError;
   String get email => throw _privateConstructorUsedError;
   SkillLevel get skillLevel => throw _privateConstructorUsedError;
+
+  /// Skill bracket derived from skillLevel (stored for efficient Firestore queries)
+  @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
+  SkillBracket get skillBracket => throw _privateConstructorUsedError;
   String get location => throw _privateConstructorUsedError;
   String? get profileImageURL => throw _privateConstructorUsedError;
   int get matchesPlayed => throw _privateConstructorUsedError;
@@ -295,6 +299,8 @@ abstract class $UserCopyWith<$Res> {
       String displayName,
       String email,
       SkillLevel skillLevel,
+      @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
+      SkillBracket skillBracket,
       String location,
       String? profileImageURL,
       int matchesPlayed,
@@ -327,6 +333,7 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? displayName = null,
     Object? email = null,
     Object? skillLevel = null,
+    Object? skillBracket = null,
     Object? location = null,
     Object? profileImageURL = freezed,
     Object? matchesPlayed = null,
@@ -354,6 +361,10 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.skillLevel
           : skillLevel // ignore: cast_nullable_to_non_nullable
               as SkillLevel,
+      skillBracket: null == skillBracket
+          ? _value.skillBracket
+          : skillBracket // ignore: cast_nullable_to_non_nullable
+              as SkillBracket,
       location: null == location
           ? _value.location
           : location // ignore: cast_nullable_to_non_nullable
@@ -419,6 +430,8 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       String displayName,
       String email,
       SkillLevel skillLevel,
+      @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
+      SkillBracket skillBracket,
       String location,
       String? profileImageURL,
       int matchesPlayed,
@@ -449,6 +462,7 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? displayName = null,
     Object? email = null,
     Object? skillLevel = null,
+    Object? skillBracket = null,
     Object? location = null,
     Object? profileImageURL = freezed,
     Object? matchesPlayed = null,
@@ -476,6 +490,10 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value.skillLevel
           : skillLevel // ignore: cast_nullable_to_non_nullable
               as SkillLevel,
+      skillBracket: null == skillBracket
+          ? _value.skillBracket
+          : skillBracket // ignore: cast_nullable_to_non_nullable
+              as SkillBracket,
       location: null == location
           ? _value.location
           : location // ignore: cast_nullable_to_non_nullable
@@ -524,6 +542,8 @@ class _$UserImpl implements _User {
       required this.displayName,
       required this.email,
       required this.skillLevel,
+      @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
+      required this.skillBracket,
       required this.location,
       this.profileImageURL,
       this.matchesPlayed = 0,
@@ -547,6 +567,11 @@ class _$UserImpl implements _User {
   final String email;
   @override
   final SkillLevel skillLevel;
+
+  /// Skill bracket derived from skillLevel (stored for efficient Firestore queries)
+  @override
+  @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
+  final SkillBracket skillBracket;
   @override
   final String location;
   @override
@@ -574,7 +599,7 @@ class _$UserImpl implements _User {
 
   @override
   String toString() {
-    return 'User(userId: $userId, displayName: $displayName, email: $email, skillLevel: $skillLevel, location: $location, profileImageURL: $profileImageURL, matchesPlayed: $matchesPlayed, matchesWon: $matchesWon, matchesLost: $matchesLost, winRate: $winRate, createdAt: $createdAt, updatedAt: $updatedAt, emailNotifications: $emailNotifications)';
+    return 'User(userId: $userId, displayName: $displayName, email: $email, skillLevel: $skillLevel, skillBracket: $skillBracket, location: $location, profileImageURL: $profileImageURL, matchesPlayed: $matchesPlayed, matchesWon: $matchesWon, matchesLost: $matchesLost, winRate: $winRate, createdAt: $createdAt, updatedAt: $updatedAt, emailNotifications: $emailNotifications)';
   }
 
   @override
@@ -588,6 +613,8 @@ class _$UserImpl implements _User {
             (identical(other.email, email) || other.email == email) &&
             (identical(other.skillLevel, skillLevel) ||
                 other.skillLevel == skillLevel) &&
+            (identical(other.skillBracket, skillBracket) ||
+                other.skillBracket == skillBracket) &&
             (identical(other.location, location) ||
                 other.location == location) &&
             (identical(other.profileImageURL, profileImageURL) ||
@@ -615,6 +642,7 @@ class _$UserImpl implements _User {
       displayName,
       email,
       skillLevel,
+      skillBracket,
       location,
       profileImageURL,
       matchesPlayed,
@@ -645,6 +673,8 @@ abstract class _User implements User {
       required final String displayName,
       required final String email,
       required final SkillLevel skillLevel,
+      @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
+      required final SkillBracket skillBracket,
       required final String location,
       final String? profileImageURL,
       final int matchesPlayed,
@@ -667,6 +697,11 @@ abstract class _User implements User {
   String get email;
   @override
   SkillLevel get skillLevel;
+  @override
+
+  /// Skill bracket derived from skillLevel (stored for efficient Firestore queries)
+  @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
+  SkillBracket get skillBracket;
   @override
   String get location;
   @override

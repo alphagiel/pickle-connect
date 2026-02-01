@@ -3,14 +3,14 @@ import '../models/standing.dart';
 import '../models/user.dart';
 import '../repositories/standings_repository.dart';
 
-// Provider for standings filtered by skill level
-final standingsProvider = StreamProvider.family<List<Standing>, SkillLevel>((ref, skillLevel) {
+// Provider for standings filtered by skill bracket
+final standingsProvider = StreamProvider.family<List<Standing>, SkillBracket>((ref, bracket) {
   final repository = ref.watch(standingsRepositoryProvider);
-  return repository.getStandingsForSkillLevel(skillLevel);
+  return repository.getStandingsForBracket(bracket);
 });
 
-// Provider for all standings across skill levels
-final allStandingsProvider = FutureProvider<Map<SkillLevel, List<Standing>>>((ref) {
+// Provider for all standings across skill brackets
+final allStandingsProvider = FutureProvider<Map<SkillBracket, List<Standing>>>((ref) {
   final repository = ref.watch(standingsRepositoryProvider);
   return repository.getAllStandings();
 });
@@ -18,21 +18,21 @@ final allStandingsProvider = FutureProvider<Map<SkillLevel, List<Standing>>>((re
 // Provider for user's standing
 final userStandingProvider = FutureProvider.family<Standing?, UserStandingParams>((ref, params) {
   final repository = ref.watch(standingsRepositoryProvider);
-  return repository.getUserStanding(params.userId, params.skillLevel);
+  return repository.getUserStanding(params.userId, params.bracket);
 });
 
 // Provider for user's rank
 final userRankProvider = FutureProvider.family<int, UserStandingParams>((ref, params) {
   final repository = ref.watch(standingsRepositoryProvider);
-  return repository.getUserRank(params.userId, params.skillLevel);
+  return repository.getUserRank(params.userId, params.bracket);
 });
 
 // Helper class for user standing parameters
 class UserStandingParams {
   final String userId;
-  final SkillLevel skillLevel;
+  final SkillBracket bracket;
 
-  UserStandingParams({required this.userId, required this.skillLevel});
+  UserStandingParams({required this.userId, required this.bracket});
 
   @override
   bool operator ==(Object other) =>
@@ -40,8 +40,8 @@ class UserStandingParams {
       other is UserStandingParams &&
           runtimeType == other.runtimeType &&
           userId == other.userId &&
-          skillLevel == other.skillLevel;
+          bracket == other.bracket;
 
   @override
-  int get hashCode => userId.hashCode ^ skillLevel.hashCode;
+  int get hashCode => userId.hashCode ^ bracket.hashCode;
 }

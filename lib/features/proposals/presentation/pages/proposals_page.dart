@@ -18,6 +18,10 @@ class ProposalsPage extends ConsumerStatefulWidget {
 
 class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  // Track retry attempts for permission-denied errors (race condition on login)
+  final Map<String, int> _retryAttempts = {};
+  static const int _maxRetries = 3;
+  static const Duration _retryDelay = Duration(seconds: 1);
 
   @override
   void initState() {
@@ -230,7 +234,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
                 return TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildAvailableProposals(userProfile.skillLevel),
+                    _buildAvailableProposals(userProfile.skillLevel.bracket),
                     _buildMyMatches(),
                     _buildCompletedProposals(),
                   ],
@@ -249,11 +253,14 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
     );
   }
 
-  Widget _buildAvailableProposals(SkillLevel skillLevel) {
-    final proposalsAsync = ref.watch(filteredProposalsProvider(skillLevel));
+  Widget _buildAvailableProposals(SkillBracket bracket) {
+    final proposalsAsync = ref.watch(filteredProposalsProvider(bracket));
 
     return proposalsAsync.when(
       data: (proposals) {
+        // Clear retry counter on success
+        _retryAttempts.remove('available_${bracket.name}');
+
         if (proposals.isEmpty) {
           return _buildEmptyState(
             icon: Icons.inbox_outlined,
@@ -264,7 +271,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
 
         return RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(openProposalsProvider(skillLevel));
+            ref.invalidate(openProposalsProvider(bracket));
           },
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -295,7 +302,29 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
           valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
         ),
       ),
-      error: (error, stack) => _buildErrorState(error.toString()),
+      error: (error, stack) {
+        // Auto-retry on permission-denied (race condition on login)
+        final retryKey = 'available_${bracket.name}';
+        final attempts = _retryAttempts[retryKey] ?? 0;
+
+        if (error.toString().contains('permission-denied') && attempts < _maxRetries) {
+          Future.delayed(_retryDelay, () {
+            if (mounted) {
+              _retryAttempts[retryKey] = attempts + 1;
+              ref.invalidate(openProposalsProvider(bracket));
+            }
+          });
+          // Show loading while retrying
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+            ),
+          );
+        }
+        // Reset retry counter on non-permission errors or max retries reached
+        _retryAttempts.remove(retryKey);
+        return _buildErrorState(error.toString());
+      },
     );
   }
 
@@ -317,8 +346,14 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
     // Combine both async values
     return createdProposalsAsync.when(
       data: (createdProposals) {
+        // Clear retry counter on success
+        _retryAttempts.remove('created_${currentUser.id}');
+
         return acceptedProposalsAsync.when(
           data: (acceptedProposals) {
+            // Clear retry counter on success
+            _retryAttempts.remove('accepted_${currentUser.id}');
+
             // Combine and deduplicate (in case of any overlap)
             final allProposals = <String, Proposal>{};
             for (final p in createdProposals) {
@@ -333,9 +368,12 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
             final seasonEnd = DateTime(2026, 3, 31, 23, 59, 59);
 
             // Sort by date (upcoming first, then recent)
+            // Only show active matches (open or accepted, not completed/expired/canceled)
             final proposals = allProposals.values
-                .where((p) => p.dateTime.isAfter(seasonStart.subtract(const Duration(days: 1))) &&
-                              p.dateTime.isBefore(seasonEnd.add(const Duration(days: 1))))
+                .where((p) =>
+                    (p.status == ProposalStatus.open || p.status == ProposalStatus.accepted) &&
+                    p.dateTime.isAfter(seasonStart.subtract(const Duration(days: 1))) &&
+                    p.dateTime.isBefore(seasonEnd.add(const Duration(days: 1))))
                 .toList()
               ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
 
@@ -377,7 +415,27 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
               valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
             ),
           ),
-          error: (error, stack) => _buildErrorState(error.toString()),
+          error: (error, stack) {
+            // Auto-retry on permission-denied (race condition on login)
+            final retryKey = 'accepted_${currentUser.id}';
+            final attempts = _retryAttempts[retryKey] ?? 0;
+
+            if (error.toString().contains('permission-denied') && attempts < _maxRetries) {
+              Future.delayed(_retryDelay, () {
+                if (mounted) {
+                  _retryAttempts[retryKey] = attempts + 1;
+                  ref.invalidate(acceptedProposalsProvider(currentUser.id));
+                }
+              });
+              return const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+                ),
+              );
+            }
+            _retryAttempts.remove(retryKey);
+            return _buildErrorState(error.toString());
+          },
         );
       },
       loading: () => const Center(
@@ -385,7 +443,27 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
           valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
         ),
       ),
-      error: (error, stack) => _buildErrorState(error.toString()),
+      error: (error, stack) {
+        // Auto-retry on permission-denied (race condition on login)
+        final retryKey = 'created_${currentUser.id}';
+        final attempts = _retryAttempts[retryKey] ?? 0;
+
+        if (error.toString().contains('permission-denied') && attempts < _maxRetries) {
+          Future.delayed(_retryDelay, () {
+            if (mounted) {
+              _retryAttempts[retryKey] = attempts + 1;
+              ref.invalidate(userProposalsProvider(currentUser.id));
+            }
+          });
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+            ),
+          );
+        }
+        _retryAttempts.remove(retryKey);
+        return _buildErrorState(error.toString());
+      },
     );
   }
 
@@ -403,6 +481,9 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
 
     return proposalsAsync.when(
       data: (proposals) {
+        // Clear retry counter on success
+        _retryAttempts.remove('completed_${currentUser.id}');
+
         if (proposals.isEmpty) {
           return _buildEmptyState(
             icon: Icons.emoji_events_outlined,
@@ -439,7 +520,27 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
           valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
         ),
       ),
-      error: (error, stack) => _buildErrorState(error.toString()),
+      error: (error, stack) {
+        // Auto-retry on permission-denied (race condition on login)
+        final retryKey = 'completed_${currentUser.id}';
+        final attempts = _retryAttempts[retryKey] ?? 0;
+
+        if (error.toString().contains('permission-denied') && attempts < _maxRetries) {
+          Future.delayed(_retryDelay, () {
+            if (mounted) {
+              _retryAttempts[retryKey] = attempts + 1;
+              ref.invalidate(completedProposalsProvider(currentUser.id));
+            }
+          });
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+            ),
+          );
+        }
+        _retryAttempts.remove(retryKey);
+        return _buildErrorState(error.toString());
+      },
     );
   }
 
@@ -539,7 +640,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
               onPressed: () {
                 final userProfile = ref.read(currentUserProfileProvider).valueOrNull;
                 if (userProfile != null) {
-                  ref.invalidate(openProposalsProvider(userProfile.skillLevel));
+                  ref.invalidate(openProposalsProvider(userProfile.skillLevel.bracket));
                 }
               },
               icon: const Icon(Icons.refresh),
@@ -584,7 +685,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
       );
 
       // Invalidate the providers to refresh the streams
-      ref.invalidate(openProposalsProvider(proposal.skillLevel));
+      ref.invalidate(openProposalsProvider(proposal.skillBracket));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -647,8 +748,8 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
         await ref.read(proposalActionsProvider).deleteProposal(proposal.proposalId);
 
         // Invalidate the providers to refresh the streams
-        ref.invalidate(openProposalsProvider(proposal.skillLevel));
-        ref.invalidate(filteredProposalsProvider(proposal.skillLevel));
+        ref.invalidate(openProposalsProvider(proposal.skillBracket));
+        ref.invalidate(filteredProposalsProvider(proposal.skillBracket));
 
         final currentUser = ref.read(currentUserProvider);
         if (currentUser != null) {

@@ -172,6 +172,7 @@ class AuthUser {
       displayName: displayName ?? '',
       email: email,
       skillLevel: skillLevel,
+      skillBracket: skillLevel.bracket,
       location: location,
       profileImageURL: profileImageURL,
       createdAt: DateTime.now(),

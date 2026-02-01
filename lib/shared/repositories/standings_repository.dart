@@ -11,43 +11,59 @@ class StandingsRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'standings';
 
-  // Get standings for specific skill level
-  Stream<List<Standing>> getStandingsForSkillLevel(SkillLevel skillLevel) {
+  // Get standings for specific skill bracket
+  Stream<List<Standing>> getStandingsForBracket(SkillBracket bracket) {
+    print('[StandingsRepo] Querying standings/${bracket.jsonValue}/players');
     return _firestore
         .collection(_collection)
-        .doc(skillLevel.displayName)
+        .doc(bracket.jsonValue)
         .collection('players')
         .orderBy('winRate', descending: true)
         .orderBy('matchesWon', descending: true)
         .limit(50)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Standing.fromJson({
+        .map((snapshot) {
+          print('[StandingsRepo] Got ${snapshot.docs.length} docs for ${bracket.jsonValue}');
+          return snapshot.docs
+              .map((doc) {
+                print('[StandingsRepo] Doc: ${doc.id} -> ${doc.data()}');
+                return Standing.fromJson({
                   ...doc.data(),
-                }))
-            .toList());
+                });
+              })
+              .toList();
+        });
   }
 
-  // Get all standings across skill levels
-  Future<Map<SkillLevel, List<Standing>>> getAllStandings() async {
+  // Legacy method - redirects to bracket-based
+  Stream<List<Standing>> getStandingsForSkillLevel(SkillLevel skillLevel) {
+    return getStandingsForBracket(skillLevel.bracket);
+  }
+
+  // Get all standings across skill brackets
+  Future<Map<SkillBracket, List<Standing>>> getAllStandings() async {
     final results = await Future.wait([
-      getStandingsForSkillLevel(SkillLevel.beginner).first,
-      getStandingsForSkillLevel(SkillLevel.intermediate).first,
-      getStandingsForSkillLevel(SkillLevel.advancedPlus).first,
+      getStandingsForBracket(SkillBracket.beginner).first,
+      getStandingsForBracket(SkillBracket.novice).first,
+      getStandingsForBracket(SkillBracket.intermediate).first,
+      getStandingsForBracket(SkillBracket.advanced).first,
+      getStandingsForBracket(SkillBracket.expert).first,
     ]);
-    
+
     return {
-      SkillLevel.beginner: results[0],
-      SkillLevel.intermediate: results[1],
-      SkillLevel.advancedPlus: results[2],
+      SkillBracket.beginner: results[0],
+      SkillBracket.novice: results[1],
+      SkillBracket.intermediate: results[2],
+      SkillBracket.advanced: results[3],
+      SkillBracket.expert: results[4],
     };
   }
 
-  // Get user's standing in their skill level
-  Future<Standing?> getUserStanding(String userId, SkillLevel skillLevel) async {
+  // Get user's standing in their skill bracket
+  Future<Standing?> getUserStanding(String userId, SkillBracket bracket) async {
     final doc = await _firestore
         .collection(_collection)
-        .doc(skillLevel.displayName)
+        .doc(bracket.jsonValue)
         .collection('players')
         .doc(userId)
         .get();
@@ -62,25 +78,25 @@ class StandingsRepository {
   Future<void> updateStanding(Standing standing) async {
     await _firestore
         .collection(_collection)
-        .doc(standing.skillLevel.displayName)
+        .doc(standing.skillLevel.jsonValue)
         .collection('players')
         .doc(standing.userId)
         .set(standing.toJson(), SetOptions(merge: true));
   }
 
-  // Remove user from standings (when skill level changes)
-  Future<void> removeUserFromStandings(String userId, SkillLevel oldSkillLevel) async {
+  // Remove user from standings (when skill bracket changes)
+  Future<void> removeUserFromStandings(String userId, SkillBracket oldBracket) async {
     await _firestore
         .collection(_collection)
-        .doc(oldSkillLevel.displayName)
+        .doc(oldBracket.jsonValue)
         .collection('players')
         .doc(userId)
         .delete();
   }
 
-  // Get user's rank in their skill level
-  Future<int> getUserRank(String userId, SkillLevel skillLevel) async {
-    final standings = await getStandingsForSkillLevel(skillLevel).first;
+  // Get user's rank in their skill bracket
+  Future<int> getUserRank(String userId, SkillBracket bracket) async {
+    final standings = await getStandingsForBracket(bracket).first;
     final userIndex = standings.indexWhere((standing) => standing.userId == userId);
     return userIndex == -1 ? 0 : userIndex + 1;
   }

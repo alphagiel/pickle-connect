@@ -16,6 +16,7 @@ _$StandingImpl _$$StandingImplFromJson(Map<String, dynamic> json) =>
       matchesLost: (json['matchesLost'] as num?)?.toInt() ?? 0,
       winRate: (json['winRate'] as num?)?.toDouble() ?? 0.0,
       rankingPoints: (json['rankingPoints'] as num?)?.toInt() ?? 1000,
+      streak: (json['streak'] as num?)?.toInt() ?? 0,
       lastUpdated: _timestampFromJson(json['lastUpdated']),
     );
 
@@ -29,11 +30,18 @@ Map<String, dynamic> _$$StandingImplToJson(_$StandingImpl instance) =>
       'matchesLost': instance.matchesLost,
       'winRate': instance.winRate,
       'rankingPoints': instance.rankingPoints,
+      'streak': instance.streak,
       'lastUpdated': _timestampToJson(instance.lastUpdated),
     };
 
 const _$SkillLevelEnumMap = {
-  SkillLevel.beginner: 'Beginner',
-  SkillLevel.intermediate: 'Intermediate',
-  SkillLevel.advancedPlus: 'Advanced+',
+  SkillLevel.level1_0: '1.0',
+  SkillLevel.level1_5: '1.5',
+  SkillLevel.level2_0: '2.0',
+  SkillLevel.level2_5: '2.5',
+  SkillLevel.level3_0: '3.0',
+  SkillLevel.level3_5: '3.5',
+  SkillLevel.level4_0: '4.0',
+  SkillLevel.level4_5: '4.5',
+  SkillLevel.level5_0Plus: '5.0+',
 };

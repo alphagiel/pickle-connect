@@ -31,6 +31,7 @@ _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
       displayName: json['displayName'] as String,
       email: json['email'] as String,
       skillLevel: $enumDecode(_$SkillLevelEnumMap, json['skillLevel']),
+      skillBracket: _skillBracketFromJson(json['skillBracket']),
       location: json['location'] as String,
       profileImageURL: json['profileImageURL'] as String?,
       matchesPlayed: (json['matchesPlayed'] as num?)?.toInt() ?? 0,
@@ -51,6 +52,7 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'displayName': instance.displayName,
       'email': instance.email,
       'skillLevel': _$SkillLevelEnumMap[instance.skillLevel]!,
+      'skillBracket': _skillBracketToJson(instance.skillBracket),
       'location': instance.location,
       'profileImageURL': instance.profileImageURL,
       'matchesPlayed': instance.matchesPlayed,
@@ -63,7 +65,13 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
     };
 
 const _$SkillLevelEnumMap = {
-  SkillLevel.beginner: 'Beginner',
-  SkillLevel.intermediate: 'Intermediate',
-  SkillLevel.advancedPlus: 'Advanced+',
+  SkillLevel.level1_0: '1.0',
+  SkillLevel.level1_5: '1.5',
+  SkillLevel.level2_0: '2.0',
+  SkillLevel.level2_5: '2.5',
+  SkillLevel.level3_0: '3.0',
+  SkillLevel.level3_5: '3.5',
+  SkillLevel.level4_0: '4.0',
+  SkillLevel.level4_5: '4.5',
+  SkillLevel.level5_0Plus: '5.0+',
 };

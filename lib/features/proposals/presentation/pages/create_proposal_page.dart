@@ -498,6 +498,7 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
         creatorId: currentUser.id,
         creatorName: creatorName,
         skillLevel: skillLevel,
+        skillBracket: skillLevel.bracket, // Derived from specific rating
         location: _locationController.text.trim(),
         dateTime: scheduledDateTime,
         status: ProposalStatus.open,

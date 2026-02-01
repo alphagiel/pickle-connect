@@ -1,8 +1,125 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Helper: Check if user document exists
+    function userExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    // Helper: Get user's skill bracket from their profile
+    function getUserBracket(userId) {
+      return userExists(userId) &&
+             get(/databases/$(database)/documents/users/$(userId)).data.keys().hasAny(['skillBracket'])
+             ? get(/databases/$(database)/documents/users/$(userId)).data.skillBracket
+             : null;
+    }
+
+    // Helper: Check if user has a skill bracket set
+    function userHasBracket(userId) {
+      return userExists(userId) &&
+             get(/databases/$(database)/documents/users/$(userId)).data.keys().hasAny(['skillBracket']);
+    }
+
+    // Helper: Check if user is admin (add 'role' field to user doc to enable)
+    function isAdmin(userId) {
+      let userData = get(/databases/$(database)/documents/users/$(userId)).data;
+      return userData.keys().hasAny(['role']) && userData.role == 'admin';
+    }
+
+    // Helper: Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: Check if user owns the document
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Any authenticated user can read user profiles
+      allow read: if isAuthenticated();
+
+      // Users can only write their own profile
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isAuthenticated() && isOwner(userId);
+      allow delete: if isAuthenticated() && (isOwner(userId) || isAdmin(request.auth.uid));
+    }
+
+    // Helper: Check if user is the creator of a proposal
+    function isCreator(proposalData, userId) {
+      return proposalData.keys().hasAny(['creatorId']) &&
+             proposalData.creatorId == userId;
+    }
+
+    // Helper: Check if user is the acceptor of a proposal
+    function isAcceptor(proposalData, userId) {
+      return proposalData.keys().hasAny(['acceptedBy']) &&
+             proposalData.acceptedBy != null &&
+             proposalData.acceptedBy.userId == userId;
+    }
+
+    // Helper: Check if proposal matches user's skill bracket
+    function matchesBracket(proposalData, userId) {
+      return proposalData.keys().hasAny(['skillBracket']) &&
+             userHasBracket(userId) &&
+             proposalData.skillBracket == getUserBracket(userId);
+    }
+
+    // Proposals collection
+    match /proposals/{proposalId} {
+      // READ: Can see proposals if:
+      // 1. You're admin
+      // 2. You created the proposal
+      // 3. You accepted the proposal
+      // 4. Proposal matches your skill bracket
+      // 5. Proposal is completed (for standings visibility across all brackets)
+      allow read: if isAuthenticated() && (
+        isAdmin(request.auth.uid) ||
+        isCreator(resource.data, request.auth.uid) ||
+        isAcceptor(resource.data, request.auth.uid) ||
+        matchesBracket(resource.data, request.auth.uid) ||
+        resource.data.status == 'completed'
+      );
+
+      // CREATE: Can only create proposals with your own skill bracket
+      allow create: if isAuthenticated() &&
+        userHasBracket(request.auth.uid) &&
+        request.resource.data.skillBracket == getUserBracket(request.auth.uid) &&
+        request.resource.data.creatorId == request.auth.uid;
+
+      // UPDATE: Can modify if you're the creator, accepter (matching bracket), or admin
+      allow update: if isAuthenticated() && (
+        isAdmin(request.auth.uid) ||
+        isCreator(resource.data, request.auth.uid) ||
+        matchesBracket(resource.data, request.auth.uid)
+      );
+
+      // DELETE: Only creator or admin can delete
+      allow delete: if isAuthenticated() && (
+        isAdmin(request.auth.uid) ||
+        isCreator(resource.data, request.auth.uid)
+      );
+    }
+
+    // Standings collection (organized by skill bracket)
+    match /standings/{bracketId}/players/{playerId} {
+      allow read: if isAuthenticated();
+      // Only cloud functions should write standings
+      allow write: if false;
+    }
+
+    // Invitation codes collection (if exists)
+    match /invitationCodes/{codeId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isAdmin(request.auth.uid);
+    }
+
+    // Any other collections - default deny
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

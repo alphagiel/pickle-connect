@@ -343,13 +343,17 @@ class ProposalDetailsPage extends ConsumerWidget {
   }
 
   Color _getSkillLevelColor(SkillLevel skillLevel) {
-    switch (skillLevel) {
-      case SkillLevel.beginner:
-        return const Color.fromARGB(255, 136, 121, 121);
-      case SkillLevel.intermediate:
+    switch (skillLevel.bracket) {
+      case SkillBracket.beginner:
+        return AppColors.beginnerColor;
+      case SkillBracket.novice:
+        return AppColors.noviceColor;
+      case SkillBracket.intermediate:
         return AppColors.intermediateColor;
-      case SkillLevel.advancedPlus:
+      case SkillBracket.advanced:
         return AppColors.advancedColor;
+      case SkillBracket.expert:
+        return AppColors.expertColor;
     }
   }
 
@@ -751,7 +755,7 @@ class ProposalDetailsPage extends ConsumerWidget {
     );
   }
 
-  void _showRecordScoresDialog(BuildContext context, WidgetRef ref, Proposal proposal) {
+  void _showRecordScoresDialog(BuildContext pageContext, WidgetRef ref, Proposal proposal) {
     // Best of 3 games - use TextEditingControllers for text input
     final controllers = List.generate(3, (_) => [TextEditingController(), TextEditingController()]);
 
@@ -796,8 +800,8 @@ class ProposalDetailsPage extends ConsumerWidget {
     }
 
     showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
+      context: pageContext,
+      builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) {
           final creatorGamesWon = _getCreatorGamesWon(controllers);
           final opponentGamesWon = _getOpponentGamesWon(controllers);
@@ -929,7 +933,7 @@ class ProposalDetailsPage extends ConsumerWidget {
                     game[0].dispose();
                     game[1].dispose();
                   }
-                  Navigator.of(context).pop();
+                  Navigator.of(dialogContext).pop();
                 },
                 child: const Text('Cancel'),
               ),
@@ -943,8 +947,8 @@ class ProposalDetailsPage extends ConsumerWidget {
                           game[0].dispose();
                           game[1].dispose();
                         }
-                        Navigator.of(context).pop();
-                        await _saveScores(context, ref, proposal, gameScores);
+                        Navigator.of(dialogContext).pop();
+                        await _saveScores(pageContext, ref, proposal, gameScores);
                       }
                     : null,
                 style: ElevatedButton.styleFrom(

@@ -520,9 +520,9 @@ class _EditProposalPageState extends ConsumerState<EditProposalPage> {
       );
 
       // Invalidate providers to refresh the data
-      final skillLevel = widget.proposal.skillLevel;
-      ref.invalidate(openProposalsProvider(skillLevel));
-      ref.invalidate(filteredProposalsProvider(skillLevel));
+      final bracket = widget.proposal.skillBracket;
+      ref.invalidate(openProposalsProvider(bracket));
+      ref.invalidate(filteredProposalsProvider(bracket));
       
       final currentUser = ref.read(currentUserProvider);
       if (currentUser != null) {

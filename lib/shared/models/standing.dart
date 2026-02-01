@@ -16,6 +16,7 @@ class Standing with _$Standing {
     @Default(0) int matchesLost,
     @Default(0.0) double winRate,
     @Default(1000) int rankingPoints,
+    @Default(0) int streak, // Positive for consecutive wins, negative for losses (e.g., +3 or -2)
     @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
     required DateTime lastUpdated,
   }) = _Standing;

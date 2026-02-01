@@ -290,6 +290,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           displayName: newDisplayName,
           email: currentUser.email ?? '',
           skillLevel: _selectedSkillLevel!,
+          skillBracket: _selectedSkillLevel!.bracket,
           location: _locationController.text.trim(),
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),

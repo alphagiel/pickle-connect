@@ -483,13 +483,17 @@ class ProposalCard extends StatelessWidget {
   }
 
   Color _getSkillLevelColor(SkillLevel skillLevel) {
-    switch (skillLevel) {
-      case SkillLevel.beginner:
-        return const Color.fromARGB(255, 136, 121, 121);
-      case SkillLevel.intermediate:
+    switch (skillLevel.bracket) {
+      case SkillBracket.beginner:
+        return AppColors.beginnerColor;
+      case SkillBracket.novice:
+        return AppColors.noviceColor;
+      case SkillBracket.intermediate:
         return AppColors.intermediateColor;
-      case SkillLevel.advancedPlus:
+      case SkillBracket.advanced:
         return AppColors.advancedColor;
+      case SkillBracket.expert:
+        return AppColors.expertColor;
     }
   }
 

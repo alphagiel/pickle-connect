@@ -6,13 +6,13 @@ import '../../../../shared/theme/app_colors.dart';
 class StandingCard extends StatelessWidget {
   final Standing standing;
   final int rank;
-  final SkillLevel skillLevel;
+  final SkillBracket bracket;
 
   const StandingCard({
     super.key,
     required this.standing,
     required this.rank,
-    required this.skillLevel,
+    required this.bracket,
   });
 
   @override
@@ -220,13 +220,17 @@ class StandingCard extends StatelessWidget {
   }
 
   Color _getSkillLevelColor() {
-    switch (skillLevel) {
-      case SkillLevel.beginner:
+    switch (bracket) {
+      case SkillBracket.beginner:
         return AppColors.beginnerColor;
-      case SkillLevel.intermediate:
+      case SkillBracket.novice:
+        return AppColors.noviceColor;
+      case SkillBracket.intermediate:
         return AppColors.intermediateColor;
-      case SkillLevel.advancedPlus:
+      case SkillBracket.advanced:
         return AppColors.advancedColor;
+      case SkillBracket.expert:
+        return AppColors.expertColor;
     }
   }
 

@@ -155,7 +155,7 @@ EmailNotificationPreferences({
 
 ### Quick Start
 
-**Note:** Mailpit runs in Docker. Make sure **Docker Desktop is running** first, then run `docker-compose up -d` before accessing http://localhost:8025
+**To start Mailpit:** Run Docker Desktop on your PC, then run `docker-compose up -d`
 
 ```bash
 # From project root
@@ -231,7 +231,7 @@ A **production-ready, testable, and extensible email notification system** with:
 
 ### How to Start Everything
 
-**Important:** Mailpit runs in Docker. Start **Docker Desktop** first, then run the commands below before accessing http://localhost:8025
+**To start Mailpit:** Run Docker Desktop on your PC, then run `docker-compose up -d`
 
 ```bash
 # 1. Start Mailpit (from project root)
@@ -355,3 +355,99 @@ firebase.cmd emulators:start --only auth,functions,firestore
 # In another terminal, run Flutter
 flutter run -d chrome --dart-define=USE_EMULATORS=true
 ```
+
+---
+
+### Preserving Emulator Data
+
+You can preserve your test data (users, matches, etc.) when restarting the emulator:
+
+```bash
+# 1. Export current emulator data (while emulator is running)
+firebase emulators:export ./emulator-data
+
+# 2. Stop the emulator (Ctrl+C)
+
+# 3. Rebuild functions
+cd functions && npm run build && cd ..
+
+# 4. Restart with imported data
+firebase emulators:start --import=./emulator-data
+```
+
+This saves all your users, matches, and other Firestore data.
+
+**Tip:** Add `--export-on-exit` to auto-save when you stop the emulator:
+
+```bash
+firebase emulators:start --import=./emulator-data --export-on-exit=./emulator-data
+```
+
+---
+
+## MY NOTES:
+
+### 1/31/2026 - Standings & Match Filtering
+
+#### Work Done
+
+**1. My Matches - Filter Completed Matches**
+- **File:** `lib/features/proposals/presentation/pages/proposals_page.dart`
+- Added status filter to only show `open` and `accepted` proposals
+- Completed/expired/canceled matches are now excluded
+
+**2. Score Submission - Exit Modal Fix**
+- **File:** `lib/features/proposals/presentation/pages/proposal_details_page.dart`
+- Fixed context handling so modal closes properly and navigation works after scoring
+
+**3. Firestore Rules - Cross-Bracket Visibility**
+- **File:** `firestore.rules`
+- Added `resource.data.status == 'completed'` to allow viewing completed matches across all brackets
+
+**4. Standings Repository - Path Fix**
+- **File:** `lib/shared/repositories/standings_repository.dart`
+- Changed `bracket.displayName` to `bracket.jsonValue` (e.g., `Expert` instead of `Expert (5.0+)`)
+
+**5. Standing Model - Added Streak**
+- **File:** `lib/shared/models/standing.dart`
+- Added `streak` field (int: +2 for wins, -1 for loss)
+
+**6. Cloud Function - Auto-Update Standings**
+- **File:** `functions/src/triggers/on-proposal-updated.ts`
+- Added `updatePlayerStanding()` function
+- When match is scored: updates wins/losses/streak for both players
+
+**7. Standings UI - Table Layout**
+- **File:** `lib/features/standings/presentation/pages/standings_page.dart`
+- Replaced cards with compact table: Rank | Player (level pill) | W | L | Streak
+
+#### Quick Start Reminders
+
+**Terminal 1: Start Mailpit** (optional, for emails)
+```bash
+docker-compose up -d
+```
+
+**Terminal 2: Start Firebase Emulators**
+```bash
+cd functions && npm run build && cd ..
+firebase emulators:start --import=./emulator-data --export-on-exit=./emulator-data
+```
+
+**Terminal 3: Run Flutter App**
+```bash
+flutter run -d chrome --dart-define=USE_EMULATORS=true
+```
+
+**URLs:**
+| Service | URL |
+|---------|-----|
+| App | http://localhost:PORT |
+| Emulator UI | http://127.0.0.1:4000 |
+| Mailpit | http://127.0.0.1:8025 |
+
+#### To Test Standings Table
+1. Create a proposal
+2. Accept with another user
+3. Score the match
+4. Check Standings tab - table should appear with both players

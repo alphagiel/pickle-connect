@@ -134,12 +134,17 @@ class Scores with _$Scores {
 
 @freezed
 class Proposal with _$Proposal {
+  const Proposal._();
+
   const factory Proposal({
     required String proposalId,
     required String creatorId,
     required String creatorName,
     @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
     required SkillLevel skillLevel,
+    /// Bracket for filtering - derived from skillLevel but stored for efficient queries
+    @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
+    required SkillBracket skillBracket,
     required String location,
     @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
     required DateTime dateTime,
@@ -159,38 +164,78 @@ class Proposal with _$Proposal {
 
 /// Migrate old proposal JSON format to new format
 Map<String, dynamic> _migrateProposalJson(Map<String, dynamic> json) {
+  final modifiedJson = Map<String, dynamic>.from(json);
+
   // Handle migration from old skillLevels array to new skillLevel single value
   if (json.containsKey('skillLevels') && !json.containsKey('skillLevel')) {
-    final modifiedJson = Map<String, dynamic>.from(json);
     final skillLevels = json['skillLevels'] as List<dynamic>;
     if (skillLevels.isNotEmpty) {
       modifiedJson['skillLevel'] = skillLevels.first;
     }
-    return modifiedJson;
   }
-  return json;
+
+  // Ensure skillBracket exists (derive from skillLevel if missing)
+  if (!json.containsKey('skillBracket') && modifiedJson.containsKey('skillLevel')) {
+    final skillLevel = _skillLevelFromJson(modifiedJson['skillLevel']);
+    modifiedJson['skillBracket'] = skillLevel.bracket.jsonValue;
+  }
+
+  return modifiedJson;
 }
+
+/// Map of old bracket names to new specific levels (for migration)
+const _oldBracketToLevel = {
+  'Beginner': SkillLevel.level2_0,
+  'Novice': SkillLevel.level2_5,
+  'Intermediate': SkillLevel.level3_5,
+  'Advanced': SkillLevel.level4_5,
+  'Expert': SkillLevel.level5_0Plus,
+  'Advanced+': SkillLevel.level4_5, // Old format
+};
 
 // Custom converter for SkillLevel that handles both old and new formats
 SkillLevel _skillLevelFromJson(dynamic value) {
   if (value is String) {
-    return SkillLevel.values.firstWhere(
-      (e) => e.displayName == value,
-      orElse: () => SkillLevel.intermediate,
-    );
+    // First try to match new format (1.0, 1.5, etc.)
+    for (final level in SkillLevel.values) {
+      if (level.jsonValue == value || level.displayName == value) {
+        return level;
+      }
+    }
+    // Fall back to old bracket format
+    if (_oldBracketToLevel.containsKey(value)) {
+      return _oldBracketToLevel[value]!;
+    }
   }
   if (value is List && value.isNotEmpty) {
     // Handle old array format
-    return SkillLevel.values.firstWhere(
-      (e) => e.displayName == value.first,
-      orElse: () => SkillLevel.intermediate,
-    );
+    return _skillLevelFromJson(value.first);
   }
-  return SkillLevel.intermediate;
+  return SkillLevel.level3_5; // Default to 3.5 (middle of intermediate)
 }
 
 String _skillLevelToJson(SkillLevel skillLevel) {
-  return skillLevel.displayName;
+  return skillLevel.jsonValue;
+}
+
+// Custom converter for SkillBracket
+SkillBracket _skillBracketFromJson(dynamic value) {
+  if (value is String) {
+    for (final bracket in SkillBracket.values) {
+      if (bracket.jsonValue == value || bracket.name == value) {
+        return bracket;
+      }
+    }
+    // Handle old "Advanced+" format
+    if (value == 'Advanced+') {
+      return SkillBracket.advanced;
+    }
+  }
+  return SkillBracket.intermediate; // Default
+}
+
+String _skillBracketToJson(SkillBracket bracket) {
+  return bracket.jsonValue;
 }
 
 DateTime _timestampFromJson(dynamic timestamp) {
