@@ -5,6 +5,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/utils/app_router.dart';
@@ -14,7 +16,10 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  // Use path-based URLs for web (no # in URL)
+  usePathUrlStrategy();
+
   // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -68,6 +73,9 @@ Future<void> _connectToEmulators() async {
 
   // Firestore emulator
   FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
+
+  // Functions emulator
+  FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
 
   debugPrint('🔧 Connected to Firebase Emulators');
 }

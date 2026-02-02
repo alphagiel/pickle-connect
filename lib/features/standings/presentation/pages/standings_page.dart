@@ -401,37 +401,34 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
   }
 
   Widget _buildRankIndicator(int rank) {
+    final Color color;
     if (rank <= 3) {
       final colors = [
         const Color(0xFFFFD700), // Gold
         const Color(0xFFC0C0C0), // Silver
         const Color(0xFFCD7F32), // Bronze
       ];
-      return Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: colors[rank - 1].withValues(alpha: 0.2),
-          shape: BoxShape.circle,
-        ),
-        child: Center(
-          child: Text(
-            rank.toString(),
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: colors[rank - 1],
-            ),
+      color = colors[rank - 1];
+    } else {
+      color = AppColors.neutralGray;
+    }
+
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.2),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          rank.toString(),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: color,
           ),
         ),
-      );
-    }
-    return Text(
-      rank.toString(),
-      style: const TextStyle(
-        fontWeight: FontWeight.w500,
-        fontSize: 14,
-        color: AppColors.secondaryText,
       ),
     );
   }

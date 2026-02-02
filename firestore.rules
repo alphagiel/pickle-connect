@@ -22,9 +22,11 @@ service cloud.firestore {
     }
 
     // Helper: Check if user is admin (add 'role' field to user doc to enable)
+    // Note: Check userExists first to avoid errors on new users
     function isAdmin(userId) {
-      let userData = get(/databases/$(database)/documents/users/$(userId)).data;
-      return userData.keys().hasAny(['role']) && userData.role == 'admin';
+      return userExists(userId) &&
+             get(/databases/$(database)/documents/users/$(userId)).data.keys().hasAny(['role']) &&
+             get(/databases/$(database)/documents/users/$(userId)).data.role == 'admin';
     }
 
     // Helper: Check if user is authenticated
@@ -71,17 +73,18 @@ service cloud.firestore {
     // Proposals collection
     match /proposals/{proposalId} {
       // READ: Can see proposals if:
-      // 1. You're admin
-      // 2. You created the proposal
-      // 3. You accepted the proposal
-      // 4. Proposal matches your skill bracket
-      // 5. Proposal is completed (for standings visibility across all brackets)
+      // 1. Proposal is completed (for standings visibility - check FIRST to avoid get() calls)
+      // 2. You're admin
+      // 3. You created the proposal
+      // 4. You accepted the proposal
+      // 5. Proposal matches your skill bracket
+      // NOTE: Order matters! Check simple conditions first before calling get()
       allow read: if isAuthenticated() && (
-        isAdmin(request.auth.uid) ||
+        resource.data.status == 'completed' ||
         isCreator(resource.data, request.auth.uid) ||
         isAcceptor(resource.data, request.auth.uid) ||
-        matchesBracket(resource.data, request.auth.uid) ||
-        resource.data.status == 'completed'
+        (userExists(request.auth.uid) && matchesBracket(resource.data, request.auth.uid)) ||
+        isAdmin(request.auth.uid)
       );
 
       // CREATE: Can only create proposals with your own skill bracket

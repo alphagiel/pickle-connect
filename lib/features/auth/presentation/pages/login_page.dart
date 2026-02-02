@@ -36,7 +36,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
   }
 
-  void _handleForgotPassword() {
+  Future<void> _handleForgotPassword() async {
     if (_emailController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -49,14 +49,26 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     final email = _emailController.text.trim();
 
-    ref.read(authNotifierProvider.notifier).sendPasswordResetEmail(email);
+    await ref.read(authNotifierProvider.notifier).sendPasswordResetEmail(email);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Password reset email sent! Check your inbox.'),
-        backgroundColor: AppColors.successGreen,
-      ),
-    );
+    if (!mounted) return;
+
+    final error = ref.read(authErrorProvider);
+    if (error == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset email sent! Check your inbox.'),
+          backgroundColor: AppColors.successGreen,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: AppColors.errorRed,
+        ),
+      );
+    }
   }
 
   @override

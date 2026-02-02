@@ -8,3 +8,4 @@ export * from "./proposal-live-confirmation";
 export * from "./proposal-cancelled";
 export * from "./proposal-deleted-confirmation";
 export * from "./match-result";
+export * from "./password-reset";

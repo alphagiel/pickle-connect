@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/signup_page.dart';
+import '../../features/auth/presentation/pages/reset_password_page.dart';
 import '../../features/proposals/presentation/pages/proposals_page.dart';
 import '../../features/proposals/presentation/pages/create_proposal_page.dart';
 import '../../features/proposals/presentation/pages/edit_proposal_page.dart';
@@ -23,7 +24,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       final currentUser = ref.read(currentUserProvider);
       final isAuthenticated = currentUser != null;
 
-      final isAuthRoute = state.uri.path == '/login' || state.uri.path == '/signup';
+      final isAuthRoute = state.uri.path == '/login' ||
+          state.uri.path == '/signup' ||
+          state.uri.path == '/reset-password';
 
       // If user is not authenticated and trying to access protected routes
       if (!isAuthenticated && !isAuthRoute) {
@@ -49,6 +52,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/signup',
         name: 'signup',
         builder: (context, state) => const SignupPage(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        name: 'reset-password',
+        builder: (context, state) {
+          final token = state.uri.queryParameters['token'];
+          if (token == null || token.isEmpty) {
+            return const LoginPage();
+          }
+          return ResetPasswordPage(token: token);
+        },
       ),
       
       // Create proposal route (standalone, no shell)

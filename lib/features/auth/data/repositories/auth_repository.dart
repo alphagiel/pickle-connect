@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../../../shared/models/user.dart' as app_user;
 
@@ -84,12 +85,22 @@ class AuthRepository {
     }
   }
 
-  // Send password reset email
+  // Send password reset email via custom Cloud Function (uses Mailpit in dev)
   Future<void> sendPasswordResetEmail(String email) async {
     try {
-      await _firebaseAuth.sendPasswordResetEmail(email: email);
-    } on FirebaseAuthException catch (e) {
-      throw AuthException.fromFirebaseAuthException(e);
+      final functions = FirebaseFunctions.instance;
+      final callable = functions.httpsCallable('requestPasswordReset');
+      await callable.call({'email': email});
+    } on FirebaseFunctionsException catch (e) {
+      throw AuthException(
+        message: e.message ?? 'Failed to send password reset email',
+        code: e.code,
+      );
+    } catch (e) {
+      throw AuthException(
+        message: 'Failed to send password reset email',
+        code: 'unknown',
+      );
     }
   }
 

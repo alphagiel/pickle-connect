@@ -202,7 +202,7 @@ class StandingCard extends StatelessWidget {
       case 3:
         return const Color(0xFFCD7F32); // Bronze
       default:
-        return AppColors.accentBlue;
+        return AppColors.neutralGray;
     }
   }
 

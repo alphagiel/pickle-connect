@@ -390,23 +390,55 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
                 ref.invalidate(userProposalsProvider(currentUser.id));
                 ref.invalidate(acceptedProposalsProvider(currentUser.id));
               },
-              child: ListView.builder(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                itemCount: proposals.length,
-                itemBuilder: (context, index) {
-                  final proposal = proposals[index];
-                  final isCreator = currentUser.id == proposal.creatorId;
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: ProposalCard(
-                      proposal: proposal,
-                      showActions: true,
-                      onDelete: isCreator ? () => _deleteProposal(proposal) : null,
-                      onView: () => _viewProposal(proposal),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Table header
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(8),
+                          topRight: Radius.circular(8),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          _buildHeaderCell('Status', flex: 2),
+                          _buildHeaderCell('Opponent', flex: 2),
+                          _buildHeaderCell('Date', flex: 2),
+                          _buildHeaderCell('Time', flex: 2),
+                          _buildHeaderCell('Place', flex: 2),
+                          _buildHeaderCell('', flex: 1), // View column
+                        ],
+                      ),
                     ),
-                  );
-                },
+                    // Table rows
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.lightGray),
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(8),
+                          bottomRight: Radius.circular(8),
+                        ),
+                      ),
+                      child: Column(
+                        children: proposals.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final proposal = entry.value;
+                          final isLastRow = index == proposals.length - 1;
+                          return _buildMyMatchRow(
+                            proposal,
+                            currentUser.id,
+                            isLastRow: isLastRow,
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -497,21 +529,55 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
           onRefresh: () async {
             ref.invalidate(completedProposalsProvider(currentUser.id));
           },
-          child: ListView.builder(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            itemCount: proposals.length,
-            itemBuilder: (context, index) {
-              final proposal = proposals[index];
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: ProposalCard(
-                  proposal: proposal,
-                  showActions: true,
-                  onView: () => _viewProposal(proposal),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Table header
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(8),
+                      topRight: Radius.circular(8),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildHeaderCell('You', flex: 2),
+                      _buildHeaderCell('Opponent', flex: 2),
+                      _buildHeaderCell('Score', flex: 1),
+                      _buildHeaderCell('Date', flex: 2),
+                      _buildHeaderCell('Place', flex: 2),
+                      _buildHeaderCell('', flex: 1), // View column
+                    ],
+                  ),
                 ),
-              );
-            },
+                // Table rows
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.lightGray),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(8),
+                      bottomRight: Radius.circular(8),
+                    ),
+                  ),
+                  child: Column(
+                    children: proposals.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final proposal = entry.value;
+                      final isLastRow = index == proposals.length - 1;
+                      return _buildCompletedMatchRow(
+                        proposal,
+                        currentUser.id,
+                        isLastRow: isLastRow,
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -541,6 +607,219 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
         _retryAttempts.remove(retryKey);
         return _buildErrorState(error.toString());
       },
+    );
+  }
+
+  Widget _buildHeaderCell(String text, {int flex = 1}) {
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: AppColors.onPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompletedMatchRow(Proposal proposal, String currentUserId, {bool isLastRow = false}) {
+    final isCreator = currentUserId == proposal.creatorId;
+    final userName = isCreator ? proposal.creatorName : (proposal.acceptedBy?.displayName ?? 'Unknown');
+    final opponentName = isCreator ? (proposal.acceptedBy?.displayName ?? 'Unknown') : proposal.creatorName;
+
+    // Determine if current user won
+    final winner = proposal.scores?.winner;
+    final userWon = (isCreator && winner == 'creator') || (!isCreator && winner == 'opponent');
+
+    // Format score from user's perspective
+    String scoreDisplay = '-';
+    if (proposal.scores != null) {
+      final userGamesWon = isCreator
+          ? proposal.scores!.creatorGamesWon
+          : proposal.scores!.opponentGamesWon;
+      final opponentGamesWon = isCreator
+          ? proposal.scores!.opponentGamesWon
+          : proposal.scores!.creatorGamesWon;
+      scoreDisplay = '$userGamesWon-$opponentGamesWon';
+    }
+
+    // Format date
+    final dateDisplay = '${proposal.dateTime.month}/${proposal.dateTime.day}/${proposal.dateTime.year}';
+
+    // Row background color
+    final backgroundColor = userWon
+        ? AppColors.successGreen.withValues(alpha: 0.15)
+        : Colors.transparent;
+
+    return InkWell(
+      onTap: () => _viewProposal(proposal),
+      child: Container(
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          border: isLastRow
+              ? null
+              : Border(bottom: BorderSide(color: AppColors.lightGray)),
+          borderRadius: isLastRow
+              ? const BorderRadius.only(
+                  bottomLeft: Radius.circular(7),
+                  bottomRight: Radius.circular(7),
+                )
+              : null,
+        ),
+        child: Row(
+          children: [
+            _buildDataCell(
+              userName,
+              flex: 2,
+              isWinner: userWon,
+            ),
+            _buildDataCell(
+              opponentName,
+              flex: 2,
+              isWinner: !userWon && winner != null,
+            ),
+            _buildDataCell(scoreDisplay, flex: 1),
+            _buildDataCell(dateDisplay, flex: 2),
+            _buildDataCell(
+              proposal.location,
+              flex: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Expanded(
+              flex: 1,
+              child: IconButton(
+                onPressed: () => _viewProposal(proposal),
+                icon: const Icon(
+                  Icons.visibility_outlined,
+                  size: 20,
+                  color: AppColors.accentBlue,
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                splashRadius: 20,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMyMatchRow(Proposal proposal, String currentUserId, {bool isLastRow = false}) {
+    final isCreator = currentUserId == proposal.creatorId;
+
+    // Determine opponent name
+    String opponentName;
+    if (proposal.status == ProposalStatus.open) {
+      opponentName = 'Waiting...';
+    } else {
+      opponentName = isCreator
+          ? (proposal.acceptedBy?.displayName ?? 'Unknown')
+          : proposal.creatorName;
+    }
+
+    // Format date and time
+    final dateDisplay = '${proposal.dateTime.month}/${proposal.dateTime.day}/${proposal.dateTime.year}';
+    final hour = proposal.dateTime.hour;
+    final minute = proposal.dateTime.minute.toString().padLeft(2, '0');
+    final amPm = hour >= 12 ? 'PM' : 'AM';
+    final hour12 = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    final timeDisplay = '$hour12:$minute $amPm';
+
+    // Status display
+    final statusText = proposal.status == ProposalStatus.open ? 'Open' : 'Accepted';
+    final statusColor = proposal.status == ProposalStatus.open
+        ? AppColors.warmOrange
+        : AppColors.successGreen;
+
+    return InkWell(
+      onTap: () => _viewProposal(proposal),
+      child: Container(
+        decoration: BoxDecoration(
+          border: isLastRow
+              ? null
+              : Border(bottom: BorderSide(color: AppColors.lightGray)),
+          borderRadius: isLastRow
+              ? const BorderRadius.only(
+                  bottomLeft: Radius.circular(7),
+                  bottomRight: Radius.circular(7),
+                )
+              : null,
+        ),
+        child: Row(
+          children: [
+            // Status
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    statusText,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
+            _buildDataCell(opponentName, flex: 2),
+            _buildDataCell(dateDisplay, flex: 2),
+            _buildDataCell(timeDisplay, flex: 2),
+            _buildDataCell(
+              proposal.location,
+              flex: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Expanded(
+              flex: 1,
+              child: IconButton(
+                onPressed: () => _viewProposal(proposal),
+                icon: const Icon(
+                  Icons.visibility_outlined,
+                  size: 20,
+                  color: AppColors.accentBlue,
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                splashRadius: 20,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDataCell(String text, {int flex = 1, bool isWinner = false, TextOverflow? overflow}) {
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: isWinner ? AppColors.successGreen : AppColors.primaryText,
+            fontWeight: isWinner ? FontWeight.bold : FontWeight.normal,
+            fontSize: 12,
+          ),
+          overflow: overflow,
+          maxLines: 1,
+        ),
+      ),
     );
   }
 
