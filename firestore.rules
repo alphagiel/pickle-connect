@@ -108,10 +108,16 @@ service cloud.firestore {
     }
 
     // Standings collection (organized by skill bracket)
-    match /standings/{bracketId}/players/{playerId} {
+    match /standings/{bracketId} {
       allow read: if isAuthenticated();
-      // Only cloud functions should write standings
       allow write: if false;
+
+      // Players subcollection within each bracket
+      match /players/{playerId} {
+        allow read: if isAuthenticated();
+        // Only cloud functions should write standings
+        allow write: if false;
+      }
     }
 
     // Invitation codes collection (if exists)

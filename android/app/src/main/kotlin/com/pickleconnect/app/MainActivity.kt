@@ -1,4 +1,4 @@
-package com.example.pickle_connect
+package com.pickleconnect.app
 
 import io.flutter.embedding.android.FlutterActivity
 

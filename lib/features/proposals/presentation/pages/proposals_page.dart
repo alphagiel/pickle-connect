@@ -7,7 +7,6 @@ import '../../../../shared/providers/proposals_providers.dart';
 import '../../../../shared/repositories/users_repository.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../../../../shared/theme/app_colors.dart';
-import '../widgets/proposal_card.dart';
 
 class ProposalsPage extends ConsumerStatefulWidget {
   const ProposalsPage({super.key});
@@ -273,27 +272,52 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
           onRefresh: () async {
             ref.invalidate(openProposalsProvider(bracket));
           },
-          child: ListView.builder(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            itemCount: proposals.length,
-            itemBuilder: (context, index) {
-              final proposal = proposals[index];
-              final currentUser = ref.watch(currentUserProvider);
-              final isOwnProposal = currentUser?.id == proposal.creatorId;
-
-              // Since we filter by user's skill level, all proposals match
-              // User can accept any proposal that isn't their own
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: ProposalCard(
-                  proposal: proposal,
-                  showActions: true,
-                  onAccept: !isOwnProposal ? () => _acceptProposal(proposal) : null,
-                  onDelete: isOwnProposal ? () => _deleteProposal(proposal) : null,
-                  onView: () => _viewProposal(proposal),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Table header
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(8),
+                      topRight: Radius.circular(8),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildHeaderCell('Player', flex: 3),
+                      _buildHeaderCell('Location', flex: 2),
+                      _buildHeaderCell('Date', flex: 2),
+                      _buildHeaderCell('', flex: 1), // View column
+                    ],
+                  ),
                 ),
-              );
-            },
+                // Table rows
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.lightGray),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(8),
+                      bottomRight: Radius.circular(8),
+                    ),
+                  ),
+                  child: Column(
+                    children: proposals.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final proposal = entry.value;
+                      final isLastRow = index == proposals.length - 1;
+                      return _buildAvailableRow(
+                        proposal,
+                        isLastRow: isLastRow,
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -796,6 +820,110 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 splashRadius: 20,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvailableRow(Proposal proposal, {bool isLastRow = false}) {
+    final currentUser = ref.watch(currentUserProvider);
+    final isOwnProposal = currentUser?.id == proposal.creatorId;
+
+    // Format date
+    final dateDisplay = '${proposal.dateTime.month}/${proposal.dateTime.day}/${proposal.dateTime.year}';
+
+    return InkWell(
+      onTap: () => _viewProposal(proposal),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isOwnProposal ? AppColors.primaryGreen.withValues(alpha: 0.05) : null,
+          border: isLastRow
+              ? null
+              : Border(bottom: BorderSide(color: AppColors.lightGray)),
+          borderRadius: isLastRow
+              ? const BorderRadius.only(
+                  bottomLeft: Radius.circular(7),
+                  bottomRight: Radius.circular(7),
+                )
+              : null,
+        ),
+        child: Row(
+          children: [
+            // Player column: icon + name + skill level
+            Expanded(
+              flex: 3,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                child: Row(
+                  children: [
+                    // Player icon
+                    CircleAvatar(
+                      backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+                      radius: 14,
+                      child: Icon(
+                        Icons.person,
+                        color: AppColors.primaryGreen,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Name and skill level
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            proposal.creatorName,
+                            style: TextStyle(
+                              color: isOwnProposal ? AppColors.primaryGreen : AppColors.primaryText,
+                              fontWeight: isOwnProposal ? FontWeight.bold : FontWeight.w500,
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                          Text(
+                            proposal.skillLevel.displayName,
+                            style: TextStyle(
+                              color: AppColors.secondaryText,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Location column
+            _buildDataCell(
+              proposal.location,
+              flex: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            // Date column
+            _buildDataCell(dateDisplay, flex: 2),
+            // View column
+            Expanded(
+              flex: 1,
+              child: Tooltip(
+                message: 'View details',
+                child: IconButton(
+                  onPressed: () => _viewProposal(proposal),
+                  icon: const Icon(
+                    Icons.visibility_outlined,
+                    size: 20,
+                    color: AppColors.accentBlue,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  splashRadius: 20,
+                ),
               ),
             ),
           ],

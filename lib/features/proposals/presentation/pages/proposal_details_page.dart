@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../shared/models/proposal.dart';
 import '../../../../shared/models/user.dart';
 import '../../../../shared/providers/proposals_providers.dart';
+import '../../../../shared/repositories/users_repository.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../../../../shared/theme/app_colors.dart';
 
@@ -237,6 +238,27 @@ class ProposalDetailsPage extends ConsumerWidget {
 
                   const SizedBox(height: 40),
 
+                  // Accept button for non-owners on open proposals
+                  if (!isOwner &&
+                      proposal.status == ProposalStatus.open &&
+                      currentUser != null) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _acceptProposal(context, ref, proposal, currentUser),
+                        icon: const Icon(Icons.sports_tennis),
+                        label: const Text('Accept Match'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryGreen,
+                          foregroundColor: AppColors.onPrimary,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
                   // Unaccept button for the user who accepted
                   if (!isOwner &&
                       proposal.status == ProposalStatus.accepted &&
@@ -449,6 +471,45 @@ class ProposalDetailsPage extends ConsumerWidget {
             ),
           );
         }
+      }
+    }
+  }
+
+  void _acceptProposal(BuildContext context, WidgetRef ref, Proposal proposal, dynamic currentUser) async {
+    try {
+      // Get user profile from Firestore for display name
+      final usersRepository = ref.read(usersRepositoryProvider);
+      final userProfile = await usersRepository.getUserById(currentUser.id);
+
+      final userName = userProfile?.displayName ?? currentUser.displayName ?? 'Unknown User';
+
+      await ref.read(proposalActionsProvider).acceptProposal(
+        proposal.proposalId,
+        currentUser.id,
+        userName,
+      );
+
+      // Invalidate the providers to refresh the streams
+      ref.invalidate(openProposalsProvider(proposal.skillBracket));
+      ref.invalidate(acceptedProposalsProvider);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Accepted match with ${proposal.creatorName}!'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+        context.go('/');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to accept proposal: ${e.toString()}'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
       }
     }
   }
