@@ -19,6 +19,8 @@ build/
 # Platform-specific generated files
 **/android/local.properties
 **/android/key.properties
+**/android/**/*.jks
+**/android/**/*.keystore
 **/ios/.symlinks/
 **/ios/Flutter/.last_build_id
 **/ios/Pods/

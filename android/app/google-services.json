@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "417976481428",
+    "project_id": "pickle-connect-89f11",
+    "storage_bucket": "pickle-connect-89f11.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:417976481428:android:b4a8211659ed3c5ad9e681",
+        "android_client_info": {
+          "package_name": "com.pickleconnect.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBrABRmbyGf_Fd3UZel70S4nH3I8n7_kMs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
