@@ -38,3 +38,10 @@ coverage/
 # For generated files from a build_runner
 lib/*.g.dart
 lib/*.freezed.dart
+
+# Firebase emulator logs and data
+*-debug.log
+emulator-data/
+
+# Windows artifacts
+nul
