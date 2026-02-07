@@ -1,52 +1,237 @@
 # Pickle Connect - Deployment Guide
 
-This document outlines the steps required to deploy Pickle Connect to the App Store (iOS) and Google Play Store (Android).
-
----
-
-## Current Status
+Bundle ID (both platforms): `com.pickleconnect.app`
 
 | Platform | Status | Last Updated |
 |----------|--------|--------------|
-| Android | **Awaiting Google Verification** | Feb 2026 |
-| iOS | Configuration Complete | Pending build |
-
-### Google Play Console Progress
-- [x] Developer account created
-- [x] App created in Play Console
-- [x] App Bundle uploaded (9.8 MB)
-- [x] Internal testing release configured
-- [x] ID documents submitted
-- [ ] Identity verification (under review - 2-5 days)
-- [ ] Phone verification (waiting for ID approval)
-- [ ] Store listing complete
-- [ ] Production release
+| Android | Awaiting Google Verification | Feb 2026 |
+| iOS | Release IPA built | Feb 2026 |
 
 ---
 
-## App Identifiers
+## Build Commands
 
-| Platform | Identifier |
-|----------|------------|
-| Android | `com.pickleconnect.app` |
-| iOS | `com.pickleconnect.app` |
+```bash
+# Dev
+flutter run
+
+# Android (Play Store)
+flutter build appbundle --release
+# -> build/app/outputs/bundle/release/app-release.aab
+
+# Android (direct install)
+flutter build apk --release
+# -> build/app/outputs/flutter-apk/app-release.apk
+
+# iOS
+flutter build ipa --release
+# -> build/ios/ipa/pickle_connect.ipa
+```
+
+---
+
+## Android Deployment
+
+### What's Done
+- App created in Play Console
+- App Bundle uploaded (9.8 MB)
+- Internal testing release configured
+- ID documents submitted
+- Release keystore created and configured
+- `google-services.json` set up
+
+### Still Pending
+- Identity verification (2-5 business days)
+- Phone verification (after ID approved)
+- Store listing (screenshots, descriptions, graphics)
+- Content rating questionnaire
+- Data safety form
+- Production release
+
+### After Google Approves Verification
+1. Complete phone verification in Play Console
+2. Upload store assets (icon 512x512, feature graphic 1024x500, min 2 screenshots)
+3. Add descriptions (see Store Listing section below)
+4. Add privacy policy URL
+5. Fill out content rating + data safety forms
+6. Promote to production or start with internal testing
+
+### Release Signing
+
+| Property | Value |
+|----------|-------|
+| Keystore | `android/app/pickle-connect-release.jks` |
+| Alias | `pickle-connect` |
+| Validity | ~27 years |
+
+Certificate:
+```
+CN=Alpha De Asis, OU=Development, O=Pickle Connect LLC, L=Clayton, ST=North Carolina, C=US
+```
+
+> If you lose `pickle-connect-release.jks`, you can never update this app on Google Play. Back it up.
+
+### Data Safety Form Answers
+
+| Question | Answer |
+|----------|--------|
+| Collects user data? | Yes |
+| Email address | Yes (account) |
+| Name | Yes (display name) |
+| User IDs | Yes (Firebase auth) |
+| App activity | Yes (match history) |
+| Shared with third parties? | No |
+| Encrypted in transit? | Yes (HTTPS/TLS) |
+| Users can request deletion? | Yes |
+
+---
+
+## iOS Deployment
+
+### What's Done
+- Bundle identifier set
+- Display name set to "Pickle Connect"
+- Deep linking configured
+- Release IPA built successfully (36.5MB)
+- Firebase SDK 12.8.0 with iOS 16.0 deployment target
+- Podfile using `use_frameworks! :linkage => :static`
+
+### Still Pending
+- Register App ID in Apple Developer Portal
+- Create Distribution provisioning profile
+- Upload to App Store Connect
+- Complete App Store listing
+
+### Step by Step
+
+**1. Firebase Setup**
+1. Go to Firebase Console -> project `pickle-connect-89f11`
+2. Add app -> iOS -> Bundle ID: `com.pickleconnect.app`
+3. Download `GoogleService-Info.plist`
+4. Replace `ios/Runner/GoogleService-Info.plist`
+
+**2. Apple Developer Portal**
+1. Identifiers -> + -> App IDs -> App
+2. Bundle ID: `com.pickleconnect.app`, enable Push Notifications
+3. Profiles -> + -> App Store Connect (Distribution)
+4. Select App ID, select your cert, name it, download it
+
+**3. Build**
+```bash
+flutter clean && flutter pub get
+cd ios && pod install && cd ..
+flutter build ipa --release
+```
+
+**4. Upload**
+- Xcode: Open `ios/Runner.xcworkspace` -> Product -> Archive -> Distribute
+- Transporter: Drag and drop the `.ipa` file
+- CLI: `xcrun altool --upload-app --type ios -f build/ios/ipa/*.ipa --apiKey YOUR_KEY --apiIssuer YOUR_ISSUER`
+
+**5. App Store Connect**
+1. My Apps -> + -> New App
+2. Name: `Pickle Connect`, Bundle ID: `com.pickleconnect.app`, SKU: `pickleconnect-ios-001`
+3. Category: Sports, Copyright: 2026 Pickle Connect LLC
+4. Add privacy policy URL, screenshots, descriptions
+
+Screenshots needed:
+| Device | Size |
+|--------|------|
+| iPhone 6.7" | 1290 x 2796 |
+| iPhone 6.5" | 1284 x 2778 |
+| iPhone 5.5" | 1242 x 2208 |
+| iPad 12.9" | 2048 x 2732 |
+
+---
+
+## What to Watch Out For
+
+These are real problems we hit during deployment. Save yourself the headache.
+
+### Firebase SDK + Xcode version mismatch
+
+This was the big one. Firebase SDK 10.25.0 does NOT build on Xcode 16+ (including Xcode 26.x). You'll get three separate build errors that all look different but have the same root cause: old Firebase.
+
+**Error 1: `unsupported option '-G' for target 'arm64-apple-ios'`**
+- Comes from BoringSSL-GRPC 0.0.32
+- The pod puts `-GCC_WARN_INHIBIT_ALL_WARNINGS` in per-file compiler flags
+- Newer clang reads the `-G` prefix as a separate flag and rejects it
+- You can patch it in the Podfile post_install, but upgrading Firebase is the real fix
+
+**Error 2: `A template argument list is expected after a name prefixed by the template keyword`**
+- Comes from gRPC-Core and gRPC-C++ 1.62.5 in `basic_seq.h` line 102
+- Stricter C++ compiler in new Xcode rejects `Traits::template CallSeqFactory(...)` without `<>`
+- Exists in BOTH `gRPC-Core` and `gRPC-C++` pods (easy to miss the second one)
+- Again, patchable but upgrading Firebase is cleaner
+
+**Error 3: `Include of non-modular header inside framework module 'firebase_messaging'`**
+- Comes from firebase_messaging 14.9.4 doing `#import <Firebase/Firebase.h>`
+- Setting `CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES` does NOT fix it on Xcode 26.x
+- Switching to `use_frameworks! :linkage => :static` alone does NOT fix it either
+- Only fix is upgrading firebase_messaging to 16.x+
+
+**The fix for all three:** Upgrade Firebase packages together.
+
+| Package | Old (broken) | New (working) |
+|---------|-------------|---------------|
+| firebase_core | ^2.24.2 | ^4.4.0 |
+| firebase_auth | ^4.15.3 | ^6.1.4 |
+| cloud_firestore | ^4.13.6 | ^6.1.2 |
+| cloud_functions | ^4.5.8 | ^6.0.6 |
+| firebase_messaging | ^14.7.10 | ^16.1.1 |
+
+This pulls in Firebase iOS SDK 12.8.0 with BoringSSL-GRPC 0.0.37 and gRPC 1.69.0, which all build cleanly.
+
+### iOS deployment target must be 16.0+
+
+Firebase SDK 12.x requires iOS 16.0 minimum. You need to update it in three places or CocoaPods will fail:
+
+1. `ios/Podfile` line 2: `platform :ios, '16.0'`
+2. `ios/Podfile` post_install: `config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'`
+3. `ios/Runner.xcodeproj/project.pbxproj`: All `IPHONEOS_DEPLOYMENT_TARGET` entries
+
+### Podfile needs static linkage
+
+Use `use_frameworks! :linkage => :static` in the Podfile. Firebase with dynamic frameworks causes header resolution problems.
+
+### Android needs Java 17
+
+Set in `android/gradle.properties`:
+```properties
+org.gradle.java.home=/path/to/jdk-17
+```
+
+### When pod install acts weird
+```bash
+cd ios
+rm -rf Pods Podfile.lock
+pod install
+```
+
+If that doesn't work:
+```bash
+pod cache clean --all
+pod deintegrate
+pod install
+```
+
+### Keystore and secrets are not in git
+
+These files are gitignored and must be backed up separately:
+- `android/key.properties` (keystore passwords)
+- `android/app/pickle-connect-release.jks` (signing key)
+- `.env` (environment variables)
 
 ---
 
 ## Store Listing Content
 
-### Short Description (80 characters max)
+### Short Description (80 chars max)
 ```
 Find pickleball players, schedule matches, and track your rankings by skill.
 ```
-(75 characters)
 
-**Alternative options:**
-- `Connect with pickleball players at your skill level. Find matches today!` (72 chars)
-- `Match with local pickleball players and climb the leaderboard!` (62 chars)
-
-### Full Description (4000 characters max)
-
+### Full Description
 ```
 Pickle Connect is the ultimate app for pickleball players looking to find opponents, schedule matches, and track their competitive journey.
 
@@ -55,368 +240,40 @@ Browse match proposals from players in your skill bracket. Whether you're a begi
 
 SKILL-BASED MATCHMAKING
 Players are organized into five skill brackets:
-• Beginner (1.0 - 1.5)
-• Novice (2.0 - 2.5)
-• Intermediate (3.0 - 3.5)
-• Advanced (4.0 - 4.5)
-• Expert (5.0+)
-
-This ensures every match is competitive and fun, no matter your experience level.
+- Beginner (1.0 - 1.5)
+- Novice (2.0 - 2.5)
+- Intermediate (3.0 - 3.5)
+- Advanced (4.0 - 4.5)
+- Expert (5.0+)
 
 CREATE & ACCEPT MATCH PROPOSALS
-• Post your own match proposals with location, date, and time
-• Browse available matches filtered by skill level
-• Accept proposals to connect with other players
-• Manage your upcoming matches in one place
+- Post your own match proposals with location, date, and time
+- Browse available matches filtered by skill level
+- Accept proposals to connect with other players
 
 TRACK YOUR MATCHES
-• View all your active and upcoming matches in "My Matches"
-• Record match scores with best-of-3 game format
-• Both players confirm scores for fair, accurate results
-• Access your complete match history in "Completed"
+- Record match scores with best-of-3 game format
+- Both players confirm scores for fair results
+- Access your complete match history
 
 CLIMB THE LEADERBOARD
-• Compete for top rankings in your skill bracket
-• Track wins, losses, and winning streaks
-• See how you stack up against other players
-• Medals for top 3 players in each bracket
-• Rankings update automatically after each match
-
-BUILD YOUR PLAYER PROFILE
-• Set your display name and skill level
-• Specify your preferred playing location
-• Your profile determines which matches you see
-
-WHY PICKLE CONNECT?
-• Fair matchmaking based on skill level
-• Easy scheduling and coordination
-• Transparent scoring system
-• Active community of players
-• Track your improvement over time
-
-Whether you're looking for a casual rally or intense competition, Pickle Connect helps you find the right opponent and grow your game.
+- Compete for top rankings in your skill bracket
+- Track wins, losses, and winning streaks
+- Medals for top 3 players in each bracket
 
 Download now and start connecting with pickleball players in your area!
 ```
-(1,847 characters)
 
-### Release Notes (for internal testing)
-```
-Initial release of Pickle Connect!
+### Required Assets
 
-Features:
-• Create and browse match proposals
-• Skill-based player matching (Beginner to Expert)
-• Accept matches and coordinate with opponents
-• Score tracking with best-of-3 format
-• Seasonal leaderboards by skill bracket
-• Player profiles with skill levels
-```
-
----
-
-## Required Store Assets
-
-| Asset | Specification | Status |
-|-------|---------------|--------|
+| Asset | Spec | Status |
+|-------|------|--------|
 | App icon | 512 x 512 PNG | Needed |
 | Feature graphic | 1024 x 500 PNG/JPG | Needed |
 | Phone screenshots | Min 2, 16:9 or 9:16 | Needed |
-| Short description | 80 chars max | ✅ Ready (see above) |
-| Full description | 4000 chars max | ✅ Ready (see above) |
 | Privacy policy URL | Public URL | Needed |
 
-### Screenshot Suggestions
-Capture these screens from the app:
-1. **Proposals list** - Show open match proposals
-2. **Create proposal** - Match creation form
-3. **Match details** - Accepted match with opponent info
-4. **Standings/Leaderboard** - Rankings display
-5. **Profile** - User profile with skill level
-
----
-
-## Completed Configuration
-
-### Android (`android/`) - COMPLETE
-- [x] `applicationId` set to `com.pickleconnect.app`
-- [x] `namespace` set to `com.pickleconnect.app`
-- [x] `MainActivity.kt` moved to correct package path
-- [x] App label set to "Pickle Connect"
-- [x] Deep linking configured (`pickleconnect://` and `https://pickleconnect.app`)
-- [x] `google-services.json` configured with correct package name
-- [x] Release keystore created (10,000 days validity)
-- [x] `key.properties` configured
-- [x] `build.gradle.kts` configured for release signing
-- [x] Java 17 configured in `gradle.properties`
-- [x] Release App Bundle built successfully
-- [x] AAB uploaded to Play Console
-
-### iOS (`ios/`) - Configuration Complete
-- [x] Bundle identifier set to `com.pickleconnect.app`
-- [x] Minimum deployment target set to iOS 13.0
-- [x] Display name set to "Pickle Connect"
-- [x] Deep linking configured (custom scheme + universal links)
-- [x] App icons present (all required sizes)
-- [x] Launch screen configured
-- [ ] `GoogleService-Info.plist` needs regeneration with correct bundle ID
-- [ ] Provisioning profiles needed
-- [ ] Release build pending
-
----
-
-## Android Release Signing
-
-### Keystore Details
-| Property | Value |
-|----------|-------|
-| File | `android/app/pickle-connect-release.jks` |
-| Alias | `pickle-connect` |
-| Validity | 10,000 days (~27 years) |
-| Algorithm | RSA 2048-bit |
-
-### Keystore Certificate Info
-```
-CN=Alpha De Asis
-OU=Development
-O=Pickle Connect LLC
-L=Clayton
-ST=North Carolina
-C=US
-```
-
-> **IMPORTANT:** The keystore file and `key.properties` are excluded from git.
-> Back up `pickle-connect-release.jks` securely - if lost, you cannot update the app on Google Play.
-
----
-
-## Build Commands
-
-### Development
-```bash
-flutter run
-```
-
-### Release Builds
-
-**Android App Bundle (for Play Store):**
-```bash
-flutter build appbundle --release
-# Output: build/app/outputs/bundle/release/app-release.aab
-```
-
-**Android APK (for direct installation):**
-```bash
-flutter build apk --release
-# Output: build/app/outputs/flutter-apk/app-release.apk
-```
-
-**iOS:**
-```bash
-flutter build ipa --release
-# Output: build/ios/ipa/pickle_connect.ipa
-```
-
----
-
-## Google Play Console Submission
-
-### Current Status: Awaiting Verification
-
-**Completed:**
-1. ✅ Developer account created (`deasisalphagiel@gmail.com`)
-2. ✅ App created: "Pickle Connect"
-3. ✅ App Bundle uploaded (9.8 MB)
-4. ✅ Internal testing release configured
-5. ✅ ID documents submitted
-
-**Pending:**
-1. ⏳ Identity verification (2-5 business days)
-2. ⏳ Phone verification (after ID approved)
-3. ⏳ Complete store listing
-4. ⏳ Submit for production review
-
-### After Verification Approved
-
-1. **Complete phone verification** via Play Console
-2. **Add store listing assets:**
-   - Upload app icon (512x512)
-   - Upload feature graphic (1024x500)
-   - Upload screenshots (min 2)
-   - Add short description (copy from above)
-   - Add full description (copy from above)
-   - Add privacy policy URL
-3. **Complete content rating** questionnaire
-4. **Complete data safety** form
-5. **Promote to production** or start with internal testing
-
----
-
-## Data Safety Form Answers
-
-For the Google Play data safety questionnaire:
-
-| Question | Answer |
-|----------|--------|
-| Does your app collect or share user data? | Yes |
-| **Data collected:** | |
-| - Email address | Yes (for account) |
-| - Name | Yes (display name) |
-| - User IDs | Yes (Firebase auth) |
-| - App activity | Yes (match history) |
-| **Data shared with third parties?** | No |
-| **Data encrypted in transit?** | Yes (HTTPS/TLS) |
-| **Can users request data deletion?** | Yes |
-
----
-
-## iOS Deployment (In Progress)
-
-### Quick Start Checklist
-
-- [ ] Add iOS app to Firebase Console
-- [ ] Download and replace `GoogleService-Info.plist`
-- [ ] Register App ID in Apple Developer Portal
-- [ ] Create Distribution provisioning profile
-- [ ] Build release IPA
-- [ ] Upload to App Store Connect
-- [ ] Complete App Store listing
-
----
-
-### Step 1: Firebase Configuration (Do First)
-
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Select project: `pickle-connect-89f11`
-3. Click **Add app** → Select **iOS**
-4. Enter Bundle ID: `com.pickleconnect.app`
-5. App nickname: `Pickle Connect iOS` (optional)
-6. Skip the App Store ID for now
-7. Click **Register app**
-8. Download `GoogleService-Info.plist`
-9. Replace the file at: `ios/Runner/GoogleService-Info.plist`
-
----
-
-### Step 2: Apple Developer Portal
-
-Go to [Apple Developer Portal](https://developer.apple.com/account/resources/identifiers)
-
-#### Register App ID
-1. **Identifiers** → Click **+** to add new
-2. Select **App IDs** → Continue
-3. Select **App** → Continue
-4. Description: `Pickle Connect`
-5. Bundle ID (Explicit): `com.pickleconnect.app`
-6. Capabilities: Enable **Push Notifications** if needed
-7. Click **Continue** → **Register**
-
-#### Create Provisioning Profile
-1. **Profiles** → Click **+** to add new
-2. Select **App Store Connect** (under Distribution)
-3. Select App ID: `com.pickleconnect.app`
-4. Select your Distribution certificate
-5. Name: `Pickle Connect Distribution`
-6. Download and install the profile
-
----
-
-### Step 3: Build on Mac
-
-```bash
-# Navigate to project
-cd /path/to/pickle-connect
-
-# Clean and get dependencies
-flutter clean
-flutter pub get
-
-# Install CocoaPods dependencies
-cd ios && pod install && cd ..
-
-# Build release IPA
-flutter build ipa --release
-```
-
-Output: `build/ios/ipa/pickle_connect.ipa`
-
----
-
-### Step 4: Upload to App Store Connect
-
-**Option A: Using Xcode**
-1. Open `ios/Runner.xcworkspace` in Xcode
-2. Product → Archive
-3. Distribute App → App Store Connect
-
-**Option B: Using Transporter**
-1. Download Transporter from Mac App Store
-2. Sign in with Apple ID
-3. Drag and drop the `.ipa` file
-4. Click Deliver
-
-**Option C: Using command line**
-```bash
-xcrun altool --upload-app --type ios --file build/ios/ipa/pickle_connect.ipa --apiKey YOUR_KEY --apiIssuer YOUR_ISSUER
-```
-
----
-
-### Step 5: App Store Connect Setup
-
-Go to [App Store Connect](https://appstoreconnect.apple.com/)
-
-1. **My Apps** → Click **+** → **New App**
-2. Fill in details:
-   - Platform: iOS
-   - Name: `Pickle Connect`
-   - Primary Language: English (U.S.)
-   - Bundle ID: `com.pickleconnect.app`
-   - SKU: `pickleconnect-ios-001`
-3. Create the app
-
-#### Required Information
-| Field | Value |
-|-------|-------|
-| Privacy Policy URL | (your privacy policy URL) |
-| Category | Sports |
-| Age Rating | Complete questionnaire |
-| Copyright | 2026 Pickle Connect LLC |
-
-#### Screenshots Required
-| Device | Sizes |
-|--------|-------|
-| iPhone 6.7" | 1290 x 2796 (iPhone 15 Pro Max) |
-| iPhone 6.5" | 1284 x 2778 (iPhone 14 Plus) |
-| iPhone 5.5" | 1242 x 2208 (iPhone 8 Plus) |
-| iPad 12.9" | 2048 x 2732 (iPad Pro) |
-
-#### App Description
-Use the same descriptions from the Android store listing (see "Store Listing Content" section above).
-
----
-
-### Troubleshooting iOS Build
-
-#### Pod Install Fails
-```bash
-cd ios
-pod deintegrate
-pod cache clean --all
-pod install
-```
-
-#### Code Signing Issues
-1. Open `ios/Runner.xcworkspace` in Xcode
-2. Select Runner target → Signing & Capabilities
-3. Select your Team
-4. Ensure provisioning profile is correct
-
-#### GoogleService-Info.plist Issues
-Ensure the `BUNDLE_ID` in the plist matches `com.pickleconnect.app`:
-```bash
-grep BUNDLE_ID ios/Runner/GoogleService-Info.plist
-```
+Good screenshots to capture: Proposals list, Create proposal, Match details, Leaderboard, Profile.
 
 ---
 
@@ -425,98 +282,35 @@ grep BUNDLE_ID ios/Runner/GoogleService-Info.plist
 ### Android
 - [x] `google-services.json` with correct package name
 - [x] Release keystore created and configured
-- [x] Release App Bundle built successfully
-- [x] AAB uploaded to Play Console
+- [x] Release App Bundle built and uploaded
 - [x] Internal testing release created
-- [ ] Identity verification approved
-- [ ] Phone verification completed
-- [ ] Privacy policy URL created and hosted
-- [ ] Store listing complete (description, screenshots, graphics)
-- [ ] Content rating questionnaire completed
-- [ ] Data safety form completed
+- [ ] Identity + phone verification approved
+- [ ] Privacy policy URL
+- [ ] Store listing complete
+- [ ] Content rating + data safety forms
 - [ ] Production release submitted
 
 ### iOS
+- [x] Release IPA built successfully
 - [ ] `GoogleService-Info.plist` with correct bundle ID
 - [ ] App ID registered in Apple Developer Portal
 - [ ] Provisioning profiles created
-- [ ] APNs certificate uploaded to Firebase
-- [ ] Release IPA built successfully
-- [ ] Tested on physical iOS device
-- [ ] Privacy policy URL added to App Store Connect
+- [ ] Uploaded to App Store Connect
 - [ ] App Store listing complete
-- [ ] Screenshots for all required device sizes
+- [ ] Screenshots for all device sizes
 
-### Both Platforms
+### Both
 - [ ] Privacy policy hosted at public URL
-- [ ] Firebase project configured for production
 - [ ] Push notifications tested
 - [ ] Deep linking tested
 - [ ] All features tested in release mode
 
 ---
 
-## Environment Configuration
-
-### Firebase
-Release builds automatically skip emulator connections due to `kDebugMode` check in `main.dart`.
-
-### Java Version
-Android builds require Java 17, configured in `android/gradle.properties`:
-```properties
-org.gradle.java.home=C:\\Program Files\\Java\\jdk-17.0.5
-```
-
----
-
 ## Versioning
 
-Update version in `pubspec.yaml` before each release:
-
+In `pubspec.yaml`:
 ```yaml
-version: 1.0.0+1  # format: major.minor.patch+buildNumber
+version: 1.0.0+1  # major.minor.patch+buildNumber
 ```
-
-- Increment `buildNumber` for every upload
-- Follow semantic versioning for version string
-
----
-
-## Troubleshooting
-
-### Build Fails with Java Version Error
-```properties
-org.gradle.java.home=C:\\Program Files\\Java\\jdk-17.0.5
-```
-
-### Keystore Not Found
-```properties
-storeFile=pickle-connect-release.jks
-```
-Path is relative to `android/app/`.
-
-### Firebase Configuration Issues
-Ensure package name matches in `google-services.json`:
-```json
-"package_name": "com.pickleconnect.app"
-```
-
----
-
-## Security Notes
-
-**Files excluded from git:**
-- `android/key.properties`
-- `android/**/*.jks`
-- `android/**/*.keystore`
-- `.env` files
-
-**Backup securely:**
-- `pickle-connect-release.jks` - Required for all future updates
-- `key.properties` - Contains keystore passwords
-
----
-
-## Support
-
-For issues with this deployment guide, contact the development team.
+Bump `buildNumber` for every upload. Both stores reject duplicate build numbers.

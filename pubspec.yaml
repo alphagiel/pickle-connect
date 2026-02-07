@@ -30,13 +30,13 @@ dependencies:
   shared_preferences: ^2.2.2
   
   # Authentication & Database
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  cloud_firestore: ^4.13.6
-  cloud_functions: ^4.5.8
-  
+  firebase_core: ^4.4.0
+  firebase_auth: ^6.1.4
+  cloud_firestore: ^6.1.2
+  cloud_functions: ^6.0.6
+
   # Push Notifications
-  firebase_messaging: ^14.7.10
+  firebase_messaging: ^16.1.1
   # flutter_local_notifications: ^16.3.0  # Temporarily disabled for Android compatibility
   
   # Utilities
