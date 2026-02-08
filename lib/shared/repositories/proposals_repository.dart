@@ -11,8 +11,9 @@ class ProposalsRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'proposals';
 
-  // Get proposals filtered by skill bracket (for interactibility)
+  // Get singles proposals filtered by skill bracket (for interactibility)
   // Users see all proposals in their bracket (e.g., 3.0 and 3.5 players see each other)
+  // Filters out doubles proposals
   Stream<List<Proposal>> getProposalsForBracket(SkillBracket bracket) {
     return _firestore
         .collection(_collection)
@@ -27,6 +28,9 @@ class ProposalsRepository {
               data['proposalId'] = doc.id;
 
               final proposal = Proposal.fromJson(data);
+
+              // Skip doubles proposals in singles view
+              if (proposal.matchType == MatchType.doubles) continue;
 
               // Check if proposal should be expired and mark it locally
               if (proposal.shouldExpire && proposal.status != ProposalStatus.expired) {
@@ -670,6 +674,192 @@ class ProposalsRepository {
     } catch (e) {
       print('Error during migration: $e');
     }
+  }
+
+  // ============================
+  // Doubles-specific methods
+  // ============================
+
+  /// Get open doubles proposals for a skill bracket
+  Stream<List<Proposal>> getDoublesProposalsForBracket(SkillBracket bracket) {
+    return _firestore
+        .collection(_collection)
+        .where('matchType', isEqualTo: 'doubles')
+        .where('status', isEqualTo: 'open')
+        .where('skillBracket', isEqualTo: bracket.jsonValue)
+        .snapshots()
+        .map((snapshot) {
+          final proposals = <Proposal>[];
+          for (final doc in snapshot.docs) {
+            try {
+              final data = Map<String, dynamic>.from(doc.data());
+              data['proposalId'] = doc.id;
+              final proposal = Proposal.fromJson(data);
+
+              if (proposal.shouldExpire && proposal.status != ProposalStatus.expired) {
+                _scheduleExpireProposal(proposal.proposalId);
+                proposals.add(proposal.copyWith(status: ProposalStatus.expired));
+              } else {
+                proposals.add(proposal);
+              }
+            } catch (e) {
+              print('Error parsing doubles proposal: $e');
+            }
+          }
+          proposals.sort(_sortProposals);
+          return proposals;
+        });
+  }
+
+  /// Get doubles proposals where user is a player (any status)
+  Stream<List<Proposal>> getUserDoublesProposals(String userId) {
+    return _firestore
+        .collection(_collection)
+        .where('matchType', isEqualTo: 'doubles')
+        .where('playerIds', arrayContains: userId)
+        .snapshots()
+        .map((snapshot) {
+          final proposals = <Proposal>[];
+          for (final doc in snapshot.docs) {
+            try {
+              final data = Map<String, dynamic>.from(doc.data());
+              data['proposalId'] = doc.id;
+              final proposal = Proposal.fromJson(data);
+              proposals.add(proposal);
+            } catch (e) {
+              print('Error parsing user doubles proposal: $e');
+            }
+          }
+          proposals.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return proposals;
+        });
+  }
+
+  /// Get completed doubles proposals for a user
+  Stream<List<Proposal>> getCompletedDoublesProposals(String userId) {
+    return _firestore
+        .collection(_collection)
+        .where('matchType', isEqualTo: 'doubles')
+        .where('status', isEqualTo: 'completed')
+        .where('playerIds', arrayContains: userId)
+        .snapshots()
+        .map((snapshot) {
+          final proposals = <Proposal>[];
+          for (final doc in snapshot.docs) {
+            try {
+              final data = Map<String, dynamic>.from(doc.data());
+              data['proposalId'] = doc.id;
+              final proposal = Proposal.fromJson(data);
+              proposals.add(proposal);
+            } catch (e) {
+              print('Error parsing completed doubles proposal: $e');
+            }
+          }
+          proposals.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+          return proposals;
+        });
+  }
+
+  /// Request to join a doubles proposal
+  Future<void> requestJoinDoubles(String proposalId, DoublesPlayer player) async {
+    await _firestore.collection(_collection).doc(proposalId).update({
+      'doublesPlayers': FieldValue.arrayUnion([player.toJson()]),
+      'playerIds': FieldValue.arrayUnion([player.userId]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Approve a doubles player, assign team and confirm
+  Future<void> approveDoublesPlayer(String proposalId, String userId, int team) async {
+    final doc = await _firestore.collection(_collection).doc(proposalId).get();
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+    final players = (data['doublesPlayers'] as List<dynamic>?)
+        ?.map((p) => Map<String, dynamic>.from(p as Map))
+        .toList() ?? [];
+
+    final updatedPlayers = players.map((p) {
+      if (p['userId'] == userId) {
+        return {
+          ...p,
+          'status': 'confirmed',
+          'team': team,
+        };
+      }
+      return p;
+    }).toList();
+
+    final openSlots = (data['openSlots'] as int? ?? 0) - 1;
+
+    await _firestore.collection(_collection).doc(proposalId).update({
+      'doublesPlayers': updatedPlayers,
+      'openSlots': openSlots < 0 ? 0 : openSlots,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Decline a doubles player join request
+  Future<void> declineDoublesPlayer(String proposalId, String userId) async {
+    final doc = await _firestore.collection(_collection).doc(proposalId).get();
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+    final players = (data['doublesPlayers'] as List<dynamic>?)
+        ?.map((p) => Map<String, dynamic>.from(p as Map))
+        .toList() ?? [];
+
+    final updatedPlayers = players.where((p) => p['userId'] != userId).toList();
+
+    await _firestore.collection(_collection).doc(proposalId).update({
+      'doublesPlayers': updatedPlayers,
+      'playerIds': FieldValue.arrayRemove([userId]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Leave a doubles proposal (for confirmed players)
+  Future<void> leaveDoublesProposal(String proposalId, String userId) async {
+    final doc = await _firestore.collection(_collection).doc(proposalId).get();
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+    final players = (data['doublesPlayers'] as List<dynamic>?)
+        ?.map((p) => Map<String, dynamic>.from(p as Map))
+        .toList() ?? [];
+
+    final updatedPlayers = players.where((p) => p['userId'] != userId).toList();
+    final openSlots = (data['openSlots'] as int? ?? 0) + 1;
+
+    await _firestore.collection(_collection).doc(proposalId).update({
+      'doublesPlayers': updatedPlayers,
+      'playerIds': FieldValue.arrayRemove([userId]),
+      'openSlots': openSlots,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Confirm a partner invite (invited player accepts the invitation)
+  Future<void> confirmPartnerInvite(String proposalId, String userId) async {
+    final doc = await _firestore.collection(_collection).doc(proposalId).get();
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+    final players = (data['doublesPlayers'] as List<dynamic>?)
+        ?.map((p) => Map<String, dynamic>.from(p as Map))
+        .toList() ?? [];
+
+    final updatedPlayers = players.map((p) {
+      if (p['userId'] == userId) {
+        return {...p, 'status': 'confirmed'};
+      }
+      return p;
+    }).toList();
+
+    await _firestore.collection(_collection).doc(proposalId).update({
+      'doublesPlayers': updatedPlayers,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   // Sort proposals: Active first (by date), then expired (by date)

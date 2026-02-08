@@ -14,6 +14,8 @@ import {
   proposalDeletedConfirmationEmailSubject,
   matchResultEmail,
   matchResultEmailSubject,
+  doublesMatchResultEmail,
+  doublesMatchResultEmailSubject,
 } from "../templates";
 import { getProposalUrl, getPreferencesUrl, formatDateTime } from "../config";
 
@@ -24,6 +26,14 @@ interface GameScore {
 
 interface Scores {
   games: GameScore[];
+}
+
+interface DoublesPlayer {
+  userId: string;
+  displayName: string;
+  team?: number;
+  status: string;
+  invitedBy?: string;
 }
 
 /**
@@ -47,9 +57,10 @@ export const onProposalUpdated = functions.firestore
     // Check for status changes
     const statusChanged = beforeData.status !== afterData.status;
     const scoresAdded = !beforeData.scores && afterData.scores;
+    const isDoubles = afterData.matchType === "doubles";
 
-    // Handle proposal accepted
-    if (statusChanged && afterData.status === "accepted" && afterData.acceptedBy) {
+    // Handle proposal accepted (singles only - doubles uses different flow)
+    if (statusChanged && afterData.status === "accepted" && afterData.acceptedBy && !isDoubles) {
       await handleProposalAccepted(
         db,
         emailService,
@@ -87,12 +98,21 @@ export const onProposalUpdated = functions.firestore
 
     // Handle scores added
     if (scoresAdded) {
-      await handleMatchResultRecorded(
-        db,
-        emailService,
-        proposalId,
-        afterData
-      );
+      if (isDoubles) {
+        await handleDoublesMatchResultRecorded(
+          db,
+          emailService,
+          proposalId,
+          afterData
+        );
+      } else {
+        await handleMatchResultRecorded(
+          db,
+          emailService,
+          proposalId,
+          afterData
+        );
+      }
     }
   });
 
@@ -445,6 +465,7 @@ async function handleMatchResultRecorded(
   // Update creator's standing
   await updatePlayerStanding(
     db,
+    "standings",
     skillBracket,
     creatorId,
     creatorDoc.exists ? creatorDoc.data()!.displayName : "Unknown",
@@ -455,6 +476,7 @@ async function handleMatchResultRecorded(
   // Update opponent's standing
   await updatePlayerStanding(
     db,
+    "standings",
     skillBracket,
     opponentId,
     opponentDoc?.exists ? opponentDoc.data()!.displayName : proposalData.acceptedBy.displayName,
@@ -465,8 +487,162 @@ async function handleMatchResultRecorded(
   console.log(`[onProposalUpdated] Standings updated for both players`);
 }
 
+/**
+ * Handle doubles match result: emails all 4 players and updates doubles_standings
+ */
+async function handleDoublesMatchResultRecorded(
+  db: admin.firestore.Firestore,
+  emailService: ReturnType<typeof getEmailService>,
+  proposalId: string,
+  proposalData: admin.firestore.DocumentData
+): Promise<void> {
+  console.log(`[onProposalUpdated] Doubles match result recorded for proposal ${proposalId}`);
+
+  const scores: Scores = proposalData.scores;
+  if (!scores || !scores.games || scores.games.length === 0) {
+    console.log(`[onProposalUpdated] No valid scores found`);
+    return;
+  }
+
+  const doublesPlayers: DoublesPlayer[] = proposalData.doublesPlayers || [];
+  const confirmedPlayers = doublesPlayers.filter((p) => p.status === "confirmed");
+
+  if (confirmedPlayers.length < 4) {
+    console.log(`[onProposalUpdated] Doubles match does not have 4 confirmed players, skipping`);
+    return;
+  }
+
+  // Determine teams
+  const team1 = confirmedPlayers.filter((p) => p.team === 1);
+  const team2 = confirmedPlayers.filter((p) => p.team === 2);
+
+  if (team1.length !== 2 || team2.length !== 2) {
+    console.log(`[onProposalUpdated] Invalid team configuration: team1=${team1.length}, team2=${team2.length}`);
+    return;
+  }
+
+  // Calculate who won (creatorScore = Team 1, opponentScore = Team 2)
+  const team1GamesWon = scores.games.filter(
+    (g: GameScore) => g.creatorScore > g.opponentScore
+  ).length;
+  const team2GamesWon = scores.games.filter(
+    (g: GameScore) => g.opponentScore > g.creatorScore
+  ).length;
+  const team1Won = team1GamesWon > team2GamesWon;
+
+  const proposalDateTime = proposalData.dateTime?.toDate
+    ? proposalData.dateTime.toDate()
+    : new Date(proposalData.dateTime);
+
+  // Fetch all 4 player documents
+  const playerDocs = await Promise.all(
+    confirmedPlayers.map((p) => db.collection("users").doc(p.userId).get())
+  );
+
+  // Send emails to all 4 players
+  for (let i = 0; i < confirmedPlayers.length; i++) {
+    const player = confirmedPlayers[i];
+    const playerDoc = playerDocs[i];
+
+    if (!playerDoc.exists) continue;
+
+    const playerData = playerDoc.data()!;
+    const emailPrefs = playerData.emailNotifications;
+
+    if (!playerData.email || (emailPrefs && emailPrefs.matchResults === false)) {
+      continue;
+    }
+
+    const isOnTeam1 = player.team === 1;
+    const playerWon = isOnTeam1 ? team1Won : !team1Won;
+    const playerTeam = isOnTeam1 ? team1 : team2;
+    const opponentTeam = isOnTeam1 ? team2 : team1;
+
+    // Find partner (other player on same team)
+    const partner = playerTeam.find((p) => p.userId !== player.userId);
+    const partnerName = partner?.displayName || "Partner";
+
+    // Game scores from this player's team perspective
+    const gameScores = isOnTeam1
+      ? scores.games.map((g: GameScore) => `${g.creatorScore}-${g.opponentScore}`)
+      : scores.games.map((g: GameScore) => `${g.opponentScore}-${g.creatorScore}`);
+
+    const playerGamesWon = isOnTeam1 ? team1GamesWon : team2GamesWon;
+    const opponentGamesWon = isOnTeam1 ? team2GamesWon : team1GamesWon;
+
+    const html = doublesMatchResultEmail({
+      recipientName: playerData.displayName || "Pickleballer",
+      partnerName,
+      opponent1Name: opponentTeam[0]?.displayName || "Opponent",
+      opponent2Name: opponentTeam[1]?.displayName || "Opponent",
+      matchScore: playerWon
+        ? `${playerGamesWon}-${opponentGamesWon}`
+        : `${opponentGamesWon}-${playerGamesWon}`,
+      isWinner: playerWon,
+      gameScores,
+      location: proposalData.location,
+      dateTime: formatDateTime(proposalDateTime),
+      proposalUrl: getProposalUrl(proposalId),
+      preferencesUrl: getPreferencesUrl(player.userId),
+    });
+
+    const result = await emailService.send({
+      to: playerData.email,
+      subject: doublesMatchResultEmailSubject(playerWon),
+      html,
+    });
+
+    if (result.success) {
+      console.log(`[onProposalUpdated] Doubles result email sent to ${playerData.email}`);
+    }
+  }
+
+  // Update doubles standings for all 4 players
+  const skillBracket = proposalData.skillBracket;
+  if (!skillBracket) {
+    console.log(`[onProposalUpdated] No skill bracket found, skipping doubles standings update`);
+    return;
+  }
+
+  for (let i = 0; i < confirmedPlayers.length; i++) {
+    const player = confirmedPlayers[i];
+    const playerDoc = playerDocs[i];
+    const isOnTeam1 = player.team === 1;
+    const won = isOnTeam1 ? team1Won : !team1Won;
+
+    await updatePlayerStanding(
+      db,
+      "doubles_standings",
+      skillBracket,
+      player.userId,
+      playerDoc.exists ? playerDoc.data()!.displayName : player.displayName,
+      playerDoc.exists ? playerDoc.data()!.skillLevel : "3.5",
+      won
+    );
+
+    // Also update user's doubles stats
+    if (playerDoc.exists) {
+      const userData = playerDoc.data()!;
+      const doublesPlayed = (userData.doublesPlayed || 0) + 1;
+      const doublesWon = (userData.doublesWon || 0) + (won ? 1 : 0);
+      const doublesLost = (userData.doublesLost || 0) + (won ? 0 : 1);
+      const doublesWinRate = doublesPlayed > 0 ? doublesWon / doublesPlayed : 0;
+
+      await db.collection("users").doc(player.userId).update({
+        doublesPlayed,
+        doublesWon,
+        doublesLost,
+        doublesWinRate,
+      });
+    }
+  }
+
+  console.log(`[onProposalUpdated] Doubles standings updated for all 4 players`);
+}
+
 async function updatePlayerStanding(
   db: admin.firestore.Firestore,
+  collection: string,
   skillBracket: string,
   playerId: string,
   displayName: string,
@@ -474,7 +650,7 @@ async function updatePlayerStanding(
   won: boolean
 ): Promise<void> {
   const standingRef = db
-    .collection("standings")
+    .collection(collection)
     .doc(skillBracket)
     .collection("players")
     .doc(playerId);
@@ -515,5 +691,5 @@ async function updatePlayerStanding(
     lastUpdated: new Date(),
   }, { merge: true });
 
-  console.log(`[onProposalUpdated] Updated standing for ${displayName}: W${matchesWon}-L${matchesLost}, streak: ${streak > 0 ? '+' : ''}${streak}`);
+  console.log(`[onProposalUpdated] Updated ${collection} standing for ${displayName}: W${matchesWon}-L${matchesLost}, streak: ${streak > 0 ? '+' : ''}${streak}`);
 }

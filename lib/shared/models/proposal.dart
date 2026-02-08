@@ -8,6 +8,24 @@ part 'proposal.g.dart';
 // TODO: Set to false for production - disables auto-expiration of past proposals
 const bool kDisableAutoExpire = false;
 
+/// Match type: singles (1v1) or doubles (2v2)
+enum MatchType {
+  @JsonValue('singles')
+  singles,
+  @JsonValue('doubles')
+  doubles,
+}
+
+/// Status of a player in a doubles lobby
+enum DoublesPlayerStatus {
+  @JsonValue('confirmed')
+  confirmed,
+  @JsonValue('invited')
+  invited,
+  @JsonValue('requested')
+  requested,
+}
+
 enum ProposalStatus {
   @JsonValue('open')
   open,
@@ -80,6 +98,33 @@ extension ProposalLifecycle on Proposal {
   }
 }
 
+/// Extension for doubles-specific proposal lifecycle
+extension DoublesProposalLifecycle on Proposal {
+  bool get isDoubles => matchType == MatchType.doubles;
+
+  /// Whether all 4 player slots are filled with confirmed players
+  bool get isFilled {
+    if (!isDoubles) return false;
+    return doublesPlayers.where((p) => p.status == DoublesPlayerStatus.confirmed).length >= 4;
+  }
+
+  /// Team 1 players (confirmed)
+  List<DoublesPlayer> get team1 =>
+      doublesPlayers.where((p) => p.team == 1 && p.status == DoublesPlayerStatus.confirmed).toList();
+
+  /// Team 2 players (confirmed)
+  List<DoublesPlayer> get team2 =>
+      doublesPlayers.where((p) => p.team == 2 && p.status == DoublesPlayerStatus.confirmed).toList();
+
+  /// Pending join requests
+  List<DoublesPlayer> get pendingRequests =>
+      doublesPlayers.where((p) => p.status == DoublesPlayerStatus.requested).toList();
+
+  /// Pending partner invites
+  List<DoublesPlayer> get pendingInvites =>
+      doublesPlayers.where((p) => p.status == DoublesPlayerStatus.invited).toList();
+}
+
 @freezed
 class AcceptedBy with _$AcceptedBy {
   const factory AcceptedBy({
@@ -88,6 +133,20 @@ class AcceptedBy with _$AcceptedBy {
   }) = _AcceptedBy;
 
   factory AcceptedBy.fromJson(Map<String, dynamic> json) => _$AcceptedByFromJson(json);
+}
+
+/// Represents a player in a doubles lobby
+@freezed
+class DoublesPlayer with _$DoublesPlayer {
+  const factory DoublesPlayer({
+    required String userId,
+    required String displayName,
+    int? team,
+    @Default(DoublesPlayerStatus.requested) DoublesPlayerStatus status,
+    String? invitedBy,
+  }) = _DoublesPlayer;
+
+  factory DoublesPlayer.fromJson(Map<String, dynamic> json) => _$DoublesPlayerFromJson(json);
 }
 
 /// Represents a single game score in a pickleball match
@@ -106,6 +165,7 @@ class GameScore with _$GameScore {
 class Scores with _$Scores {
   const Scores._();
 
+  @JsonSerializable(explicitToJson: true)
   const factory Scores({
     required List<GameScore> games, // List of game scores (typically 2-3 games)
   }) = _Scores;
@@ -136,6 +196,7 @@ class Scores with _$Scores {
 class Proposal with _$Proposal {
   const Proposal._();
 
+  @JsonSerializable(explicitToJson: true)
   const factory Proposal({
     required String proposalId,
     required String creatorId,
@@ -156,6 +217,12 @@ class Proposal with _$Proposal {
     required DateTime createdAt,
     @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
     required DateTime updatedAt,
+    // Doubles fields
+    @Default(MatchType.singles) MatchType matchType,
+    @Default([]) List<DoublesPlayer> doublesPlayers,
+    @Default(0) int openSlots,
+    /// Denormalized list of user IDs for Firestore array-contains queries
+    @Default([]) List<String> playerIds,
   }) = _Proposal;
 
   factory Proposal.fromJson(Map<String, dynamic> json) =>
@@ -178,6 +245,11 @@ Map<String, dynamic> _migrateProposalJson(Map<String, dynamic> json) {
   if (!json.containsKey('skillBracket') && modifiedJson.containsKey('skillLevel')) {
     final skillLevel = _skillLevelFromJson(modifiedJson['skillLevel']);
     modifiedJson['skillBracket'] = skillLevel.bracket.jsonValue;
+  }
+
+  // Default missing matchType to 'singles' for legacy documents
+  if (!json.containsKey('matchType')) {
+    modifiedJson['matchType'] = 'singles';
   }
 
   return modifiedJson;

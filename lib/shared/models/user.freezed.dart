@@ -276,7 +276,11 @@ mixin _$User {
   int get matchesPlayed => throw _privateConstructorUsedError;
   int get matchesWon => throw _privateConstructorUsedError;
   int get matchesLost => throw _privateConstructorUsedError;
-  double get winRate => throw _privateConstructorUsedError;
+  double get winRate => throw _privateConstructorUsedError; // Doubles stats
+  int get doublesPlayed => throw _privateConstructorUsedError;
+  int get doublesWon => throw _privateConstructorUsedError;
+  int get doublesLost => throw _privateConstructorUsedError;
+  double get doublesWinRate => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
   DateTime get createdAt => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
@@ -307,6 +311,10 @@ abstract class $UserCopyWith<$Res> {
       int matchesWon,
       int matchesLost,
       double winRate,
+      int doublesPlayed,
+      int doublesWon,
+      int doublesLost,
+      double doublesWinRate,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       DateTime createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
@@ -340,6 +348,10 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? matchesWon = null,
     Object? matchesLost = null,
     Object? winRate = null,
+    Object? doublesPlayed = null,
+    Object? doublesWon = null,
+    Object? doublesLost = null,
+    Object? doublesWinRate = null,
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? emailNotifications = freezed,
@@ -388,6 +400,22 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
       winRate: null == winRate
           ? _value.winRate
           : winRate // ignore: cast_nullable_to_non_nullable
+              as double,
+      doublesPlayed: null == doublesPlayed
+          ? _value.doublesPlayed
+          : doublesPlayed // ignore: cast_nullable_to_non_nullable
+              as int,
+      doublesWon: null == doublesWon
+          ? _value.doublesWon
+          : doublesWon // ignore: cast_nullable_to_non_nullable
+              as int,
+      doublesLost: null == doublesLost
+          ? _value.doublesLost
+          : doublesLost // ignore: cast_nullable_to_non_nullable
+              as int,
+      doublesWinRate: null == doublesWinRate
+          ? _value.doublesWinRate
+          : doublesWinRate // ignore: cast_nullable_to_non_nullable
               as double,
       createdAt: null == createdAt
           ? _value.createdAt
@@ -438,6 +466,10 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       int matchesWon,
       int matchesLost,
       double winRate,
+      int doublesPlayed,
+      int doublesWon,
+      int doublesLost,
+      double doublesWinRate,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       DateTime createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
@@ -469,6 +501,10 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? matchesWon = null,
     Object? matchesLost = null,
     Object? winRate = null,
+    Object? doublesPlayed = null,
+    Object? doublesWon = null,
+    Object? doublesLost = null,
+    Object? doublesWinRate = null,
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? emailNotifications = freezed,
@@ -518,6 +554,22 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value.winRate
           : winRate // ignore: cast_nullable_to_non_nullable
               as double,
+      doublesPlayed: null == doublesPlayed
+          ? _value.doublesPlayed
+          : doublesPlayed // ignore: cast_nullable_to_non_nullable
+              as int,
+      doublesWon: null == doublesWon
+          ? _value.doublesWon
+          : doublesWon // ignore: cast_nullable_to_non_nullable
+              as int,
+      doublesLost: null == doublesLost
+          ? _value.doublesLost
+          : doublesLost // ignore: cast_nullable_to_non_nullable
+              as int,
+      doublesWinRate: null == doublesWinRate
+          ? _value.doublesWinRate
+          : doublesWinRate // ignore: cast_nullable_to_non_nullable
+              as double,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -550,6 +602,10 @@ class _$UserImpl implements _User {
       this.matchesWon = 0,
       this.matchesLost = 0,
       this.winRate = 0.0,
+      this.doublesPlayed = 0,
+      this.doublesWon = 0,
+      this.doublesLost = 0,
+      this.doublesWinRate = 0.0,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required this.createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
@@ -588,6 +644,19 @@ class _$UserImpl implements _User {
   @override
   @JsonKey()
   final double winRate;
+// Doubles stats
+  @override
+  @JsonKey()
+  final int doublesPlayed;
+  @override
+  @JsonKey()
+  final int doublesWon;
+  @override
+  @JsonKey()
+  final int doublesLost;
+  @override
+  @JsonKey()
+  final double doublesWinRate;
   @override
   @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
   final DateTime createdAt;
@@ -599,7 +668,7 @@ class _$UserImpl implements _User {
 
   @override
   String toString() {
-    return 'User(userId: $userId, displayName: $displayName, email: $email, skillLevel: $skillLevel, skillBracket: $skillBracket, location: $location, profileImageURL: $profileImageURL, matchesPlayed: $matchesPlayed, matchesWon: $matchesWon, matchesLost: $matchesLost, winRate: $winRate, createdAt: $createdAt, updatedAt: $updatedAt, emailNotifications: $emailNotifications)';
+    return 'User(userId: $userId, displayName: $displayName, email: $email, skillLevel: $skillLevel, skillBracket: $skillBracket, location: $location, profileImageURL: $profileImageURL, matchesPlayed: $matchesPlayed, matchesWon: $matchesWon, matchesLost: $matchesLost, winRate: $winRate, doublesPlayed: $doublesPlayed, doublesWon: $doublesWon, doublesLost: $doublesLost, doublesWinRate: $doublesWinRate, createdAt: $createdAt, updatedAt: $updatedAt, emailNotifications: $emailNotifications)';
   }
 
   @override
@@ -626,6 +695,14 @@ class _$UserImpl implements _User {
             (identical(other.matchesLost, matchesLost) ||
                 other.matchesLost == matchesLost) &&
             (identical(other.winRate, winRate) || other.winRate == winRate) &&
+            (identical(other.doublesPlayed, doublesPlayed) ||
+                other.doublesPlayed == doublesPlayed) &&
+            (identical(other.doublesWon, doublesWon) ||
+                other.doublesWon == doublesWon) &&
+            (identical(other.doublesLost, doublesLost) ||
+                other.doublesLost == doublesLost) &&
+            (identical(other.doublesWinRate, doublesWinRate) ||
+                other.doublesWinRate == doublesWinRate) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -649,6 +726,10 @@ class _$UserImpl implements _User {
       matchesWon,
       matchesLost,
       winRate,
+      doublesPlayed,
+      doublesWon,
+      doublesLost,
+      doublesWinRate,
       createdAt,
       updatedAt,
       emailNotifications);
@@ -681,6 +762,10 @@ abstract class _User implements User {
       final int matchesWon,
       final int matchesLost,
       final double winRate,
+      final int doublesPlayed,
+      final int doublesWon,
+      final int doublesLost,
+      final double doublesWinRate,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required final DateTime createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
@@ -714,6 +799,14 @@ abstract class _User implements User {
   int get matchesLost;
   @override
   double get winRate;
+  @override // Doubles stats
+  int get doublesPlayed;
+  @override
+  int get doublesWon;
+  @override
+  int get doublesLost;
+  @override
+  double get doublesWinRate;
   @override
   @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
   DateTime get createdAt;

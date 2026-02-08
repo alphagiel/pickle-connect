@@ -10,4 +10,4 @@ export { onUserCreated, onProposalCreated, onProposalUpdated, onProposalDeleted 
 export { requestPasswordReset, confirmPasswordReset } from "./callable";
 
 // Export migration functions (admin only)
-export { migrateSkillLevels, migrateSkillLevelsDryRun } from "./migrations";
+export { migrateSkillLevels, migrateSkillLevelsDryRun, migrateProposalsDoublesFields, migrateProposalsDoublesFieldsDryRun } from "./migrations";

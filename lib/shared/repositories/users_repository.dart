@@ -87,12 +87,15 @@ class UsersRepository {
             .toList());
   }
 
-  // Search users by name
+  // Search users by name (case-insensitive prefix search)
   Stream<List<User>> searchUsers(String query) {
+    if (query.isEmpty) return Stream.value([]);
+    // Capitalize first letter to match typical display name casing
+    final normalizedQuery = query[0].toUpperCase() + query.substring(1).toLowerCase();
     return _firestore
         .collection(_collection)
-        .where('displayName', isGreaterThanOrEqualTo: query)
-        .where('displayName', isLessThan: query + 'z')
+        .where('displayName', isGreaterThanOrEqualTo: normalizedQuery)
+        .where('displayName', isLessThan: '$normalizedQuery\uf8ff')
         .limit(20)
         .snapshots()
         .map((snapshot) => snapshot.docs

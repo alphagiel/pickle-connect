@@ -240,6 +240,11 @@ class User with _$User {
     @Default(0) int matchesWon,
     @Default(0) int matchesLost,
     @Default(0.0) double winRate,
+    // Doubles stats
+    @Default(0) int doublesPlayed,
+    @Default(0) int doublesWon,
+    @Default(0) int doublesLost,
+    @Default(0.0) double doublesWinRate,
     @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
     required DateTime createdAt,
     @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)

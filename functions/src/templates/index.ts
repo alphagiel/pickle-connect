@@ -9,3 +9,7 @@ export * from "./proposal-cancelled";
 export * from "./proposal-deleted-confirmation";
 export * from "./match-result";
 export * from "./password-reset";
+export * from "./doubles-partner-invite";
+export * from "./doubles-join-request";
+export * from "./doubles-lobby-full";
+export * from "./doubles-match-result";

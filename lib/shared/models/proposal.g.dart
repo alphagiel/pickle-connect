@@ -18,6 +18,32 @@ Map<String, dynamic> _$$AcceptedByImplToJson(_$AcceptedByImpl instance) =>
       'displayName': instance.displayName,
     };
 
+_$DoublesPlayerImpl _$$DoublesPlayerImplFromJson(Map<String, dynamic> json) =>
+    _$DoublesPlayerImpl(
+      userId: json['userId'] as String,
+      displayName: json['displayName'] as String,
+      team: (json['team'] as num?)?.toInt(),
+      status:
+          $enumDecodeNullable(_$DoublesPlayerStatusEnumMap, json['status']) ??
+              DoublesPlayerStatus.requested,
+      invitedBy: json['invitedBy'] as String?,
+    );
+
+Map<String, dynamic> _$$DoublesPlayerImplToJson(_$DoublesPlayerImpl instance) =>
+    <String, dynamic>{
+      'userId': instance.userId,
+      'displayName': instance.displayName,
+      'team': instance.team,
+      'status': _$DoublesPlayerStatusEnumMap[instance.status]!,
+      'invitedBy': instance.invitedBy,
+    };
+
+const _$DoublesPlayerStatusEnumMap = {
+  DoublesPlayerStatus.confirmed: 'confirmed',
+  DoublesPlayerStatus.invited: 'invited',
+  DoublesPlayerStatus.requested: 'requested',
+};
+
 _$GameScoreImpl _$$GameScoreImplFromJson(Map<String, dynamic> json) =>
     _$GameScoreImpl(
       creatorScore: (json['creatorScore'] as num).toInt(),
@@ -38,7 +64,7 @@ _$ScoresImpl _$$ScoresImplFromJson(Map<String, dynamic> json) => _$ScoresImpl(
 
 Map<String, dynamic> _$$ScoresImplToJson(_$ScoresImpl instance) =>
     <String, dynamic>{
-      'games': instance.games,
+      'games': instance.games.map((e) => e.toJson()).toList(),
     };
 
 _$ProposalImpl _$$ProposalImplFromJson(Map<String, dynamic> json) =>
@@ -63,6 +89,17 @@ _$ProposalImpl _$$ProposalImplFromJson(Map<String, dynamic> json) =>
           const [],
       createdAt: _timestampFromJson(json['createdAt']),
       updatedAt: _timestampFromJson(json['updatedAt']),
+      matchType: $enumDecodeNullable(_$MatchTypeEnumMap, json['matchType']) ??
+          MatchType.singles,
+      doublesPlayers: (json['doublesPlayers'] as List<dynamic>?)
+              ?.map((e) => DoublesPlayer.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      openSlots: (json['openSlots'] as num?)?.toInt() ?? 0,
+      playerIds: (json['playerIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$$ProposalImplToJson(_$ProposalImpl instance) =>
@@ -75,11 +112,15 @@ Map<String, dynamic> _$$ProposalImplToJson(_$ProposalImpl instance) =>
       'location': instance.location,
       'dateTime': _timestampToJson(instance.dateTime),
       'status': _$ProposalStatusEnumMap[instance.status]!,
-      'acceptedBy': instance.acceptedBy,
-      'scores': instance.scores,
+      'acceptedBy': instance.acceptedBy?.toJson(),
+      'scores': instance.scores?.toJson(),
       'scoreConfirmedBy': instance.scoreConfirmedBy,
       'createdAt': _timestampToJson(instance.createdAt),
       'updatedAt': _timestampToJson(instance.updatedAt),
+      'matchType': _$MatchTypeEnumMap[instance.matchType]!,
+      'doublesPlayers': instance.doublesPlayers.map((e) => e.toJson()).toList(),
+      'openSlots': instance.openSlots,
+      'playerIds': instance.playerIds,
     };
 
 const _$ProposalStatusEnumMap = {
@@ -88,4 +129,9 @@ const _$ProposalStatusEnumMap = {
   ProposalStatus.expired: 'expired',
   ProposalStatus.completed: 'completed',
   ProposalStatus.canceled: 'canceled',
+};
+
+const _$MatchTypeEnumMap = {
+  MatchType.singles: 'singles',
+  MatchType.doubles: 'doubles',
 };

@@ -11,6 +11,10 @@ import '../../features/proposals/presentation/pages/edit_proposal_page.dart';
 import '../../features/proposals/presentation/pages/proposal_details_page.dart';
 import '../../features/standings/presentation/pages/standings_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
+import '../../features/singles/presentation/pages/singles_page.dart';
+import '../../features/doubles/presentation/pages/doubles_page.dart';
+import '../../features/doubles/presentation/pages/create_doubles_proposal_page.dart';
+import '../../features/doubles/presentation/pages/doubles_proposal_details_page.dart';
 import '../../shared/widgets/main_navigation.dart';
 import '../../shared/models/proposal.dart';
 import '../../shared/providers/proposals_providers.dart';
@@ -105,6 +109,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const EditProfilePage(),
       ),
 
+      // Doubles proposal routes (standalone, no shell)
+      GoRoute(
+        path: '/create-doubles-proposal',
+        name: 'create-doubles-proposal',
+        builder: (context, state) => const CreateDoublesProposalPage(),
+      ),
+      GoRoute(
+        path: '/doubles-proposal-details',
+        name: 'doubles-proposal-details',
+        builder: (context, state) {
+          final proposal = state.extra as Proposal?;
+          if (proposal == null) {
+            return const DoublesPage();
+          }
+          return DoublesProposalDetailsPage(proposal: proposal);
+        },
+      ),
+
       // Deep link route for proposals (from email notifications)
       GoRoute(
         path: '/proposal/:proposalId',
@@ -125,17 +147,28 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/',
             name: 'home',
-            builder: (context, state) => const ProposalsPage(),
+            builder: (context, state) => const SinglesPage(),
           ),
+          GoRoute(
+            path: '/singles',
+            name: 'singles',
+            builder: (context, state) => const SinglesPage(),
+          ),
+          GoRoute(
+            path: '/doubles',
+            name: 'doubles',
+            builder: (context, state) => const DoublesPage(),
+          ),
+          // Keep legacy routes working
           GoRoute(
             path: '/proposals',
             name: 'proposals',
-            builder: (context, state) => const ProposalsPage(),
+            builder: (context, state) => const SinglesPage(),
           ),
           GoRoute(
             path: '/standings',
             name: 'standings',
-            builder: (context, state) => const StandingsPage(),
+            builder: (context, state) => const SinglesPage(),
           ),
         ],
       ),

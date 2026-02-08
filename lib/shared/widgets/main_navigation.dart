@@ -88,24 +88,24 @@ class MainNavigation extends ConsumerWidget {
             BottomNavigationBarItem(
               icon: Padding(
                 padding: EdgeInsets.only(bottom: 4),
-                child: Icon(Icons.sports_tennis_outlined, size: 26),
+                child: Icon(Icons.person_outlined, size: 26),
               ),
               activeIcon: Padding(
                 padding: EdgeInsets.only(bottom: 4),
-                child: Icon(Icons.sports_tennis, size: 26),
+                child: Icon(Icons.person, size: 26),
               ),
-              label: 'Proposals',
+              label: 'Singles',
             ),
             BottomNavigationBarItem(
               icon: Padding(
                 padding: EdgeInsets.only(bottom: 4),
-                child: Icon(Icons.leaderboard_outlined, size: 26),
+                child: Icon(Icons.group_outlined, size: 26),
               ),
               activeIcon: Padding(
                 padding: EdgeInsets.only(bottom: 4),
-                child: Icon(Icons.leaderboard, size: 26),
+                child: Icon(Icons.group, size: 26),
               ),
-              label: 'Standings',
+              label: 'Doubles',
             ),
           ],
         ),
@@ -127,19 +127,18 @@ class MainNavigation extends ConsumerWidget {
   static int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
 
-    if (location.startsWith('/proposals')) return 0;
-    if (location.startsWith('/standings')) return 1;
-
+    if (location.startsWith('/doubles')) return 1;
+    // Singles is the default (includes /, /singles, /proposals, /standings)
     return 0;
   }
 
   void _onItemTapped(int index, BuildContext context) {
     switch (index) {
       case 0:
-        GoRouter.of(context).go('/proposals');
+        GoRouter.of(context).go('/singles');
         break;
       case 1:
-        GoRouter.of(context).go('/standings');
+        GoRouter.of(context).go('/doubles');
         break;
     }
   }
