@@ -1,7 +1,7 @@
 name: pickle_connect
 description: A tennis club management app with player scheduling, ladder system, and tournaments
 publish_to: 'none'
-version: 1.0.0+2
+version: 1.0.0+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -60,9 +60,18 @@ dev_dependencies:
   
   # Linting
   flutter_lints: ^3.0.0
+
+  # App Icon
+  flutter_launcher_icons: ^0.14.3
   
   # Testing
   mocktail: ^1.0.2
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/pickle-connect-icon.png"
+  remove_alpha_ios: true
 
 flutter:
   uses-material-design: true
