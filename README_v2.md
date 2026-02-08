@@ -421,30 +421,54 @@ firebase emulators:start --import=./emulator-data --export-on-exit=./emulator-da
 - **File:** `lib/features/standings/presentation/pages/standings_page.dart`
 - Replaced cards with compact table: Rank | Player (level pill) | W | L | Streak
 
-#### Quick Start Reminders
+#### Quick Start — Local Development (macOS)
 
-**Terminal 1: Start Mailpit** (optional, for emails)
+**Terminal 1: Mailpit** (optional, for email testing)
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
-**Terminal 2: Start Firebase Emulators**
+**Terminal 2: Firebase Emulators**
 ```bash
 cd functions && npm run build && cd ..
+export JAVA_HOME="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
 firebase emulators:start --import=./emulator-data --export-on-exit=./emulator-data
 ```
+> **Note:** Emulators require Java 21+. macOS ships with Java 17 which is too old.
+> The `JAVA_HOME` export above points to Homebrew's OpenJDK 23. To make it permanent,
+> add the export line to your `~/.zshrc`.
 
-**Terminal 3: Run Flutter App**
+**Terminal 3: Flutter App**
 ```bash
 flutter run -d chrome --dart-define=USE_EMULATORS=true
 ```
 
-**URLs:**
-| Service | URL |
-|---------|-----|
-| App | http://localhost:PORT |
-| Emulator UI | http://127.0.0.1:4000 |
-| Mailpit | http://127.0.0.1:8025 |
+**Local URLs:**
+| Service     | URL                                      |
+|-------------|------------------------------------------|
+| App         | http://localhost:PORT (shown in terminal) |
+| Emulator UI | http://127.0.0.1:4000                    |
+| Mailpit     | http://127.0.0.1:8025                    |
+
+#### Quick Start — Production
+
+**Single Terminal: Flutter App (connects to live Firebase)**
+```bash
+flutter run -d chrome
+```
+No `--dart-define` flag = uses production Firebase project.
+
+**Deploy Functions/Rules (when cloud functions change)**
+```bash
+cd functions && npm run build && cd ..
+firebase deploy --only functions
+```
+
+**Quick Reference:**
+| Mode | Flutter Command                                          | Backend         |
+|------|----------------------------------------------------------|-----------------|
+| Dev  | `flutter run -d chrome --dart-define=USE_EMULATORS=true` | Local emulators |
+| Prod | `flutter run -d chrome`                                  | Live Firebase   |
 
 #### To Test Standings Table
 1. Create a proposal

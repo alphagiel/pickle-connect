@@ -58,6 +58,16 @@ class _EditProposalPageState extends ConsumerState<EditProposalPage> {
           backgroundColor: AppColors.primaryGreen,
           foregroundColor: AppColors.onPrimary,
           elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/');
+              }
+            },
+          ),
         ),
         body: Center(
           child: Column(
@@ -110,6 +120,16 @@ class _EditProposalPageState extends ConsumerState<EditProposalPage> {
           backgroundColor: AppColors.primaryGreen,
           foregroundColor: AppColors.onPrimary,
           elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/');
+              }
+            },
+          ),
         ),
         body: Center(
           child: Column(
@@ -160,6 +180,16 @@ class _EditProposalPageState extends ConsumerState<EditProposalPage> {
         backgroundColor: AppColors.primaryGreen,
         foregroundColor: AppColors.onPrimary,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/');
+            }
+          },
+        ),
       ),
       body: SingleChildScrollView(
         child: Padding(
