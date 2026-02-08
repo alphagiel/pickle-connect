@@ -475,3 +475,102 @@ firebase deploy --only functions
 2. Accept with another user
 3. Score the match
 4. Check Standings tab - table should appear with both players
+
+---
+
+## 2/8/2026 - Doubles Feature
+
+### Overview
+
+Added full doubles (2v2) match support. Navigation restructured from Proposals | Standings to **Singles | Doubles**, each with sub-tabs for Proposals and Rankings.
+
+Players can:
+- Propose a doubles match solo (need 3 more players)
+- Propose with an invited partner (need 2 opponents)
+- Browse and request to join open doubles lobbies
+- Creator approves/declines join requests
+
+### Data Model Changes
+
+- `MatchType` enum: `singles`, `doubles`
+- `DoublesPlayerStatus` enum: `confirmed`, `invited`, `requested`
+- `DoublesPlayer` freezed class: `userId`, `displayName`, `team`, `status`, `invitedBy`
+- `Proposal` extended with: `matchType`, `doublesPlayers`, `openSlots`, `playerIds`
+- `User` extended with: `doublesPlayed`, `doublesWon`, `doublesLost`, `doublesWinRate`
+- `playerIds` is a denormalized field for Firestore `array-contains` queries (Firestore cannot query nested objects inside arrays)
+- Added `@JsonSerializable(explicitToJson: true)` to `Proposal` and `Scores` so nested objects serialize properly to Firestore
+
+### Repository Layer
+
+Added to `proposals_repository.dart`:
+- `getDoublesProposalsForBracket(bracket)` - open doubles by skill bracket
+- `getUserDoublesProposals(userId)` - user's doubles matches
+- `getCompletedDoublesProposals(userId)` - completed doubles
+- `requestJoinDoubles()`, `approveDoublesPlayer()`, `declineDoublesPlayer()`
+- `leaveDoublesProposal()`, `confirmPartnerInvite()`
+
+Created `doubles_standings_repository.dart` — mirrors singles standings with `doubles_standings/{bracket}/players/{userId}` collection.
+
+Fixed `searchUsers()` in `users_repository.dart` — case-insensitive prefix search with `\uf8ff` suffix.
+
+### Provider Layer
+
+- `doubles_proposals_providers.dart` - Riverpod providers for doubles proposals and actions
+- `doubles_standings_providers.dart` - Riverpod providers for doubles rankings
+
+### Navigation
+
+Bottom nav changed to:
+- **Singles** (icon: person) — sub-tabs: Proposals | Rankings
+- **Doubles** (icon: group) — sub-tabs: Proposals | Rankings
+
+Routes: `/singles`, `/doubles`, `/create-doubles-proposal`, `/doubles-proposal-details`
+
+### UI Pages
+
+- `singles_page.dart` - wrapper with Proposals/Rankings sub-tabs
+- `doubles_page.dart` - wrapper with Proposals/Rankings sub-tabs
+- `create_doubles_proposal_page.dart` - form with date/time, location, partner toggle with player search/dropdown, notes
+- `doubles_proposal_details_page.dart` - match info, team display, join requests, scoring
+- `doubles_proposal_card.dart`, `join_request_card.dart`, `doubles_player_slot.dart`
+
+### Backend (Cloud Functions + Firestore)
+
+**Cloud Functions:**
+- `on-proposal-updated.ts` — added `handleDoublesMatchResultRecorded()` for doubles standings and stats
+- `doubles-partner-invite.ts` — partner invitation email
+- `doubles-join-request.ts` — join request notification email
+- `doubles-lobby-full.ts` — lobby full notification email
+- `doubles-match-result.ts` — match result email for all 4 players
+- `migrate-proposals-doubles-fields.ts` — adds `matchType: 'singles'` and `playerIds: []` to existing proposals
+
+**Firestore Rules & Indexes:**
+- Added `doubles_standings` collection (read-only)
+- Updated proposals rules for `playerIds` array check
+- Composite indexes: `(matchType, status, skillBracket)`, `(matchType, status, playerIds)`, `(matchType, playerIds, status)`
+
+### Scoring
+
+- Reuses existing `GameScore`/`Scores` model (Team 1 = creatorScore, Team 2 = opponentScore)
+- Singles: 2 individual confirmations needed
+- Doubles: at least 1 player from each team must confirm
+
+### Bug Fixes
+
+- **Firestore serialization error** — `doublesPlayers`, `acceptedBy`, `scores` were written as raw Dart objects instead of Maps. Fixed with `@JsonSerializable(explicitToJson: true)`.
+- **Partner search invisible text** — SwitchListTile title/subtitle, search input, and result items had no explicit text color (inherited white from theme). Added `AppColors.primaryText` / `AppColors.secondaryText` throughout.
+- **Partner search case-sensitive** — Typing lowercase wouldn't find capitalized names. Normalized query casing and switched from `+ 'z'` to `+ '\uf8ff'` suffix.
+- **No default partner list** — Added dropdown of players at user's skill level shown when partner toggle is ON before typing a search.
+
+### Dev Commands
+
+```bash
+# Firebase emulators with persistent data
+firebase emulators:start --import=./emulator-data --export-on-exit=./emulator-data
+
+# Run with emulators
+flutter run -d chrome --web-port=5500 --dart-define=USE_EMULATORS=true
+
+# Regenerate models after @freezed changes
+flutter packages pub run build_runner build --delete-conflicting-outputs
+```
