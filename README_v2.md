@@ -149,7 +149,7 @@ EmailNotificationPreferences({
 
 | Terminal | Purpose            | Command                                              |
 | -------- | ------------------ | ---------------------------------------------------- |
-| 1        | Firebase emulators | `firebase.cmd emulators:start --only auth,functions,firestore` (from project root) |
+| 1        | Firebase emulators | `firebase emulators:start --only auth,functions,firestore` (from project root) |
 | 2        | Flutter app        | `flutter run -d chrome --dart-define=USE_EMULATORS=true` |
 | (opt)    | One-off tasks      | git, build_runner, etc                               |
 
@@ -167,7 +167,7 @@ npm run build
 
 # Start emulators (from project root)
 cd ..
-firebase.cmd emulators:start --only auth,functions,firestore
+firebase emulators:start --only auth,functions,firestore
 ```
 
 Open:
@@ -193,13 +193,13 @@ Open:
 * Set secret:
 
 ```bash
-firebase.cmd functions:secrets:set SENDGRID_API_KEY
+firebase functions:secrets:set SENDGRID_API_KEY
 ```
 
 * Deploy:
 
 ```bash
-firebase.cmd deploy --only functions
+firebase deploy --only functions
 ```
 
 ---
@@ -243,7 +243,7 @@ npm run build
 
 # 3. Start Firebase Emulators (from project root)
 cd ..
-firebase.cmd emulators:start --only auth,functions,firestore
+firebase emulators:start --only auth,functions,firestore
 ```
 
 ---
@@ -298,7 +298,7 @@ npm run build
 
 # Then start emulators (from project root)
 cd C:\Users\lfage\Sandbox\mobile-apps\pickle-connect
-firebase.cmd emulators:start --only auth,functions,firestore --project myapp1-c6012
+firebase emulators:start --only auth,functions,firestore --project myapp1-c6012
 ```
 
 **Terminal 3: Run Flutter App (with emulators)**
@@ -324,7 +324,7 @@ flutter run -d chrome --dart-define=USE_EMULATORS=true
 ```bash
 cd C:\Users\lfage\Sandbox\mobile-apps\pickle-connect\functions
 npm run build
-firebase.cmd deploy --only functions --project myapp1-c6012
+firebase deploy --only functions --project myapp1-c6012
 ```
 
 **Run Flutter App** (production Firebase)
@@ -350,7 +350,7 @@ No `--dart-define` flag = uses production Firebase.
 cd functions && npm run build && cd ..
 
 # Start emulators (from project root)
-firebase.cmd emulators:start --only auth,functions,firestore
+firebase emulators:start --only auth,functions,firestore
 
 # In another terminal, run Flutter
 flutter run -d chrome --dart-define=USE_EMULATORS=true
@@ -423,32 +423,108 @@ firebase emulators:start --import=./emulator-data --export-on-exit=./emulator-da
 
 #### Quick Start — Local Development (macOS)
 
-**Terminal 1: Mailpit** (optional, for email testing)
+**Prerequisites:**
+1. **Java 21+** required (Firebase emulators won't work with Java 17)
+2. **Firebase CLI** installed (`npm install -g firebase-tools`)
+3. **Docker Desktop** running (for Mailpit email testing, optional)
+
+---
+
+**Step 1: Install Java 21+ (if needed)**
+Check your Java version:
+```bash
+java -version
+```
+
+If you don't have Java 21+, install via **SDKMAN** (recommended) or Homebrew:
+
+**Option A: SDKMAN (easiest)**
+```bash
+# Install SDKMAN if not already installed
+curl -s "https://get.sdkman.io" | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+
+# Install Java 21
+sdk install java 21.0.9-amzn
+sdk default java 21.0.9-amzn
+
+# For permanence, SDKMAN auto-adds to your shell config.
+# Close and reopen terminal or run:
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+```
+
+**Option B: Homebrew**
+```bash
+# Install OpenJDK 21
+brew install openjdk@21
+
+# Set JAVA_HOME for current session
+export JAVA_HOME="$(brew --prefix openjdk@21)/libexec/openjdk.jdk/Contents/Home"
+# Add to ~/.zshrc for permanence:
+echo 'export JAVA_HOME="$(brew --prefix openjdk@21)/libexec/openjdk.jdk/Contents/Home"' >> ~/.zshrc
+```
+
+---
+
+**Step 2: Start Mailpit** (optional, for email testing)
 ```bash
 docker compose up -d
 ```
 
-**Terminal 2: Firebase Emulators**
+---
+
+**Step 3: Build Functions & Start Firebase Emulators**
 ```bash
+# Build Cloud Functions
 cd functions && npm run build && cd ..
-export JAVA_HOME="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
+
+# Check for port conflicts (common issue)
+# This kills any processes using Firebase emulator ports:
+# 8080=Firestore, 9000=Database, 5001=Functions, 9099=Auth, 4000=UI
+lsof -ti :8080,9000,5001,9099,4000 | xargs kill -TERM 2>/dev/null || true
+
+# Start emulators with persistent data
 firebase emulators:start --import=./emulator-data --export-on-exit=./emulator-data
 ```
-> **Note:** Emulators require Java 21+. macOS ships with Java 17 which is too old.
-> The `JAVA_HOME` export above points to Homebrew's OpenJDK 23. To make it permanent,
-> add the export line to your `~/.zshrc`.
 
-**Terminal 3: Flutter App**
+> **Troubleshooting:**
+> - **"Port 8080 is not open"**: Another process is using the port. Run the port check command above.
+> - **"Java version before 21"**: Ensure Java 21+ is installed and `java -version` shows correct version.
+> - **"You are not currently authenticated"**: Warning only, emulators still work locally. Run `firebase login` if you need production features.
+
+---
+
+**Step 4: Run Flutter App**
 ```bash
 flutter run -d chrome --dart-define=USE_EMULATORS=true
 ```
 
+> **Tip:** Use `--web-port=5500` to avoid port conflicts with other web apps.
+
+---
+
 **Local URLs:**
-| Service     | URL                                      |
-|-------------|------------------------------------------|
-| App         | http://localhost:PORT (shown in terminal) |
-| Emulator UI | http://127.0.0.1:4000                    |
-| Mailpit     | http://127.0.0.1:8025                    |
+| Service     | URL                                      | Purpose |
+|-------------|------------------------------------------|---------|
+| App         | http://localhost:PORT (shown in terminal) | Flutter web app |
+| Emulator UI | http://127.0.0.1:4000                    | Manage all Firebase services |
+| Firestore   | http://127.0.0.1:4000/firestore          | Database viewer |
+| Auth        | http://127.0.0.1:4000/auth               | User authentication |
+| Mailpit     | http://127.0.0.1:8025                    | Email testing inbox |
+
+---
+
+**Quick Reference Commands:**
+```bash
+# One-liner to build and start everything
+cd functions && npm run build && cd .. && firebase emulators:start --import=./emulator-data --export-on-exit=./emulator-data
+
+# Check emulator status
+curl -s http://127.0.0.1:4000 | grep -q "Emulator" && echo "Emulators running" || echo "Emulators not responding"
+
+# Stop all emulators
+pkill -f "firebase.*emulators" 2>/dev/null || true
+```
 
 #### Quick Start — Production
 
@@ -565,6 +641,13 @@ Routes: `/singles`, `/doubles`, `/create-doubles-proposal`, `/doubles-proposal-d
 ### Dev Commands
 
 ```bash
+# Prerequisite: Java 21+ required for Firebase emulators
+java -version  # Should show version 21 or higher
+
+# Fix port conflicts (if emulators fail to start)
+# Kills processes using emulator ports: 8080=Firestore, 9000=Database, 5001=Functions, 9099=Auth, 4000=UI
+lsof -ti :8080,9000,5001,9099,4000 | xargs kill -TERM 2>/dev/null || true
+
 # Firebase emulators with persistent data
 firebase emulators:start --import=./emulator-data --export-on-exit=./emulator-data
 
@@ -573,4 +656,7 @@ flutter run -d chrome --web-port=5500 --dart-define=USE_EMULATORS=true
 
 # Regenerate models after @freezed changes
 flutter packages pub run build_runner build --delete-conflicting-outputs
+
+# Build functions before starting emulators
+cd functions && npm run build && cd ..
 ```

@@ -44,6 +44,11 @@ lib/*.freezed.dart
 # Firebase emulator logs and data
 *-debug.log
 emulator-data/
+firebase-export-*/
+**/firebase-export-*/
+
+# Claude local settings
+.claude/
 
 # Windows artifacts
 nul
