@@ -5,7 +5,8 @@
       "Bash(flutter packages pub run build_runner:*)",
       "Bash(flutter build:*)",
       "Bash(export PATH=\"$JAVA_HOME/bin:$PATH\")",
-      "Bash(firebase emulators:start:*)"
+      "Bash(firebase emulators:start:*)",
+      "Bash(powershell -Command:*)"
     ],
     "deny": [],
     "ask": []
