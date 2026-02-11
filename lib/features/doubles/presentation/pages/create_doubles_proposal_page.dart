@@ -8,6 +8,7 @@ import '../../../../shared/providers/users_providers.dart';
 import '../../../../shared/repositories/users_repository.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/widgets/responsive_center.dart';
 
 const bool kAllowPastProposals = true;
 
@@ -89,25 +90,27 @@ class _CreateDoublesProposalPageState extends ConsumerState<CreateDoublesProposa
         ),
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.2)),
-                  ),
-                  child: const Column(
-                    children: [
-                      Icon(Icons.group, size: 48, color: AppColors.primaryGreen),
+        child: ResponsiveCenter(
+          maxWidth: 600,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.2)),
+                    ),
+                    child: const Column(
+                      children: [
+                        Icon(Icons.group, size: 48, color: AppColors.primaryGreen),
                       SizedBox(height: 12),
                       Text('Create Doubles Match',
                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primaryText)),
@@ -365,6 +368,7 @@ class _CreateDoublesProposalPageState extends ConsumerState<CreateDoublesProposa
                 const SizedBox(height: 20),
               ],
             ),
+          ),
           ),
         ),
       ),

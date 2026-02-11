@@ -5,6 +5,7 @@ import '../../features/auth/presentation/providers/auth_providers.dart';
 import '../theme/app_colors.dart';
 import '../models/feedback.dart';
 import '../repositories/feedback_repository.dart';
+import 'responsive_center.dart';
 
 class MainNavigation extends ConsumerWidget {
   final Widget child;
@@ -24,7 +25,7 @@ class MainNavigation extends ConsumerWidget {
       ),
       body: Stack(
         children: [
-          child,
+          ResponsiveCenter(maxWidth: 800, child: child),
           Positioned(
             right: 16,
             bottom: 12,

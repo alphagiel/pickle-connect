@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/widgets/responsive_center.dart';
 import '../providers/auth_providers.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -99,74 +100,76 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Top section with gradient background
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.primaryGreen, AppColors.darkGreen],
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(32, 60, 32, 40),
-                child: Column(
-                  children: [
-                    // Logo with pickleball paddle
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: AppColors.onPrimary,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
+        child: SingleChildScrollView(
+          child: ResponsiveCenter(
+            maxWidth: 480,
+            child: Column(
+              children: [
+                // Top section with gradient background
+                Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [AppColors.primaryGreen, AppColors.darkGreen],
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(32, 60, 32, 40),
+                    child: Column(
+                      children: [
+                        // Logo with pickleball paddle
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: AppColors.onPrimary,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 20,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.sports_tennis,
-                        size: 50,
-                        color: AppColors.primaryGreen,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
+                          child: const Icon(
+                            Icons.sports_tennis,
+                            size: 50,
+                            color: AppColors.primaryGreen,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
 
-                    // App title
-                    const Text(
-                      'Pickle Connect',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.onPrimary,
-                        letterSpacing: 1.2,
-                      ),
+                        // App title
+                        const Text(
+                          'Pickle Connect',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.onPrimary,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Find your match, play your game',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppColors.onPrimary.withValues(alpha: 0.9),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Find your match, play your game',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: AppColors.onPrimary.withValues(alpha: 0.9),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
 
-            // Login form section
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(32.0),
-                child: Form(
-                  key: _formKey,
-                  child: SingleChildScrollView(
+                // Login form section
+                Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Form(
+                    key: _formKey,
                     child: Column(
                       children: [
                         // Welcome text
@@ -385,9 +388,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

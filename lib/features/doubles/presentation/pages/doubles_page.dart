@@ -378,6 +378,7 @@ class _DoublesProposalsContentState extends ConsumerState<_DoublesProposalsConte
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: AppColors.cardBackground,
       elevation: 1,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),

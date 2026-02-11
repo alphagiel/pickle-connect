@@ -49,7 +49,6 @@ class AuthRepository {
     required String email,
     required String password,
     required String fullName,
-    required String phoneNumber,
     String? invitationCode,
   }) async {
     try {
@@ -74,7 +73,7 @@ class AuthRepository {
         print('User displayName after update: ${credential.user!.displayName}');
 
         // Create user profile in Firestore
-        await _createUserProfile(credential.user!, fullName, email, phoneNumber);
+        await _createUserProfile(credential.user!, fullName, email);
 
         return AuthUser.fromFirebaseUser(credential.user!);
       }
@@ -122,15 +121,44 @@ class AuthRepository {
     await _firebaseAuth.currentUser?.reload();
   }
 
+  // Re-authenticate user with password (required before account deletion)
+  Future<void> reauthenticateWithPassword(String password) async {
+    try {
+      final user = _firebaseAuth.currentUser;
+      if (user == null || user.email == null) {
+        throw AuthException(message: 'No user is currently signed in.', code: 'no-user');
+      }
+      final credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: password,
+      );
+      await user.reauthenticateWithCredential(credential);
+    } on FirebaseAuthException catch (e) {
+      throw AuthException.fromFirebaseAuthException(e);
+    }
+  }
+
+  // Delete the Firebase Auth account
+  Future<void> deleteFirebaseAuthAccount() async {
+    try {
+      final user = _firebaseAuth.currentUser;
+      if (user == null) {
+        throw AuthException(message: 'No user is currently signed in.', code: 'no-user');
+      }
+      await user.delete();
+    } on FirebaseAuthException catch (e) {
+      throw AuthException.fromFirebaseAuthException(e);
+    }
+  }
+
   // Create user profile in Firestore
-  Future<void> _createUserProfile(User user, String fullName, String email, String phoneNumber) async {
+  Future<void> _createUserProfile(User user, String fullName, String email) async {
     try {
       final firestore = FirebaseFirestore.instance;
       final userData = {
         'userId': user.uid,
         'displayName': fullName,
         'email': email,
-        'phoneNumber': phoneNumber,
         'skillLevel': 'Intermediate', // Default skill level
         'location': 'Unknown', // Default location
         'profileImageURL': null,

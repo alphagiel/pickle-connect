@@ -500,6 +500,85 @@ class ProposalsRepository {
     }
   }
 
+  // Cancel all open proposals for a user being deleted
+  Future<void> cancelAllOpenProposalsForUser(String userId) async {
+    // 1. Cancel open/accepted singles proposals where user is creator
+    final createdProposals = await _firestore
+        .collection(_collection)
+        .where('creatorId', isEqualTo: userId)
+        .where('status', whereIn: ['open', 'accepted'])
+        .get();
+
+    for (final doc in createdProposals.docs) {
+      await doc.reference.update({
+        'status': 'canceled',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // 2. Revert accepted proposals where user is acceptor back to open
+    final acceptedAsOpponent = await _firestore
+        .collection(_collection)
+        .where('acceptedBy.userId', isEqualTo: userId)
+        .where('status', isEqualTo: 'accepted')
+        .get();
+
+    for (final doc in acceptedAsOpponent.docs) {
+      await doc.reference.update({
+        'status': 'open',
+        'acceptedBy': null,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // 3. Cancel doubles proposals where user is creator
+    final doublesCreated = await _firestore
+        .collection(_collection)
+        .where('matchType', isEqualTo: 'doubles')
+        .where('creatorId', isEqualTo: userId)
+        .where('status', whereIn: ['open', 'accepted'])
+        .get();
+
+    for (final doc in doublesCreated.docs) {
+      await doc.reference.update({
+        'status': 'canceled',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // 4. Remove user from doubles proposals where user is a participant (not creator)
+    final doublesParticipant = await _firestore
+        .collection(_collection)
+        .where('matchType', isEqualTo: 'doubles')
+        .where('playerIds', arrayContains: userId)
+        .where('status', whereIn: ['open', 'accepted'])
+        .get();
+
+    for (final doc in doublesParticipant.docs) {
+      final data = doc.data();
+      if (data['creatorId'] == userId) continue; // Already handled above
+
+      final players = (data['doublesPlayers'] as List<dynamic>?)
+          ?.map((p) => Map<String, dynamic>.from(p as Map))
+          .toList() ?? [];
+
+      final updatedPlayers = players.where((p) => p['userId'] != userId).toList();
+      final openSlots = (data['openSlots'] as int? ?? 0) + 1;
+
+      await doc.reference.update({
+        'doublesPlayers': updatedPlayers,
+        'playerIds': FieldValue.arrayRemove([userId]),
+        'openSlots': openSlots,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
+  // Anonymize a deleted user in completed/historical proposals
+  Future<void> anonymizeUserInProposals(String userId) async {
+    await updateUserNameInProposals(userId, 'Former Player');
+  }
+
   // Mark proposal as expired
   Future<void> expireProposal(String proposalId) async {
     await _firestore.collection(_collection).doc(proposalId).update({

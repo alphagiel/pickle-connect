@@ -4,7 +4,11 @@ import 'package:go_router/go_router.dart';
 import '../../../../shared/models/user.dart';
 import '../../../../shared/repositories/users_repository.dart';
 import '../../../../shared/repositories/proposals_repository.dart';
+import '../../../../shared/repositories/standings_repository.dart';
+import '../../../../shared/repositories/doubles_standings_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/widgets/responsive_center.dart';
+import '../../../auth/data/repositories/auth_repository.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
@@ -58,14 +62,17 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           _initializeForm(userProfile);
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Profile avatar
-                  Center(
+            child: ResponsiveCenter(
+              maxWidth: 600,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Profile avatar
+                      Center(
                     child: CircleAvatar(
                       radius: 50,
                       backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.1),
@@ -183,33 +190,84 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Save button
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : () => _saveProfile(userProfile),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      disabledBackgroundColor: AppColors.mediumGray,
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : Text(
-                            userProfile == null ? 'Create Profile' : 'Save Changes',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      // Save button
+                      ElevatedButton(
+                        onPressed: _isLoading ? null : () => _saveProfile(userProfile),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryGreen,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          disabledBackgroundColor: AppColors.mediumGray,
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : Text(
+                                userProfile == null ? 'Create Profile' : 'Save Changes',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                      ),
+
+                      const SizedBox(height: 48),
+
+                      // Danger Zone
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.errorRed.withValues(alpha: 0.4)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Danger Zone',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.errorRed,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Permanently delete your account and all associated data. This action cannot be undone.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.secondaryText,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () => _showDeleteAccountDialog(userProfile),
+                                icon: const Icon(Icons.delete_forever),
+                                label: const Text('Delete Account'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.errorRed,
+                                  side: const BorderSide(color: AppColors.errorRed),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           );
@@ -247,6 +305,143 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         ),
       ),
     );
+  }
+
+  void _showDeleteAccountDialog(User? userProfile) {
+    final passwordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete Account'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'This will permanently delete your account, cancel your open proposals, '
+                'and anonymize your name in match history. This cannot be undone.',
+                style: TextStyle(color: AppColors.secondaryText),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Enter your password to confirm',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  prefixIcon: const Icon(Icons.lock_outline),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _deleteAccount(passwordController.text, userProfile);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.errorRed,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteAccount(String password, User? userProfile) async {
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your password.'),
+          backgroundColor: AppColors.errorRed,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final authRepository = ref.read(authRepositoryProvider);
+      final currentUser = ref.read(currentUserProvider);
+
+      if (currentUser == null) {
+        throw Exception('No user signed in.');
+      }
+
+      final userId = currentUser.id;
+      final bracket = userProfile?.skillBracket ?? userProfile?.skillLevel.bracket;
+
+      // Step 1: Re-authenticate
+      await authRepository.reauthenticateWithPassword(password);
+
+      // Step 2: Cancel open proposals
+      final proposalsRepository = ref.read(proposalsRepositoryProvider);
+      await proposalsRepository.cancelAllOpenProposalsForUser(userId);
+
+      // Step 3: Anonymize in completed proposals
+      await proposalsRepository.anonymizeUserInProposals(userId);
+
+      // Step 4: Anonymize in standings
+      if (bracket != null) {
+        final standingsRepository = ref.read(standingsRepositoryProvider);
+        final doublesStandingsRepository = ref.read(doublesStandingsRepositoryProvider);
+        await standingsRepository.anonymizeUserInStandings(userId, bracket);
+        await doublesStandingsRepository.anonymizeUserInStandings(userId, bracket);
+      }
+
+      // Step 5: Delete Firestore user profile
+      final usersRepository = ref.read(usersRepositoryProvider);
+      await usersRepository.deleteUser(userId);
+
+      // Step 6: Delete Firebase Auth account (last — once done, user loses access)
+      await authRepository.deleteFirebaseAuthAccount();
+
+      // Step 7: Navigate to login
+      if (mounted) {
+        context.go('/login');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Your account has been deleted.'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+      }
+    } on AuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Authentication failed: ${e.message}'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete account: $e'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _saveProfile(User? currentProfile) async {

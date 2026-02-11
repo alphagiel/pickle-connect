@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/widgets/responsive_center.dart';
 import '../../../../shared/models/user.dart';
 import '../../../../shared/repositories/users_repository.dart';
 import '../providers/auth_providers.dart';
@@ -19,7 +20,6 @@ class _SignupPageState extends ConsumerState<SignupPage> {
   final _invitationCodeController = TextEditingController();
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   SkillLevel? _selectedSkillLevel;
@@ -32,7 +32,6 @@ class _SignupPageState extends ConsumerState<SignupPage> {
     _invitationCodeController.dispose();
     _fullNameController.dispose();
     _emailController.dispose();
-    _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -55,7 +54,6 @@ class _SignupPageState extends ConsumerState<SignupPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         fullName: _fullNameController.text.trim(),
-        phoneNumber: _phoneController.text.trim(),
         invitationCode: _invitationCodeController.text.trim().isNotEmpty
             ? _invitationCodeController.text.trim()
             : null,
@@ -120,8 +118,10 @@ class _SignupPageState extends ConsumerState<SignupPage> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
+          child: ResponsiveCenter(
+            maxWidth: 480,
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
             child: Form(
               key: _formKey,
               child: Column(
@@ -209,29 +209,6 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                               }
                               if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
                                 return 'Please enter a valid email';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-
-                          TextFormField(
-                            controller: _phoneController,
-                            keyboardType: TextInputType.phone,
-                            decoration: InputDecoration(
-                              labelText: 'Phone Number *',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
-                              ),
-                              prefixIcon: Icon(Icons.phone),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter your phone number';
                               }
                               return null;
                             },
@@ -427,6 +404,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 ],
               ),
             ),
+          ),
           ),
         ),
       ),

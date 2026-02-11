@@ -80,7 +80,6 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthUser?>> {
     required String email,
     required String password,
     required String fullName,
-    required String phoneNumber,
     String? invitationCode,
   }) async {
     try {
@@ -93,7 +92,6 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthUser?>> {
         email: email,
         password: password,
         fullName: fullName,
-        phoneNumber: phoneNumber,
         invitationCode: invitationCode,
       );
 

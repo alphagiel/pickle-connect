@@ -7,6 +7,7 @@ import '../../../../shared/providers/proposals_providers.dart';
 import '../../../../shared/repositories/users_repository.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/widgets/responsive_center.dart';
 
 // TODO: Set to false for production - allows creating proposals for current/past times
 const bool kAllowPastProposals = true;
@@ -124,15 +125,17 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
         ),
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Container(
+        child: ResponsiveCenter(
+          maxWidth: 600,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -316,6 +319,7 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
                 const SizedBox(height: 20),
               ],
             ),
+          ),
           ),
         ),
       ),

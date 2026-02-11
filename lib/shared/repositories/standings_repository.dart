@@ -94,6 +94,20 @@ class StandingsRepository {
         .delete();
   }
 
+  // Anonymize a deleted user's name in standings (preserves ladder history)
+  Future<void> anonymizeUserInStandings(String userId, SkillBracket bracket) async {
+    final doc = _firestore
+        .collection(_collection)
+        .doc(bracket.jsonValue)
+        .collection('players')
+        .doc(userId);
+
+    final snapshot = await doc.get();
+    if (snapshot.exists) {
+      await doc.update({'displayName': 'Former Player'});
+    }
+  }
+
   // Get user's rank in their skill bracket
   Future<int> getUserRank(String userId, SkillBracket bracket) async {
     final standings = await getStandingsForBracket(bracket).first;
