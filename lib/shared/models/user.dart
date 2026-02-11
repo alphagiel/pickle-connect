@@ -13,6 +13,7 @@ class EmailNotificationPreferences with _$EmailNotificationPreferences {
     @Default(true) bool proposalAccepted,
     @Default(true) bool proposalUnaccepted,
     @Default(true) bool matchResults,
+    @Default(true) bool doublesUpdates,
   }) = _EmailNotificationPreferences;
 
   factory EmailNotificationPreferences.fromJson(Map<String, dynamic> json) =>

@@ -1,7 +1,16 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { getEmailService } from "../services/email";
-import { newProposalEmail, newProposalEmailSubject, proposalLiveConfirmationEmail, proposalLiveConfirmationEmailSubject } from "../templates";
+import {
+  newProposalEmail,
+  newProposalEmailSubject,
+  proposalLiveConfirmationEmail,
+  proposalLiveConfirmationEmailSubject,
+  doublesNewProposalEmail,
+  doublesNewProposalEmailSubject,
+  doublesPartnerInviteEmail,
+  doublesPartnerInviteEmailSubject,
+} from "../templates";
 import { getProposalUrl, getPreferencesUrl, formatDateTime } from "../config";
 
 /**
@@ -24,6 +33,7 @@ export const onProposalCreated = functions.firestore
 
     const db = admin.firestore();
     const emailService = getEmailService(process.env.SENDGRID_API_KEY);
+    const isDoubles = proposalData.matchType === "doubles";
 
     // Query users with the same skill level (except the creator)
     const usersSnapshot = await db
@@ -40,14 +50,31 @@ export const onProposalCreated = functions.firestore
       ? proposalData.dateTime.toDate()
       : new Date(proposalData.dateTime);
 
+    // Build a set of player IDs already in the doubles lobby (creator + invited partners)
+    const doublesPlayerIds = new Set<string>();
+    if (isDoubles) {
+      doublesPlayerIds.add(proposalData.creatorId);
+      const doublesPlayers: Array<{ userId: string; status: string; displayName?: string }> =
+        proposalData.doublesPlayers || [];
+      for (const p of doublesPlayers) {
+        doublesPlayerIds.add(p.userId);
+      }
+    }
+
     let emailsSent = 0;
     let emailsSkipped = 0;
 
+    // Event #1 (doubles) or existing singles broadcast
     for (const userDoc of usersSnapshot.docs) {
       const userData = userDoc.data();
 
       // Skip the creator
       if (userDoc.id === proposalData.creatorId) {
+        continue;
+      }
+
+      // For doubles, also skip players already in the lobby (invited partners)
+      if (isDoubles && doublesPlayerIds.has(userDoc.id)) {
         continue;
       }
 
@@ -64,30 +91,100 @@ export const onProposalCreated = functions.firestore
         continue;
       }
 
-      const html = newProposalEmail({
-        recipientName: userData.displayName || "Pickleballer",
-        creatorName: proposalData.creatorName,
-        skillLevel: proposalData.skillLevel,
-        location: proposalData.location,
-        dateTime: formatDateTime(proposalDateTime),
-        proposalUrl: getProposalUrl(proposalId),
-        preferencesUrl: getPreferencesUrl(userDoc.id),
-      });
+      if (isDoubles) {
+        // Event #1: Doubles new proposal broadcast
+        const html = doublesNewProposalEmail({
+          recipientName: userData.displayName || "Pickleballer",
+          creatorName: proposalData.creatorName || "A player",
+          skillLevel: proposalData.skillLevel,
+          location: proposalData.location,
+          dateTime: formatDateTime(proposalDateTime),
+          proposalUrl: getProposalUrl(proposalId),
+          preferencesUrl: getPreferencesUrl(userDoc.id),
+        });
 
-      const result = await emailService.send({
-        to: userData.email,
-        subject: newProposalEmailSubject(proposalData.creatorName),
-        html,
-      });
+        const result = await emailService.send({
+          to: userData.email,
+          subject: doublesNewProposalEmailSubject(proposalData.creatorName || "A player"),
+          html,
+        });
 
-      if (result.success) {
-        emailsSent++;
+        if (result.success) {
+          emailsSent++;
+        } else {
+          console.error(`[onProposalCreated] Failed to send doubles proposal to ${userData.email}: ${result.error}`);
+        }
       } else {
-        console.error(`[onProposalCreated] Failed to send to ${userData.email}: ${result.error}`);
+        // Singles new proposal broadcast (existing logic)
+        const html = newProposalEmail({
+          recipientName: userData.displayName || "Pickleballer",
+          creatorName: proposalData.creatorName,
+          skillLevel: proposalData.skillLevel,
+          location: proposalData.location,
+          dateTime: formatDateTime(proposalDateTime),
+          proposalUrl: getProposalUrl(proposalId),
+          preferencesUrl: getPreferencesUrl(userDoc.id),
+        });
+
+        const result = await emailService.send({
+          to: userData.email,
+          subject: newProposalEmailSubject(proposalData.creatorName),
+          html,
+        });
+
+        if (result.success) {
+          emailsSent++;
+        } else {
+          console.error(`[onProposalCreated] Failed to send to ${userData.email}: ${result.error}`);
+        }
       }
     }
 
-    console.log(`[onProposalCreated] Sent ${emailsSent} emails, skipped ${emailsSkipped}`);
+    console.log(`[onProposalCreated] Sent ${emailsSent} broadcast emails, skipped ${emailsSkipped}`);
+
+    // Event #2: Send partner invite emails for any doubles players with status "invited"
+    if (isDoubles) {
+      const doublesPlayers: Array<{ userId: string; status: string; displayName?: string }> =
+        proposalData.doublesPlayers || [];
+      const invitedPlayers = doublesPlayers.filter((p) => p.status === "invited");
+
+      for (const invited of invitedPlayers) {
+        const invitedDoc = await db.collection("users").doc(invited.userId).get();
+        if (!invitedDoc.exists) {
+          console.log(`[onProposalCreated] Invited partner ${invited.userId} not found`);
+          continue;
+        }
+
+        const invitedData = invitedDoc.data()!;
+        const emailPrefs = invitedData.emailNotifications;
+        if (!invitedData.email || (emailPrefs && emailPrefs.doublesUpdates === false)) {
+          console.log(`[onProposalCreated] Invited partner has no email or doubles emails disabled`);
+          continue;
+        }
+
+        const html = doublesPartnerInviteEmail({
+          recipientName: invitedData.displayName || "Pickleballer",
+          inviterName: proposalData.creatorName || "A player",
+          skillLevel: proposalData.skillLevel,
+          location: proposalData.location,
+          dateTime: formatDateTime(proposalDateTime),
+          proposalUrl: getProposalUrl(proposalId),
+          preferencesUrl: getPreferencesUrl(invited.userId),
+        });
+
+        const result = await emailService.send({
+          to: invitedData.email,
+          subject: doublesPartnerInviteEmailSubject(proposalData.creatorName || "A player"),
+          html,
+        });
+
+        if (result.success) {
+          console.log(`[onProposalCreated] Partner invite email sent to ${invitedData.email}`);
+        } else {
+          console.error(`[onProposalCreated] Failed to send partner invite to ${invitedData.email}: ${result.error}`);
+        }
+      }
+    }
 
     // Send confirmation email to the proposal creator
     const creatorDoc = await db.collection("users").doc(proposalData.creatorId).get();

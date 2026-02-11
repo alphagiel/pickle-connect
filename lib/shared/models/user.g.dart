@@ -14,6 +14,7 @@ _$EmailNotificationPreferencesImpl _$$EmailNotificationPreferencesImplFromJson(
       proposalAccepted: json['proposalAccepted'] as bool? ?? true,
       proposalUnaccepted: json['proposalUnaccepted'] as bool? ?? true,
       matchResults: json['matchResults'] as bool? ?? true,
+      doublesUpdates: json['doublesUpdates'] as bool? ?? true,
     );
 
 Map<String, dynamic> _$$EmailNotificationPreferencesImplToJson(
@@ -24,6 +25,7 @@ Map<String, dynamic> _$$EmailNotificationPreferencesImplToJson(
       'proposalAccepted': instance.proposalAccepted,
       'proposalUnaccepted': instance.proposalUnaccepted,
       'matchResults': instance.matchResults,
+      'doublesUpdates': instance.doublesUpdates,
     };
 
 _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(

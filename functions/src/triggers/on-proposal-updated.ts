@@ -16,6 +16,24 @@ import {
   matchResultEmailSubject,
   doublesMatchResultEmail,
   doublesMatchResultEmailSubject,
+  doublesPartnerInviteEmail,
+  doublesPartnerInviteEmailSubject,
+  doublesJoinRequestEmail,
+  doublesJoinRequestEmailSubject,
+  doublesPartnerConfirmedEmail,
+  doublesPartnerConfirmedEmailSubject,
+  doublesPlayerApprovedEmail,
+  doublesPlayerApprovedEmailSubject,
+  doublesLobbyFullEmail,
+  doublesLobbyFullEmailSubject,
+  doublesPlayerDeclinedEmail,
+  doublesPlayerDeclinedEmailSubject,
+  doublesPlayerLeftEmail,
+  doublesPlayerLeftEmailSubject,
+  doublesProposalCancelledEmail,
+  doublesProposalCancelledEmailSubject,
+  doublesScoresConfirmedEmail,
+  doublesScoresConfirmedEmailSubject,
 } from "../templates";
 import { getProposalUrl, getPreferencesUrl, formatDateTime } from "../config";
 
@@ -85,8 +103,8 @@ export const onProposalUpdated = functions.firestore
       );
     }
 
-    // Handle proposal cancelled/deleted (status changed to cancelled)
-    if (statusChanged && afterData.status === "cancelled") {
+    // Handle proposal cancelled/deleted (status changed to canceled) — singles only
+    if (statusChanged && afterData.status === "canceled" && !isDoubles) {
       await handleProposalCancelled(
         db,
         emailService,
@@ -113,6 +131,18 @@ export const onProposalUpdated = functions.firestore
           afterData
         );
       }
+    }
+
+    // Handle doubles lifecycle changes (player array diffs, cancellation, score confirmation)
+    if (isDoubles) {
+      await handleDoublesLifecycleChanges(
+        db,
+        emailService,
+        proposalId,
+        beforeData,
+        afterData,
+        statusChanged
+      );
     }
   });
 
@@ -638,6 +668,612 @@ async function handleDoublesMatchResultRecorded(
   }
 
   console.log(`[onProposalUpdated] Doubles standings updated for all 4 players`);
+}
+
+// --- Doubles lifecycle diff & dispatch ---
+
+interface DoublesPlayersDiff {
+  added: DoublesPlayer[];
+  removed: DoublesPlayer[]; // from BEFORE data (preserves old status)
+  statusChanged: Array<{ before: DoublesPlayer; after: DoublesPlayer }>;
+}
+
+function diffDoublesPlayers(
+  before: DoublesPlayer[],
+  after: DoublesPlayer[]
+): DoublesPlayersDiff {
+  const beforeMap = new Map<string, DoublesPlayer>();
+  for (const p of before) {
+    beforeMap.set(p.userId, p);
+  }
+
+  const afterMap = new Map<string, DoublesPlayer>();
+  for (const p of after) {
+    afterMap.set(p.userId, p);
+  }
+
+  const added: DoublesPlayer[] = [];
+  const removed: DoublesPlayer[] = [];
+  const statusChanged: Array<{ before: DoublesPlayer; after: DoublesPlayer }> = [];
+
+  // Players in after but not in before → added
+  for (const [userId, afterPlayer] of afterMap) {
+    const beforePlayer = beforeMap.get(userId);
+    if (!beforePlayer) {
+      added.push(afterPlayer);
+    } else if (beforePlayer.status !== afterPlayer.status) {
+      statusChanged.push({ before: beforePlayer, after: afterPlayer });
+    }
+  }
+
+  // Players in before but not in after → removed
+  for (const [userId, beforePlayer] of beforeMap) {
+    if (!afterMap.has(userId)) {
+      removed.push(beforePlayer);
+    }
+  }
+
+  return { added, removed, statusChanged };
+}
+
+async function handleDoublesLifecycleChanges(
+  db: admin.firestore.Firestore,
+  emailService: ReturnType<typeof getEmailService>,
+  proposalId: string,
+  beforeData: admin.firestore.DocumentData,
+  afterData: admin.firestore.DocumentData,
+  statusChanged: boolean
+): Promise<void> {
+  const beforePlayers: DoublesPlayer[] = beforeData.doublesPlayers || [];
+  const afterPlayers: DoublesPlayer[] = afterData.doublesPlayers || [];
+
+  const diff = diffDoublesPlayers(beforePlayers, afterPlayers);
+
+  const proposalDateTime = afterData.dateTime?.toDate
+    ? afterData.dateTime.toDate()
+    : new Date(afterData.dateTime);
+
+  // Event #9: Doubles proposal canceled
+  if (statusChanged && afterData.status === "canceled") {
+    await sendDoublesCancelledEmails(
+      db, emailService, proposalId, afterData, afterPlayers, proposalDateTime
+    );
+  }
+
+  // Process added players
+  for (const player of diff.added) {
+    if (player.status === "requested") {
+      // Event #4: Join request → notify creator
+      await sendJoinRequestEmail(
+        db, emailService, proposalId, afterData, player, proposalDateTime
+      );
+    } else if (player.status === "invited") {
+      // Event #2: Partner invite → notify invited player
+      await sendPartnerInviteEmail(
+        db, emailService, proposalId, afterData, player, proposalDateTime
+      );
+    }
+  }
+
+  // Process status changes
+  for (const { before, after } of diff.statusChanged) {
+    if (before.status === "invited" && after.status === "confirmed") {
+      // Event #3: Partner confirmed → notify creator
+      await sendPartnerConfirmedEmail(
+        db, emailService, proposalId, afterData, after, proposalDateTime
+      );
+    } else if (before.status === "requested" && after.status === "confirmed") {
+      // Event #5: Player approved → notify approved player
+      await sendPlayerApprovedEmail(
+        db, emailService, proposalId, afterData, after, proposalDateTime
+      );
+    }
+  }
+
+  // Event #6: Lobby full — guard: before <4 confirmed, after >=4 confirmed
+  const beforeConfirmedCount = beforePlayers.filter((p) => p.status === "confirmed").length;
+  const afterConfirmedCount = afterPlayers.filter((p) => p.status === "confirmed").length;
+  if (beforeConfirmedCount < 4 && afterConfirmedCount >= 4) {
+    await sendLobbyFullEmails(
+      db, emailService, proposalId, afterData, afterPlayers, proposalDateTime
+    );
+  }
+
+  // Process removed players
+  for (const player of diff.removed) {
+    if (player.status === "requested") {
+      // Event #7: Player declined → notify declined player
+      await sendPlayerDeclinedEmail(
+        db, emailService, proposalId, afterData, player, proposalDateTime
+      );
+    } else if (player.status === "confirmed") {
+      // Event #8: Player left → notify creator
+      await sendPlayerLeftEmail(
+        db, emailService, proposalId, afterData, player, proposalDateTime
+      );
+    }
+  }
+
+  // Event #11: Scores confirmed — scoreConfirmedBy array grew
+  const beforeConfirmedBy: string[] = beforeData.scoreConfirmedBy || [];
+  const afterConfirmedBy: string[] = afterData.scoreConfirmedBy || [];
+  if (afterConfirmedBy.length > beforeConfirmedBy.length) {
+    const newConfirmers = afterConfirmedBy.filter((id: string) => !beforeConfirmedBy.includes(id));
+    for (const confirmerId of newConfirmers) {
+      await sendScoresConfirmedEmails(
+        db, emailService, proposalId, afterData, afterPlayers, confirmerId, proposalDateTime
+      );
+    }
+  }
+}
+
+// Event #2: Partner invite (on update — when a partner is added with status "invited")
+async function sendPartnerInviteEmail(
+  db: admin.firestore.Firestore,
+  emailService: ReturnType<typeof getEmailService>,
+  proposalId: string,
+  proposalData: admin.firestore.DocumentData,
+  invitedPlayer: DoublesPlayer,
+  proposalDateTime: Date
+): Promise<void> {
+  const userDoc = await db.collection("users").doc(invitedPlayer.userId).get();
+  if (!userDoc.exists) {
+    console.log(`[onProposalUpdated] Invited partner ${invitedPlayer.userId} not found`);
+    return;
+  }
+
+  const userData = userDoc.data()!;
+  const emailPrefs = userData.emailNotifications;
+  if (!userData.email || (emailPrefs && emailPrefs.doublesUpdates === false)) {
+    console.log(`[onProposalUpdated] Invited partner has no email or doubles emails disabled`);
+    return;
+  }
+
+  const html = doublesPartnerInviteEmail({
+    recipientName: userData.displayName || "Pickleballer",
+    inviterName: proposalData.creatorName || "A player",
+    skillLevel: proposalData.skillLevel,
+    location: proposalData.location,
+    dateTime: formatDateTime(proposalDateTime),
+    proposalUrl: getProposalUrl(proposalId),
+    preferencesUrl: getPreferencesUrl(invitedPlayer.userId),
+  });
+
+  const result = await emailService.send({
+    to: userData.email,
+    subject: doublesPartnerInviteEmailSubject(proposalData.creatorName || "A player"),
+    html,
+  });
+
+  if (result.success) {
+    console.log(`[onProposalUpdated] Partner invite email sent to ${userData.email}`);
+  } else {
+    console.error(`[onProposalUpdated] Failed to send partner invite email: ${result.error}`);
+  }
+}
+
+// Event #3: Partner confirmed → notify creator
+async function sendPartnerConfirmedEmail(
+  db: admin.firestore.Firestore,
+  emailService: ReturnType<typeof getEmailService>,
+  proposalId: string,
+  proposalData: admin.firestore.DocumentData,
+  confirmedPlayer: DoublesPlayer,
+  proposalDateTime: Date
+): Promise<void> {
+  const creatorDoc = await db.collection("users").doc(proposalData.creatorId).get();
+  if (!creatorDoc.exists) {
+    console.log(`[onProposalUpdated] Creator ${proposalData.creatorId} not found`);
+    return;
+  }
+
+  const creatorData = creatorDoc.data()!;
+  const emailPrefs = creatorData.emailNotifications;
+  if (!creatorData.email || (emailPrefs && emailPrefs.doublesUpdates === false)) {
+    console.log(`[onProposalUpdated] Creator has no email or doubles emails disabled`);
+    return;
+  }
+
+  const html = doublesPartnerConfirmedEmail({
+    recipientName: creatorData.displayName || "Pickleballer",
+    partnerName: confirmedPlayer.displayName || "A player",
+    skillLevel: proposalData.skillLevel,
+    location: proposalData.location,
+    dateTime: formatDateTime(proposalDateTime),
+    proposalUrl: getProposalUrl(proposalId),
+    preferencesUrl: getPreferencesUrl(proposalData.creatorId),
+  });
+
+  const result = await emailService.send({
+    to: creatorData.email,
+    subject: doublesPartnerConfirmedEmailSubject(confirmedPlayer.displayName || "A player"),
+    html,
+  });
+
+  if (result.success) {
+    console.log(`[onProposalUpdated] Partner confirmed email sent to creator ${creatorData.email}`);
+  } else {
+    console.error(`[onProposalUpdated] Failed to send partner confirmed email: ${result.error}`);
+  }
+}
+
+// Event #4: Join request → notify creator
+async function sendJoinRequestEmail(
+  db: admin.firestore.Firestore,
+  emailService: ReturnType<typeof getEmailService>,
+  proposalId: string,
+  proposalData: admin.firestore.DocumentData,
+  requester: DoublesPlayer,
+  proposalDateTime: Date
+): Promise<void> {
+  const creatorDoc = await db.collection("users").doc(proposalData.creatorId).get();
+  if (!creatorDoc.exists) {
+    console.log(`[onProposalUpdated] Creator ${proposalData.creatorId} not found`);
+    return;
+  }
+
+  const creatorData = creatorDoc.data()!;
+  const emailPrefs = creatorData.emailNotifications;
+  if (!creatorData.email || (emailPrefs && emailPrefs.doublesUpdates === false)) {
+    console.log(`[onProposalUpdated] Creator has no email or doubles emails disabled`);
+    return;
+  }
+
+  // Fetch requester's user doc for their skill level
+  const requesterDoc = await db.collection("users").doc(requester.userId).get();
+  const requesterSkillLevel = requesterDoc.exists
+    ? requesterDoc.data()!.skillLevel || proposalData.skillLevel
+    : proposalData.skillLevel;
+
+  const html = doublesJoinRequestEmail({
+    recipientName: creatorData.displayName || "Pickleballer",
+    requesterName: requester.displayName || "A player",
+    requesterSkillLevel,
+    location: proposalData.location,
+    dateTime: formatDateTime(proposalDateTime),
+    proposalUrl: getProposalUrl(proposalId),
+    preferencesUrl: getPreferencesUrl(proposalData.creatorId),
+  });
+
+  const result = await emailService.send({
+    to: creatorData.email,
+    subject: doublesJoinRequestEmailSubject(requester.displayName || "A player"),
+    html,
+  });
+
+  if (result.success) {
+    console.log(`[onProposalUpdated] Join request email sent to creator ${creatorData.email}`);
+  } else {
+    console.error(`[onProposalUpdated] Failed to send join request email: ${result.error}`);
+  }
+}
+
+// Event #5: Player approved → notify approved player
+async function sendPlayerApprovedEmail(
+  db: admin.firestore.Firestore,
+  emailService: ReturnType<typeof getEmailService>,
+  proposalId: string,
+  proposalData: admin.firestore.DocumentData,
+  approvedPlayer: DoublesPlayer,
+  proposalDateTime: Date
+): Promise<void> {
+  const userDoc = await db.collection("users").doc(approvedPlayer.userId).get();
+  if (!userDoc.exists) {
+    console.log(`[onProposalUpdated] Approved player ${approvedPlayer.userId} not found`);
+    return;
+  }
+
+  const userData = userDoc.data()!;
+  const emailPrefs = userData.emailNotifications;
+  if (!userData.email || (emailPrefs && emailPrefs.doublesUpdates === false)) {
+    console.log(`[onProposalUpdated] Approved player has no email or doubles emails disabled`);
+    return;
+  }
+
+  const html = doublesPlayerApprovedEmail({
+    recipientName: userData.displayName || "Pickleballer",
+    creatorName: proposalData.creatorName || "A player",
+    skillLevel: proposalData.skillLevel,
+    location: proposalData.location,
+    dateTime: formatDateTime(proposalDateTime),
+    proposalUrl: getProposalUrl(proposalId),
+    preferencesUrl: getPreferencesUrl(approvedPlayer.userId),
+  });
+
+  const result = await emailService.send({
+    to: userData.email,
+    subject: doublesPlayerApprovedEmailSubject(proposalData.creatorName || "A player"),
+    html,
+  });
+
+  if (result.success) {
+    console.log(`[onProposalUpdated] Player approved email sent to ${userData.email}`);
+  } else {
+    console.error(`[onProposalUpdated] Failed to send player approved email: ${result.error}`);
+  }
+}
+
+// Event #6: Lobby full → notify all 4 confirmed players
+async function sendLobbyFullEmails(
+  db: admin.firestore.Firestore,
+  emailService: ReturnType<typeof getEmailService>,
+  proposalId: string,
+  proposalData: admin.firestore.DocumentData,
+  doublesPlayers: DoublesPlayer[],
+  proposalDateTime: Date
+): Promise<void> {
+  const confirmedPlayers = doublesPlayers.filter((p) => p.status === "confirmed");
+  if (confirmedPlayers.length < 4) return;
+
+  const team1 = confirmedPlayers.filter((p) => p.team === 1);
+  const team2 = confirmedPlayers.filter((p) => p.team === 2);
+
+  const playerDocs = await Promise.all(
+    confirmedPlayers.map((p) => db.collection("users").doc(p.userId).get())
+  );
+
+  for (let i = 0; i < confirmedPlayers.length; i++) {
+    const player = confirmedPlayers[i];
+    const playerDoc = playerDocs[i];
+
+    if (!playerDoc.exists) continue;
+
+    const playerData = playerDoc.data()!;
+    const emailPrefs = playerData.emailNotifications;
+    if (!playerData.email || (emailPrefs && emailPrefs.doublesUpdates === false)) {
+      continue;
+    }
+
+    const html = doublesLobbyFullEmail({
+      recipientName: playerData.displayName || "Pickleballer",
+      team1Player1: team1[0]?.displayName || "A player",
+      team1Player2: team1[1]?.displayName || "A player",
+      team2Player1: team2[0]?.displayName || "A player",
+      team2Player2: team2[1]?.displayName || "A player",
+      skillLevel: proposalData.skillLevel,
+      location: proposalData.location,
+      dateTime: formatDateTime(proposalDateTime),
+      proposalUrl: getProposalUrl(proposalId),
+      preferencesUrl: getPreferencesUrl(player.userId),
+    });
+
+    const result = await emailService.send({
+      to: playerData.email,
+      subject: doublesLobbyFullEmailSubject(),
+      html,
+    });
+
+    if (result.success) {
+      console.log(`[onProposalUpdated] Lobby full email sent to ${playerData.email}`);
+    } else {
+      console.error(`[onProposalUpdated] Failed to send lobby full email: ${result.error}`);
+    }
+  }
+}
+
+// Event #7: Player declined → notify declined player
+async function sendPlayerDeclinedEmail(
+  db: admin.firestore.Firestore,
+  emailService: ReturnType<typeof getEmailService>,
+  proposalId: string,
+  proposalData: admin.firestore.DocumentData,
+  declinedPlayer: DoublesPlayer,
+  proposalDateTime: Date
+): Promise<void> {
+  const userDoc = await db.collection("users").doc(declinedPlayer.userId).get();
+  if (!userDoc.exists) {
+    console.log(`[onProposalUpdated] Declined player ${declinedPlayer.userId} not found`);
+    return;
+  }
+
+  const userData = userDoc.data()!;
+  const emailPrefs = userData.emailNotifications;
+  if (!userData.email || (emailPrefs && emailPrefs.doublesUpdates === false)) {
+    console.log(`[onProposalUpdated] Declined player has no email or doubles emails disabled`);
+    return;
+  }
+
+  const html = doublesPlayerDeclinedEmail({
+    recipientName: userData.displayName || "Pickleballer",
+    creatorName: proposalData.creatorName || "A player",
+    skillLevel: proposalData.skillLevel,
+    location: proposalData.location,
+    dateTime: formatDateTime(proposalDateTime),
+    preferencesUrl: getPreferencesUrl(declinedPlayer.userId),
+  });
+
+  const result = await emailService.send({
+    to: userData.email,
+    subject: doublesPlayerDeclinedEmailSubject(),
+    html,
+  });
+
+  if (result.success) {
+    console.log(`[onProposalUpdated] Player declined email sent to ${userData.email}`);
+  } else {
+    console.error(`[onProposalUpdated] Failed to send player declined email: ${result.error}`);
+  }
+}
+
+// Event #8: Player left → notify creator
+async function sendPlayerLeftEmail(
+  db: admin.firestore.Firestore,
+  emailService: ReturnType<typeof getEmailService>,
+  proposalId: string,
+  proposalData: admin.firestore.DocumentData,
+  leftPlayer: DoublesPlayer,
+  proposalDateTime: Date
+): Promise<void> {
+  const creatorDoc = await db.collection("users").doc(proposalData.creatorId).get();
+  if (!creatorDoc.exists) {
+    console.log(`[onProposalUpdated] Creator ${proposalData.creatorId} not found`);
+    return;
+  }
+
+  const creatorData = creatorDoc.data()!;
+  const emailPrefs = creatorData.emailNotifications;
+  if (!creatorData.email || (emailPrefs && emailPrefs.doublesUpdates === false)) {
+    console.log(`[onProposalUpdated] Creator has no email or doubles emails disabled`);
+    return;
+  }
+
+  const html = doublesPlayerLeftEmail({
+    recipientName: creatorData.displayName || "Pickleballer",
+    playerName: leftPlayer.displayName || "A player",
+    skillLevel: proposalData.skillLevel,
+    location: proposalData.location,
+    dateTime: formatDateTime(proposalDateTime),
+    proposalUrl: getProposalUrl(proposalId),
+    preferencesUrl: getPreferencesUrl(proposalData.creatorId),
+  });
+
+  const result = await emailService.send({
+    to: creatorData.email,
+    subject: doublesPlayerLeftEmailSubject(leftPlayer.displayName || "A player"),
+    html,
+  });
+
+  if (result.success) {
+    console.log(`[onProposalUpdated] Player left email sent to creator ${creatorData.email}`);
+  } else {
+    console.error(`[onProposalUpdated] Failed to send player left email: ${result.error}`);
+  }
+}
+
+// Event #9: Doubles proposal canceled → notify all lobby players (not creator)
+async function sendDoublesCancelledEmails(
+  db: admin.firestore.Firestore,
+  emailService: ReturnType<typeof getEmailService>,
+  proposalId: string,
+  proposalData: admin.firestore.DocumentData,
+  doublesPlayers: DoublesPlayer[],
+  proposalDateTime: Date
+): Promise<void> {
+  console.log(`[onProposalUpdated] Doubles proposal ${proposalId} was canceled`);
+
+  // Send deletion confirmation to creator (reuse existing singles template)
+  const creatorDoc = await db.collection("users").doc(proposalData.creatorId).get();
+  if (creatorDoc.exists) {
+    const creatorData = creatorDoc.data()!;
+    const emailPrefs = creatorData.emailNotifications;
+    if (creatorData.email && (!emailPrefs || emailPrefs.proposalCancelled !== false)) {
+      const html = proposalDeletedConfirmationEmail({
+        recipientName: creatorData.displayName || "Pickleballer",
+        skillLevel: proposalData.skillLevel,
+        location: proposalData.location,
+        dateTime: formatDateTime(proposalDateTime),
+        preferencesUrl: getPreferencesUrl(proposalData.creatorId),
+      });
+
+      const result = await emailService.send({
+        to: creatorData.email,
+        subject: proposalDeletedConfirmationEmailSubject(),
+        html,
+      });
+
+      if (result.success) {
+        console.log(`[onProposalUpdated] Doubles cancel confirmation sent to creator ${creatorData.email}`);
+      } else {
+        console.error(`[onProposalUpdated] Failed to send doubles cancel confirmation: ${result.error}`);
+      }
+    }
+  }
+
+  // Notify all lobby players (exclude creator)
+  const lobbyPlayers = doublesPlayers.filter((p) => p.userId !== proposalData.creatorId);
+
+  for (const player of lobbyPlayers) {
+    const userDoc = await db.collection("users").doc(player.userId).get();
+    if (!userDoc.exists) continue;
+
+    const userData = userDoc.data()!;
+    const emailPrefs = userData.emailNotifications;
+    if (!userData.email || (emailPrefs && emailPrefs.doublesUpdates === false)) {
+      continue;
+    }
+
+    const html = doublesProposalCancelledEmail({
+      recipientName: userData.displayName || "Pickleballer",
+      creatorName: proposalData.creatorName || "A player",
+      skillLevel: proposalData.skillLevel,
+      location: proposalData.location,
+      dateTime: formatDateTime(proposalDateTime),
+      preferencesUrl: getPreferencesUrl(player.userId),
+    });
+
+    const result = await emailService.send({
+      to: userData.email,
+      subject: doublesProposalCancelledEmailSubject(proposalData.creatorName || "A player"),
+      html,
+    });
+
+    if (result.success) {
+      console.log(`[onProposalUpdated] Doubles cancelled email sent to ${userData.email}`);
+    } else {
+      console.error(`[onProposalUpdated] Failed to send doubles cancelled email: ${result.error}`);
+    }
+  }
+}
+
+// Event #11: Scores confirmed → notify other team players
+async function sendScoresConfirmedEmails(
+  db: admin.firestore.Firestore,
+  emailService: ReturnType<typeof getEmailService>,
+  proposalId: string,
+  proposalData: admin.firestore.DocumentData,
+  doublesPlayers: DoublesPlayer[],
+  confirmerId: string,
+  proposalDateTime: Date
+): Promise<void> {
+  const confirmedPlayers = doublesPlayers.filter((p) => p.status === "confirmed");
+  const confirmer = confirmedPlayers.find((p) => p.userId === confirmerId);
+  if (!confirmer) {
+    console.log(`[onProposalUpdated] Confirmer ${confirmerId} not found in confirmed players`);
+    return;
+  }
+
+  // Only email players on the OTHER team from the confirmer
+  const otherTeamPlayers = confirmedPlayers.filter(
+    (p) => p.team !== confirmer.team
+  );
+
+  // Fetch confirmer's display name from user doc for accuracy
+  const confirmerDoc = await db.collection("users").doc(confirmerId).get();
+  const confirmerName = confirmerDoc.exists
+    ? confirmerDoc.data()!.displayName || confirmer.displayName || "A player"
+    : confirmer.displayName || "A player";
+
+  for (const player of otherTeamPlayers) {
+    const userDoc = await db.collection("users").doc(player.userId).get();
+    if (!userDoc.exists) continue;
+
+    const userData = userDoc.data()!;
+    const emailPrefs = userData.emailNotifications;
+    if (!userData.email || (emailPrefs && emailPrefs.doublesUpdates === false)) {
+      continue;
+    }
+
+    const html = doublesScoresConfirmedEmail({
+      recipientName: userData.displayName || "Pickleballer",
+      confirmerName,
+      location: proposalData.location,
+      dateTime: formatDateTime(proposalDateTime),
+      proposalUrl: getProposalUrl(proposalId),
+      preferencesUrl: getPreferencesUrl(player.userId),
+    });
+
+    const result = await emailService.send({
+      to: userData.email,
+      subject: doublesScoresConfirmedEmailSubject(confirmerName),
+      html,
+    });
+
+    if (result.success) {
+      console.log(`[onProposalUpdated] Scores confirmed email sent to ${userData.email}`);
+    } else {
+      console.error(`[onProposalUpdated] Failed to send scores confirmed email: ${result.error}`);
+    }
+  }
 }
 
 async function updatePlayerStanding(

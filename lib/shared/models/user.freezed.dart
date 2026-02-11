@@ -26,6 +26,7 @@ mixin _$EmailNotificationPreferences {
   bool get proposalAccepted => throw _privateConstructorUsedError;
   bool get proposalUnaccepted => throw _privateConstructorUsedError;
   bool get matchResults => throw _privateConstructorUsedError;
+  bool get doublesUpdates => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -46,7 +47,8 @@ abstract class $EmailNotificationPreferencesCopyWith<$Res> {
       bool newProposals,
       bool proposalAccepted,
       bool proposalUnaccepted,
-      bool matchResults});
+      bool matchResults,
+      bool doublesUpdates});
 }
 
 /// @nodoc
@@ -68,6 +70,7 @@ class _$EmailNotificationPreferencesCopyWithImpl<$Res,
     Object? proposalAccepted = null,
     Object? proposalUnaccepted = null,
     Object? matchResults = null,
+    Object? doublesUpdates = null,
   }) {
     return _then(_value.copyWith(
       welcome: null == welcome
@@ -90,6 +93,10 @@ class _$EmailNotificationPreferencesCopyWithImpl<$Res,
           ? _value.matchResults
           : matchResults // ignore: cast_nullable_to_non_nullable
               as bool,
+      doublesUpdates: null == doublesUpdates
+          ? _value.doublesUpdates
+          : doublesUpdates // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 }
@@ -108,7 +115,8 @@ abstract class _$$EmailNotificationPreferencesImplCopyWith<$Res>
       bool newProposals,
       bool proposalAccepted,
       bool proposalUnaccepted,
-      bool matchResults});
+      bool matchResults,
+      bool doublesUpdates});
 }
 
 /// @nodoc
@@ -129,6 +137,7 @@ class __$$EmailNotificationPreferencesImplCopyWithImpl<$Res>
     Object? proposalAccepted = null,
     Object? proposalUnaccepted = null,
     Object? matchResults = null,
+    Object? doublesUpdates = null,
   }) {
     return _then(_$EmailNotificationPreferencesImpl(
       welcome: null == welcome
@@ -151,6 +160,10 @@ class __$$EmailNotificationPreferencesImplCopyWithImpl<$Res>
           ? _value.matchResults
           : matchResults // ignore: cast_nullable_to_non_nullable
               as bool,
+      doublesUpdates: null == doublesUpdates
+          ? _value.doublesUpdates
+          : doublesUpdates // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -164,7 +177,8 @@ class _$EmailNotificationPreferencesImpl
       this.newProposals = true,
       this.proposalAccepted = true,
       this.proposalUnaccepted = true,
-      this.matchResults = true});
+      this.matchResults = true,
+      this.doublesUpdates = true});
 
   factory _$EmailNotificationPreferencesImpl.fromJson(
           Map<String, dynamic> json) =>
@@ -185,10 +199,13 @@ class _$EmailNotificationPreferencesImpl
   @override
   @JsonKey()
   final bool matchResults;
+  @override
+  @JsonKey()
+  final bool doublesUpdates;
 
   @override
   String toString() {
-    return 'EmailNotificationPreferences(welcome: $welcome, newProposals: $newProposals, proposalAccepted: $proposalAccepted, proposalUnaccepted: $proposalUnaccepted, matchResults: $matchResults)';
+    return 'EmailNotificationPreferences(welcome: $welcome, newProposals: $newProposals, proposalAccepted: $proposalAccepted, proposalUnaccepted: $proposalUnaccepted, matchResults: $matchResults, doublesUpdates: $doublesUpdates)';
   }
 
   @override
@@ -204,13 +221,15 @@ class _$EmailNotificationPreferencesImpl
             (identical(other.proposalUnaccepted, proposalUnaccepted) ||
                 other.proposalUnaccepted == proposalUnaccepted) &&
             (identical(other.matchResults, matchResults) ||
-                other.matchResults == matchResults));
+                other.matchResults == matchResults) &&
+            (identical(other.doublesUpdates, doublesUpdates) ||
+                other.doublesUpdates == doublesUpdates));
   }
 
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(runtimeType, welcome, newProposals,
-      proposalAccepted, proposalUnaccepted, matchResults);
+      proposalAccepted, proposalUnaccepted, matchResults, doublesUpdates);
 
   @JsonKey(ignore: true)
   @override
@@ -235,7 +254,8 @@ abstract class _EmailNotificationPreferences
       final bool newProposals,
       final bool proposalAccepted,
       final bool proposalUnaccepted,
-      final bool matchResults}) = _$EmailNotificationPreferencesImpl;
+      final bool matchResults,
+      final bool doublesUpdates}) = _$EmailNotificationPreferencesImpl;
 
   factory _EmailNotificationPreferences.fromJson(Map<String, dynamic> json) =
       _$EmailNotificationPreferencesImpl.fromJson;
@@ -250,6 +270,8 @@ abstract class _EmailNotificationPreferences
   bool get proposalUnaccepted;
   @override
   bool get matchResults;
+  @override
+  bool get doublesUpdates;
   @override
   @JsonKey(ignore: true)
   _$$EmailNotificationPreferencesImplCopyWith<
