@@ -638,6 +638,45 @@ Routes: `/singles`, `/doubles`, `/create-doubles-proposal`, `/doubles-proposal-d
 - **Partner search case-sensitive** — Typing lowercase wouldn't find capitalized names. Normalized query casing and switched from `+ 'z'` to `+ '\uf8ff'` suffix.
 - **No default partner list** — Added dropdown of players at user's skill level shown when partner toggle is ON before typing a search.
 
+### How to Run the App on iPad (Simulator)
+
+Use the iOS Simulator to run the app on iPad — useful for testing iPad layouts and capturing App Store screenshots.
+
+**Step 1: List available iPad simulators**
+```bash
+xcrun simctl list devices iPad available
+```
+
+**Step 2: Boot an iPad simulator**
+```bash
+# Example: iPad Pro 13-inch (M4) — covers the largest App Store screenshot size (2064x2752)
+xcrun simctl boot <DEVICE-UUID>
+
+# Open the Simulator app
+open -a Simulator
+```
+
+**Step 3: Run the Flutter app on the iPad simulator**
+```bash
+flutter run -d <DEVICE-UUID>
+```
+
+**Step 4: Take screenshots**
+- **Keyboard shortcut:** Press **Cmd + S** in the Simulator app (saves to Desktop)
+- **CLI:** `xcrun simctl io booted screenshot ~/Desktop/ipad_screenshot.png`
+- **Menu:** File > Save Screen in Simulator.app
+
+**App Store Screenshot Sizes:**
+
+| Device | Resolution |
+|---|---|
+| iPad Pro 13" (6th gen) | 2064 x 2752 |
+| iPad Pro 11" | 1668 x 2388 |
+
+> **Tip:** Use the **iPad Pro 13-inch** simulator to capture screenshots at the required App Store size.
+
+---
+
 ### Dev Commands
 
 ```bash
