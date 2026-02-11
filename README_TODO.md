@@ -21,3 +21,61 @@ All doubles email notifications have been implemented. 7 new email templates wer
 | 11 | **Scores Confirmed** — notify other team that scores are confirmed | `doubles-scores-confirmed.ts` | Yes (on-proposal-updated.ts) | WIRED |
 
 ---
+
+## 2/11/2026 - Fix App rejection reasons 1 and 2
+
+### App Icon and Ipad Images
+ Steps
+
+  1. Get a polished icon designed. The current assets/icons/pickle-connect-icon.png is what Apple flagged. You need a replacement that:
+    - Is 1024x1024px, no transparency (iOS rejects alpha — you already have remove_alpha_ios: true)
+    - Uses your app's green branding/colors
+    - Looks like a finished product icon, not a silhouette placeholder
+    - No rounded corners — Apple applies the mask automatically
+  2. Options for getting the icon made:
+    - Fiverr / 99designs — app icon designers, typically $20–100
+    - Canva / Figma — DIY if you're comfortable with design tools
+    - AI image generators — can produce a starting point, but you'll likely need to polish in an editor
+  3. Once you have the final PNG, replace the file at:
+  assets/icons/pickle-connect-icon.png
+  4. Regenerate all platform sizes:
+  flutter pub run flutter_launcher_icons:main
+  5. Rebuild and resubmit.
+
+  ---
+  Issue 2: iPad Screenshots (Guideline 2.3.3)
+
+  This is purely an App Store Connect metadata fix — no code changes needed.
+
+  Steps
+
+  1. Launch an iPad simulator (or use a physical iPad):
+  # List available simulators
+  xcrun simctl list devices
+
+  # Boot a 13-inch iPad Pro simulator
+  open -a Simulator
+  # Then select Hardware > Device > iPad Pro (13-inch)
+  2. Run the app on the iPad simulator:
+  flutter run -d <ipad-simulator-id>
+  3. Take screenshots of the key screens (the same ones you submitted for iPhone). Use Cmd+S in Simulator to save screenshots.
+  4. Upload in App Store Connect:
+    - Go to your app > App Store tab > version
+    - Scroll to App Preview and Screenshots
+    - Click "View All Sizes in Media Manager" (important — don't just drag into the default view)
+    - Find the 12.9-inch iPad Pro and 13-inch iPad Pro display sizes
+    - Upload the actual iPad screenshots for each size class
+    - Remove the stretched iPhone images
+  5. Resubmit for review.
+
+  ---
+  Summary
+  ┌──────────────────┬──────────────────────────────────┬─────────────────────────────────────────────┐
+  │      Issue       │          What's Needed           │                 Who Does It                 │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────────────────────────┤
+  │ Icon             │ A polished 1024x1024 branded PNG │ You (design), then I regenerate sizes       │
+  ├──────────────────┼──────────────────────────────────┼─────────────────────────────────────────────┤
+  │ iPad Screenshots │ Real iPad simulator screenshots  │ You (capture + upload to App Store Connect) │
+  └──────────────────┴──────────────────────────────────┴─────────────────────────────────────────────┘
+  Neither issue requires code changes. The icon is the higher-effort item since it requires design work. Once you have the icon PNG ready, I can run the launcher
+  icons generator. For the iPad screenshots, it's a straightforward simulator capture and App Store Connect upload.
