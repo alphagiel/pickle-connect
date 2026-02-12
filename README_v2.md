@@ -657,9 +657,25 @@ open -a Simulator
 ```
 
 **Step 3: Run the Flutter app on the iPad simulator**
+
+*Option A: With local Firebase emulators (recommended for testing/screenshots)*
+
+Make sure Firebase emulators are running first (see [Quick Start — Local Development](#quick-start--local-development-macos) above), then:
+```bash
+flutter run -d <DEVICE-UUID> --dart-define=USE_EMULATORS=true
+```
+This connects to your local Firestore/Auth emulators so you can create test data freely without affecting production.
+
+*Option B: With production Firebase*
 ```bash
 flutter run -d <DEVICE-UUID>
 ```
+No `--dart-define` flag = connects to live Firebase. Requires proper Firestore security rules and network access.
+
+| Mode | Command | Backend |
+|------|---------|---------|
+| Local emulators | `flutter run -d <DEVICE-UUID> --dart-define=USE_EMULATORS=true` | Local Firestore/Auth |
+| Production | `flutter run -d <DEVICE-UUID>` | Live Firebase |
 
 **Step 4: Take screenshots**
 - **Keyboard shortcut:** Press **Cmd + S** in the Simulator app (saves to Desktop)
