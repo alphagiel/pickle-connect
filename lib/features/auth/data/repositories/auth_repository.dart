@@ -159,7 +159,7 @@ class AuthRepository {
         'userId': user.uid,
         'displayName': fullName,
         'email': email,
-        'skillLevel': 'Intermediate', // Default skill level
+        'skillLevel': '3.5', // Default skill level (Intermediate bracket)
         'location': 'Unknown', // Default location
         'profileImageURL': null,
         'matchesPlayed': 0,

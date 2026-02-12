@@ -32,7 +32,7 @@ _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
       userId: json['userId'] as String,
       displayName: json['displayName'] as String,
       email: json['email'] as String,
-      skillLevel: $enumDecode(_$SkillLevelEnumMap, json['skillLevel']),
+      skillLevel: _skillLevelFromJson(json['skillLevel']),
       skillBracket: _skillBracketFromJson(json['skillBracket']),
       location: json['location'] as String,
       profileImageURL: json['profileImageURL'] as String?,
@@ -57,7 +57,7 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'userId': instance.userId,
       'displayName': instance.displayName,
       'email': instance.email,
-      'skillLevel': _$SkillLevelEnumMap[instance.skillLevel]!,
+      'skillLevel': _skillLevelToJson(instance.skillLevel),
       'skillBracket': _skillBracketToJson(instance.skillBracket),
       'location': instance.location,
       'profileImageURL': instance.profileImageURL,
@@ -73,15 +73,3 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'updatedAt': _timestampToJson(instance.updatedAt),
       'emailNotifications': instance.emailNotifications,
     };
-
-const _$SkillLevelEnumMap = {
-  SkillLevel.level1_0: '1.0',
-  SkillLevel.level1_5: '1.5',
-  SkillLevel.level2_0: '2.0',
-  SkillLevel.level2_5: '2.5',
-  SkillLevel.level3_0: '3.0',
-  SkillLevel.level3_5: '3.5',
-  SkillLevel.level4_0: '4.0',
-  SkillLevel.level4_5: '4.5',
-  SkillLevel.level5_0Plus: '5.0+',
-};

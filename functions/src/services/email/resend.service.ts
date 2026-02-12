@@ -1,4 +1,4 @@
-import * as sgMail from "@sendgrid/mail";
+import { Resend } from "resend";
 import {
   IEmailService,
   EmailMessage,
@@ -7,39 +7,47 @@ import {
 } from "./email-service.interface";
 
 /**
- * SendGrid email service for production
+ * Resend email service for production
  */
-export class SendGridService implements IEmailService {
-  private from: { email: string; name: string };
+export class ResendService implements IEmailService {
+  private client: Resend;
+  private from: string;
 
   constructor(apiKey: string) {
-    sgMail.setApiKey(apiKey);
+    this.client = new Resend(apiKey);
 
-    this.from = {
-      email: process.env.EMAIL_FROM || "noreply@pickleconnect.app",
-      name: process.env.EMAIL_FROM_NAME || "Pickle Connect",
-    };
+    const email = process.env.EMAIL_FROM || "noreply@pickleconnect.app";
+    const name = process.env.EMAIL_FROM_NAME || "Pickle Connect";
+    this.from = `${name} <${email}>`;
   }
 
   async send(message: EmailMessage): Promise<EmailResult> {
     try {
-      const [response] = await sgMail.send({
-        to: message.to,
+      const { data, error } = await this.client.emails.send({
         from: this.from,
+        to: message.to,
         subject: message.subject,
         html: message.html,
         text: message.text || this.htmlToText(message.html),
       });
 
-      console.log(`[SendGrid] Email sent to ${message.to}: ${response.statusCode}`);
+      if (error) {
+        console.error(`[Resend] Failed to send email to ${message.to}:`, error.message);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+
+      console.log(`[Resend] Email sent to ${message.to}: ${data?.id}`);
 
       return {
         success: true,
-        messageId: response.headers["x-message-id"] as string,
+        messageId: data?.id,
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      console.error(`[SendGrid] Failed to send email to ${message.to}:`, errorMessage);
+      console.error(`[Resend] Failed to send email to ${message.to}:`, errorMessage);
 
       return {
         success: false,
@@ -51,7 +59,6 @@ export class SendGridService implements IEmailService {
   async sendBatch(message: BatchEmailMessage): Promise<EmailResult[]> {
     const results: EmailResult[] = [];
 
-    // SendGrid supports batch sending, but for personalization we send individually
     for (const recipient of message.to) {
       const result = await this.send({
         to: recipient,

@@ -85,7 +85,7 @@ export const requestPasswordReset = functions.https.onCall(
       console.log(`[requestPasswordReset] Token created for user: ${userRecord.uid}`);
 
       // Send email
-      const emailService = getEmailService(process.env.SENDGRID_API_KEY);
+      const emailService = getEmailService(process.env.RESEND_API_KEY);
       const resetUrl = getPasswordResetUrl(token);
 
       const html = passwordResetEmail({

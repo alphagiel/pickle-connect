@@ -32,7 +32,7 @@ export const onProposalCreated = functions.firestore
     }
 
     const db = admin.firestore();
-    const emailService = getEmailService(process.env.SENDGRID_API_KEY);
+    const emailService = getEmailService(process.env.RESEND_API_KEY);
     const isDoubles = proposalData.matchType === "doubles";
 
     // Query users with the same skill level (except the creator)

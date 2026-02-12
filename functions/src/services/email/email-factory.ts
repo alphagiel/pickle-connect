@@ -1,6 +1,6 @@
 import { IEmailService } from "./email-service.interface";
 import { MailpitService } from "./mailpit.service";
-import { SendGridService } from "./sendgrid.service";
+import { ResendService } from "./resend.service";
 
 let emailServiceInstance: IEmailService | null = null;
 
@@ -17,9 +17,9 @@ function isEmulator(): boolean {
 /**
  * Get the appropriate email service based on environment
  * - Emulator/local: Returns MailpitService
- * - Production: Returns SendGridService
+ * - Production: Returns ResendService
  */
-export function getEmailService(sendGridApiKey?: string): IEmailService {
+export function getEmailService(resendApiKey?: string): IEmailService {
   if (emailServiceInstance) {
     return emailServiceInstance;
   }
@@ -28,11 +28,11 @@ export function getEmailService(sendGridApiKey?: string): IEmailService {
     console.log("[EmailFactory] Using Mailpit for local development");
     emailServiceInstance = new MailpitService();
   } else {
-    if (!sendGridApiKey) {
-      throw new Error("SENDGRID_API_KEY is required in production");
+    if (!resendApiKey) {
+      throw new Error("RESEND_API_KEY is required in production");
     }
-    console.log("[EmailFactory] Using SendGrid for production");
-    emailServiceInstance = new SendGridService(sendGridApiKey);
+    console.log("[EmailFactory] Using Resend for production");
+    emailServiceInstance = new ResendService(resendApiKey);
   }
 
   return emailServiceInstance;

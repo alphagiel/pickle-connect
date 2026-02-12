@@ -231,6 +231,7 @@ class User with _$User {
     required String userId,
     required String displayName,
     required String email,
+    @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
     required SkillLevel skillLevel,
     /// Skill bracket derived from skillLevel (stored for efficient Firestore queries)
     @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
@@ -333,4 +334,34 @@ DateTime _timestampFromJson(dynamic timestamp) {
 
 dynamic _timestampToJson(DateTime dateTime) {
   return dateTime.toIso8601String();
+}
+
+/// Maps old text-based skill levels to numeric SkillLevel values
+const _textToSkillLevel = {
+  'Beginner': SkillLevel.level2_0,
+  'Novice': SkillLevel.level2_5,
+  'Intermediate': SkillLevel.level3_5,
+  'Advanced': SkillLevel.level4_5,
+  'Advanced+': SkillLevel.level4_5,
+  'Expert': SkillLevel.level5_0Plus,
+};
+
+SkillLevel _skillLevelFromJson(dynamic value) {
+  if (value is String) {
+    // Try numeric format first (1.0, 1.5, etc.)
+    for (final level in SkillLevel.values) {
+      if (level.jsonValue == value) {
+        return level;
+      }
+    }
+    // Fall back to text format (Intermediate, Beginner, etc.)
+    if (_textToSkillLevel.containsKey(value)) {
+      return _textToSkillLevel[value]!;
+    }
+  }
+  return SkillLevel.level3_5; // Default to 3.5
+}
+
+String _skillLevelToJson(SkillLevel skillLevel) {
+  return skillLevel.jsonValue;
 }

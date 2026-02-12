@@ -27,7 +27,7 @@ export const onUserCreated = functions.firestore
       return;
     }
 
-    const emailService = getEmailService(process.env.SENDGRID_API_KEY);
+    const emailService = getEmailService(process.env.RESEND_API_KEY);
 
     const html = welcomeEmail({
       displayName: userData.displayName || "Pickleballer",

@@ -70,7 +70,7 @@ export const onProposalUpdated = functions.firestore
     console.log(`[onProposalUpdated] Proposal updated: ${proposalId}`);
 
     const db = admin.firestore();
-    const emailService = getEmailService(process.env.SENDGRID_API_KEY);
+    const emailService = getEmailService(process.env.RESEND_API_KEY);
 
     // Check for status changes
     const statusChanged = beforeData.status !== afterData.status;

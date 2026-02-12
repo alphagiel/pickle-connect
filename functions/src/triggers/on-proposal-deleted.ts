@@ -23,7 +23,7 @@ export const onProposalDeleted = functions.firestore
     }
 
     const db = admin.firestore();
-    const emailService = getEmailService(process.env.SENDGRID_API_KEY);
+    const emailService = getEmailService(process.env.RESEND_API_KEY);
 
     // Get the accepter's user document
     const accepterDoc = await db.collection("users").doc(proposalData.acceptedBy.userId).get();

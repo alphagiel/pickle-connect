@@ -288,6 +288,7 @@ mixin _$User {
   String get userId => throw _privateConstructorUsedError;
   String get displayName => throw _privateConstructorUsedError;
   String get email => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
   SkillLevel get skillLevel => throw _privateConstructorUsedError;
 
   /// Skill bracket derived from skillLevel (stored for efficient Firestore queries)
@@ -324,6 +325,7 @@ abstract class $UserCopyWith<$Res> {
       {String userId,
       String displayName,
       String email,
+      @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
       SkillLevel skillLevel,
       @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
       SkillBracket skillBracket,
@@ -479,6 +481,7 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       {String userId,
       String displayName,
       String email,
+      @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
       SkillLevel skillLevel,
       @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
       SkillBracket skillBracket,
@@ -615,6 +618,7 @@ class _$UserImpl implements _User {
       {required this.userId,
       required this.displayName,
       required this.email,
+      @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
       required this.skillLevel,
       @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
       required this.skillBracket,
@@ -644,6 +648,7 @@ class _$UserImpl implements _User {
   @override
   final String email;
   @override
+  @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
   final SkillLevel skillLevel;
 
   /// Skill bracket derived from skillLevel (stored for efficient Firestore queries)
@@ -775,6 +780,7 @@ abstract class _User implements User {
       {required final String userId,
       required final String displayName,
       required final String email,
+      @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
       required final SkillLevel skillLevel,
       @JsonKey(fromJson: _skillBracketFromJson, toJson: _skillBracketToJson)
       required final SkillBracket skillBracket,
@@ -803,6 +809,7 @@ abstract class _User implements User {
   @override
   String get email;
   @override
+  @JsonKey(fromJson: _skillLevelFromJson, toJson: _skillLevelToJson)
   SkillLevel get skillLevel;
   @override
 
