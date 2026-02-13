@@ -72,3 +72,7 @@ To send from a branded address (e.g. `noreply@yourdomain.com`):
 4. Wait for DNS propagation and click Verify in Resend
 5. Update `EMAIL_FROM` env var in Firebase (or change the default in `resend.service.ts`)
 6. Redeploy functions: `cd functions && npm run build && firebase deploy --only functions`
+
+### TODO: Firebase Functions Upgrades
+- **Upgrade Node.js runtime to 22**: Node.js 20 will be deprecated on 2026-04-30 and decommissioned on 2026-10-30. Update `engines` in `functions/package.json` and redeploy.
+- **Upgrade firebase-functions package**: Run `cd functions && npm install --save firebase-functions@latest` (note: there will be breaking changes)

@@ -3,6 +3,11 @@
  */
 
 /**
+ * App Store listing URL
+ */
+export const APP_STORE_URL = "https://apps.apple.com/app/id6758889208";
+
+/**
  * Get the base URL for the app (deep links)
  */
 export function getAppBaseUrl(): string {
@@ -16,16 +21,16 @@ export function getAppBaseUrl(): string {
  */
 export function getProposalUrl(proposalId: string): string {
   const baseUrl = getAppBaseUrl();
-  // Deep link format that works with app_links
   return `${baseUrl}/proposal/${proposalId}`;
 }
 
 /**
- * Get the app URL for deep linking
+ * Get the app URL (App Store link in production, localhost in dev)
  */
 export function getAppUrl(): string {
-  const baseUrl = getAppBaseUrl();
-  return baseUrl;
+  return process.env.FUNCTIONS_EMULATOR === "true"
+    ? "http://localhost:5500"
+    : APP_STORE_URL;
 }
 
 /**
