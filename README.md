@@ -25,7 +25,7 @@ samples, guidance on mobile development, and a full API reference.
 Implemented a full **email notification system** for **Pickle Connect** using **Firebase Cloud Functions** with **Firestore triggers**.
 
 * **Local development:** Mailpit (Docker)
-* **Production:** SendGridS
+* **Production:** Resend (3,000 emails/month free tier)
 
 ---
 
@@ -38,7 +38,7 @@ Cloud Function Trigger
    ↓
 Email Service Abstraction
    ↓
-Mailpit (dev) / SendGrid (prod)
+Mailpit (dev) / Resend (prod)
 ```
 
 ---
@@ -48,10 +48,22 @@ Mailpit (dev) / SendGrid (prod)
 | Event                 | Recipients                  | Firestore Trigger                          |
 | --------------------- | --------------------------- | ------------------------------------------ |
 | Welcome email         | New user                    | `users/{userId}` created                   |
+| Account deleted       | Deleted user                | `users/{userId}` deleted                   |
 | New proposal          | Users in same skill bracket | `proposals/{id}` created (`status = open`) |
 | Proposal accepted     | Proposal creator            | `proposals/{id}` status → `accepted`       |
 | Proposal unaccepted   | Proposal creator            | `proposals/{id}` status → `open`           |
+| Proposal cancelled    | Accepter + creator          | `proposals/{id}` status → `canceled`       |
 | Match result recorded | Both players                | `proposals/{id}` `scores` added            |
+| Doubles partner invite | Invited player             | `proposals/{id}` player added as `invited` |
+| Doubles join request  | Proposal creator            | `proposals/{id}` player added as `requested` |
+| Doubles partner confirmed | Creator                 | `proposals/{id}` player status → `confirmed` |
+| Doubles player approved | Approved player           | `proposals/{id}` player status → `confirmed` |
+| Doubles lobby full    | All 4 confirmed players     | `proposals/{id}` 4th player confirmed      |
+| Doubles player declined | Declined player           | `proposals/{id}` player removed (was `requested`) |
+| Doubles player left   | Creator                     | `proposals/{id}` player removed (was `confirmed`) |
+| Doubles cancelled     | All lobby players           | `proposals/{id}` status → `canceled` (doubles) |
+| Doubles scores confirmed | Other team players       | `proposals/{id}` `scoreConfirmedBy` grows  |
+| Doubles match result  | All 4 players               | `proposals/{id}` `scores` added (doubles)  |
 
 ---
 
@@ -74,12 +86,14 @@ functions/
 │   ├── services/email/
 │   │   ├── email-service.interface.ts
 │   │   ├── mailpit.service.ts
-│   │   ├── sendgrid.service.ts
+│   │   ├── resend.service.ts
 │   │   └── email-factory.ts
 │   ├── triggers/
 │   │   ├── on-user-created.ts
+│   │   ├── on-user-deleted.ts
 │   │   ├── on-proposal-created.ts
-│   │   └── on-proposal-updated.ts
+│   │   ├── on-proposal-updated.ts
+│   │   └── on-proposal-deleted.ts
 │   └── templates/
 │       ├── welcome.html
 │       ├── new-proposal.html
@@ -95,14 +109,16 @@ functions/
 
 * Common `send()` / `sendBatch()` interface
 * **MailpitService:** Nodemailer (local)
-* **SendGridService:** `@sendgrid/mail` (production)
+* **ResendService:** `resend` npm package (production)
 * Factory auto-selects service based on environment
 
 ### Phase 4 — Firestore Triggers
 
-* `onUserCreated`
-* `onProposalCreated`
-* `onProposalUpdated` (status + score detection)
+* `onUserCreated` — welcome email
+* `onUserDeleted` — farewell/account deleted email
+* `onProposalCreated` — broadcast + creator confirmation + doubles partner invites
+* `onProposalUpdated` — accepted, unaccepted, cancelled, scores, doubles lifecycle
+* `onProposalDeleted` — notify accepter of cancellation
 
 ### Phase 5 — User Model Update
 
@@ -134,7 +150,7 @@ EmailNotificationPreferences({
 ### Phase 8 — Environment Configuration
 
 * **Local:** `.env.local` (Mailpit)
-* **Production:** Firebase secrets (`SENDGRID_API_KEY`)
+* **Production:** Firebase secrets (`RESEND_API_KEY`)
 
 ---
 
@@ -199,19 +215,30 @@ Open:
 
 ## Production Checklist
 
-* Create SendGrid account (free tier: 100 emails/day)
-* Verify sender email/domain
-* Set secret:
+* Resend account created (free tier: 3,000 emails/month)
+* Currently sending from `onboarding@resend.dev` (Resend default sender)
+* API key set as Firebase secret:
 
 ```bash
-firebase functions:secrets:set SENDGRID_API_KEY
+firebase functions:secrets:set RESEND_API_KEY
 ```
 
 * Deploy:
 
 ```bash
-firebase deploy --only functions
+cd functions && npm run build && firebase deploy --only functions
 ```
+
+### TODO: Custom Email Domain
+
+To send from a branded address (e.g. `noreply@yourdomain.com`):
+
+1. Buy a domain you own
+2. Add it at https://resend.com/domains
+3. Add the DNS records Resend provides (TXT for DKIM, MX + TXT for SPF, optional DMARC)
+4. Verify in Resend
+5. Update `EMAIL_FROM` env var or the default in `resend.service.ts`
+6. Redeploy functions
 
 ---
 

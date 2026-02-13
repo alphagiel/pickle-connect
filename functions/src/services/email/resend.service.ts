@@ -16,7 +16,7 @@ export class ResendService implements IEmailService {
   constructor(apiKey: string) {
     this.client = new Resend(apiKey);
 
-    const email = process.env.EMAIL_FROM || "noreply@pickleconnect.app";
+    const email = process.env.EMAIL_FROM || "onboarding@resend.dev";
     const name = process.env.EMAIL_FROM_NAME || "Pickle Connect";
     this.from = `${name} <${email}>`;
   }

@@ -8,8 +8,9 @@ import { getPreferencesUrl, formatDateTime } from "../config";
  * Firestore trigger: Handle proposal deletion
  * - If proposal had an accepter, notify them that it was cancelled
  */
-export const onProposalDeleted = functions.firestore
-  .document("proposals/{proposalId}")
+export const onProposalDeleted = functions
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .firestore.document("proposals/{proposalId}")
   .onDelete(async (snapshot, context) => {
     const proposalId = context.params.proposalId;
     const proposalData = snapshot.data();

@@ -60,8 +60,9 @@ interface DoublesPlayer {
  * - Status changed back to 'open' (unaccepted) → Notify creator
  * - Scores added → Notify both players
  */
-export const onProposalUpdated = functions.firestore
-  .document("proposals/{proposalId}")
+export const onProposalUpdated = functions
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .firestore.document("proposals/{proposalId}")
   .onUpdate(async (change, context) => {
     const proposalId = context.params.proposalId;
     const beforeData = change.before.data();

@@ -6,8 +6,9 @@ import { getAppUrl, getPreferencesUrl } from "../config";
 /**
  * Firestore trigger: Send welcome email when a new user is created
  */
-export const onUserCreated = functions.firestore
-  .document("users/{userId}")
+export const onUserCreated = functions
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .firestore.document("users/{userId}")
   .onCreate(async (snapshot, context) => {
     const userId = context.params.userId;
     const userData = snapshot.data();

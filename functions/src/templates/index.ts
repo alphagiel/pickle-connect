@@ -20,3 +20,4 @@ export * from "./doubles-player-declined";
 export * from "./doubles-player-left";
 export * from "./doubles-proposal-cancelled";
 export * from "./doubles-scores-confirmed";
+export * from "./account-deleted";

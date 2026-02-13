@@ -56,9 +56,19 @@ flutter doctor
 
 ### Project Priorities
 1. ✅ Match proposal and challenge system
-2. ✅ Tennis scoring system 
+2. ✅ Tennis scoring system
 3. ✅ Real-time player search and filtering
 4. 🔄 Seasonal ladder rankings with filters
 5. ⏳ Tournament registration system
 6. ⏳ Court booking system enhancement
 7. ⏳ Push notifications
+
+### TODO: Custom Email Domain Setup
+Currently sending production emails from `onboarding@resend.dev` (Resend default).
+To send from a branded address (e.g. `noreply@yourdomain.com`):
+1. Buy a domain you own (e.g. `pickleconnectapp.com`, `getpickleconnect.com`, etc.)
+2. Go to https://resend.com/domains → Add Domain
+3. Add the DNS records Resend provides (TXT for DKIM, MX + TXT for SPF, optional TXT for DMARC) at your domain registrar
+4. Wait for DNS propagation and click Verify in Resend
+5. Update `EMAIL_FROM` env var in Firebase (or change the default in `resend.service.ts`)
+6. Redeploy functions: `cd functions && npm run build && firebase deploy --only functions`

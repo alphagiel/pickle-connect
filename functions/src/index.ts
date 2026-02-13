@@ -4,7 +4,7 @@ import * as admin from "firebase-admin";
 admin.initializeApp();
 
 // Export all triggers
-export { onUserCreated, onProposalCreated, onProposalUpdated, onProposalDeleted } from "./triggers";
+export { onUserCreated, onUserDeleted, onProposalCreated, onProposalUpdated, onProposalDeleted } from "./triggers";
 
 // Export callable functions
 export { requestPasswordReset, confirmPasswordReset } from "./callable";

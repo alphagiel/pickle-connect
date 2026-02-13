@@ -22,7 +22,7 @@ interface RequestPasswordResetResult {
  * Callable function to request a password reset email
  * This bypasses Firebase Auth's built-in reset to use our email service (Mailpit in dev)
  */
-export const requestPasswordReset = functions.https.onCall(
+export const requestPasswordReset = functions.runWith({ secrets: ["RESEND_API_KEY"] }).https.onCall(
   async (data: RequestPasswordResetData): Promise<RequestPasswordResetResult> => {
     const { email } = data;
 

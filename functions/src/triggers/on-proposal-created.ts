@@ -17,8 +17,9 @@ import { getProposalUrl, getPreferencesUrl, formatDateTime } from "../config";
  * Firestore trigger: Send notification emails when a new proposal is created
  * Emails are sent to all users in the same skill bracket (except the creator)
  */
-export const onProposalCreated = functions.firestore
-  .document("proposals/{proposalId}")
+export const onProposalCreated = functions
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .firestore.document("proposals/{proposalId}")
   .onCreate(async (snapshot, context) => {
     const proposalId = context.params.proposalId;
     const proposalData = snapshot.data();
