@@ -9,7 +9,6 @@ import '../../features/proposals/presentation/pages/proposals_page.dart';
 import '../../features/proposals/presentation/pages/create_proposal_page.dart';
 import '../../features/proposals/presentation/pages/edit_proposal_page.dart';
 import '../../features/proposals/presentation/pages/proposal_details_page.dart';
-import '../../features/standings/presentation/pages/standings_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../../features/singles/presentation/pages/singles_page.dart';
 import '../../features/doubles/presentation/pages/doubles_page.dart';
@@ -18,7 +17,6 @@ import '../../features/doubles/presentation/pages/doubles_proposal_details_page.
 import '../../shared/widgets/main_navigation.dart';
 import '../../shared/models/proposal.dart';
 import '../../shared/providers/proposals_providers.dart';
-import '../../shared/repositories/proposals_repository.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {

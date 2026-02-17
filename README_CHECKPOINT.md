@@ -50,6 +50,7 @@ Status: Done — Retook screenshots on real iPad Pro 12.9" (6th gen) in release 
 
 ────────────────────────────────────────
 ## Feature: Zone-Based Community Support (Firestore-Driven)
+Branch: `feat-app-zoning` → PR to `main`
 ────────────────────────────────────────
 **Goal**: Players only see other players, proposals, and standings within their geographic zone. Zones are stored in Firestore (not hardcoded) so new communities can be added without app updates.
 
@@ -166,18 +167,26 @@ Firestore:
   - `matchType ASC + status ASC + skillBracket ASC + zone ASC`
 - Deploy early: `firebase deploy --only firestore:indexes`
 
-**Step 8: Data Migration** `[x]`
-- Backfill `zone: 'east_triangle'` on all existing user docs
-- Backfill `zone: 'east_triangle'` on all existing proposal docs
-- Copy standings docs from `standings/{bracket}/players/` to `standings/east_triangle_{bracket}/players/`
-- Same for `doubles_standings/`
-- Seed `zones/east_triangle` and `zones/west_triangle` documents
+**Step 8: Data Migration** `[x]` *(completed Feb 17, 2026 via Cloud Shell)*
+- [x] Seed `zones/east_triangle` and `zones/west_triangle` documents to Firestore
+- [x] Backfill `zone: 'east_triangle'` on all existing user docs (15 users)
+- [x] Backfill `zone: 'east_triangle'` on all existing proposal docs (10 proposals)
+- [x] Copy standings docs from `standings/{bracket}/players/` to `standings/east_triangle_{bracket}/players/` (no existing standings to copy)
+- [x] Same for `doubles_standings/` (no existing standings to copy)
 
 **Step 9: Delete Account Cleanup** `[x]`
 - Update `_deleteAccount` in `edit_profile_page.dart` to pass user's zone string when anonymizing standings in both `standings_repository` and `doubles_standings_repository`
 
+### Deployment Steps (after PR merge)
+1. `firebase deploy --only firestore:indexes` — deploy new composite indexes (takes minutes to build)
+2. Seed zone docs to Firestore (see Step 8 above)
+3. Run data migration scripts (backfill zone field, copy standings)
+4. `cd functions && npm run build && firebase deploy --only functions`
+5. Build + deploy app update
+
 ### Verification Checklist
 - [x] `flutter analyze` — no new errors (pre-existing notification_service errors only)
+- [x] TypeScript compiles — `npx tsc --noEmit` passes
 - [ ] `flutter test` — all pass
 - [ ] Signup: zone dropdown appears, populated from Firestore, info tooltip shows cities
 - [ ] Edit profile: zone can be changed, old zone standings cleared

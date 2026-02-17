@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/proposal.dart';
-import '../models/user.dart';
 import '../repositories/proposals_repository.dart';
 import '../../core/utils/stream_retry.dart';
 import 'proposals_providers.dart' show ProposalFilterParams;

@@ -6,7 +6,6 @@ import '../../../../shared/repositories/users_repository.dart';
 import '../../../../shared/repositories/proposals_repository.dart';
 import '../../../../shared/repositories/standings_repository.dart';
 import '../../../../shared/repositories/doubles_standings_repository.dart';
-import '../../../../shared/models/zone.dart';
 import '../../../../shared/providers/zones_providers.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/widgets/responsive_center.dart';
@@ -179,6 +178,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
                           return DropdownButtonFormField<String>(
                             value: currentZoneId,
+                            isExpanded: true,
                             style: const TextStyle(color: AppColors.primaryText, fontSize: 16),
                             dropdownColor: AppColors.cardBackground,
                             decoration: InputDecoration(
@@ -554,20 +554,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         };
         await usersRepository.updateUser(userId, updates);
 
-        // If zone changed, remove user from old zone standings (rankings reset)
-        if (_originalZoneId != null && _selectedZoneId != _originalZoneId) {
-          final standingsRepository = ref.read(standingsRepositoryProvider);
-          final doublesStandingsRepository = ref.read(doublesStandingsRepositoryProvider);
-          final bracket = currentProfile.skillBracket;
-          await standingsRepository.removeUserFromStandings(userId, bracket, zone: _originalZoneId!);
-          // Also remove from doubles standings in old zone
-          try {
-            final doublesDoc = await doublesStandingsRepository.getUserStanding(userId, bracket, zone: _originalZoneId!);
-            if (doublesDoc != null) {
-              await doublesStandingsRepository.anonymizeUserInStandings(userId, bracket, zone: _originalZoneId!);
-            }
-          } catch (_) {}
-        }
+        // If zone changed, old zone standings are preserved (frozen)
+        // so the user can return and pick up where they left off
 
         // If display name changed, update it in all user's proposals
         if (currentProfile.displayName != newDisplayName) {

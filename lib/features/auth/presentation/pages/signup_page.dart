@@ -7,7 +7,6 @@ import '../../../../shared/models/user.dart';
 import '../../../../shared/models/zone.dart';
 import '../../../../shared/repositories/users_repository.dart';
 import '../../../../shared/providers/zones_providers.dart';
-import '../providers/auth_providers.dart';
 import '../../data/repositories/auth_repository.dart';
 
 class SignupPage extends ConsumerStatefulWidget {

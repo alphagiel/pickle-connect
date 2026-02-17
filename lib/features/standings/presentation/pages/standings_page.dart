@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../shared/models/user.dart';
 import '../../../../shared/models/standing.dart';
 import '../../../../shared/models/proposal.dart';
-import '../../../../shared/models/zone.dart';
 import '../../../../shared/providers/standings_providers.dart';
 import '../../../../shared/providers/proposals_providers.dart';
 import '../../../../shared/providers/zones_providers.dart';
