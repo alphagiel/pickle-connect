@@ -21,36 +21,50 @@ final activeSeasonProvider = StreamProvider<Season?>((ref) {
   );
 });
 
-// Provider for standings filtered by skill bracket (with retry for transient auth errors)
-final standingsProvider = StreamProvider.family<List<Standing>, SkillBracket>((ref, bracket) {
-  final repository = ref.watch(standingsRepositoryProvider);
-  return retryStream(() => repository.getStandingsForBracket(bracket));
-});
+/// Parameters for filtering standings by bracket and zone
+class StandingsFilterParams {
+  final SkillBracket bracket;
+  final String zone;
 
-// Provider for all standings across skill brackets
-final allStandingsProvider = FutureProvider<Map<SkillBracket, List<Standing>>>((ref) {
+  StandingsFilterParams({required this.bracket, required this.zone});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StandingsFilterParams &&
+          runtimeType == other.runtimeType &&
+          bracket == other.bracket &&
+          zone == other.zone;
+
+  @override
+  int get hashCode => bracket.hashCode ^ zone.hashCode;
+}
+
+// Provider for standings filtered by skill bracket and zone (with retry for transient auth errors)
+final standingsProvider = StreamProvider.family<List<Standing>, StandingsFilterParams>((ref, params) {
   final repository = ref.watch(standingsRepositoryProvider);
-  return repository.getAllStandings();
+  return retryStream(() => repository.getStandingsForBracket(params.bracket, zone: params.zone));
 });
 
 // Provider for user's standing
 final userStandingProvider = FutureProvider.family<Standing?, UserStandingParams>((ref, params) {
   final repository = ref.watch(standingsRepositoryProvider);
-  return repository.getUserStanding(params.userId, params.bracket);
+  return repository.getUserStanding(params.userId, params.bracket, zone: params.zone);
 });
 
 // Provider for user's rank
 final userRankProvider = FutureProvider.family<int, UserStandingParams>((ref, params) {
   final repository = ref.watch(standingsRepositoryProvider);
-  return repository.getUserRank(params.userId, params.bracket);
+  return repository.getUserRank(params.userId, params.bracket, zone: params.zone);
 });
 
 // Helper class for user standing parameters
 class UserStandingParams {
   final String userId;
   final SkillBracket bracket;
+  final String zone;
 
-  UserStandingParams({required this.userId, required this.bracket});
+  UserStandingParams({required this.userId, required this.bracket, required this.zone});
 
   @override
   bool operator ==(Object other) =>
@@ -58,8 +72,9 @@ class UserStandingParams {
       other is UserStandingParams &&
           runtimeType == other.runtimeType &&
           userId == other.userId &&
-          bracket == other.bracket;
+          bracket == other.bracket &&
+          zone == other.zone;
 
   @override
-  int get hashCode => userId.hashCode ^ bracket.hashCode;
+  int get hashCode => userId.hashCode ^ bracket.hashCode ^ zone.hashCode;
 }

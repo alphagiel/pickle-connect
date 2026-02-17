@@ -412,7 +412,10 @@ class ProposalDetailsPage extends ConsumerWidget {
     if (confirmed == true && context.mounted) {
       try {
         await ref.read(proposalActionsProvider).deleteProposal(proposal.proposalId);
-        ref.invalidate(openProposalsProvider);
+        ref.invalidate(openProposalsProvider(ProposalFilterParams(
+          bracket: proposal.skillBracket,
+          zone: proposal.zone,
+        )));
         ref.invalidate(userProposalsProvider);
 
         if (context.mounted) {
@@ -460,7 +463,10 @@ class ProposalDetailsPage extends ConsumerWidget {
     if (confirmed == true && context.mounted) {
       try {
         await ref.read(proposalActionsProvider).unacceptProposal(proposal.proposalId);
-        ref.invalidate(openProposalsProvider);
+        ref.invalidate(openProposalsProvider(ProposalFilterParams(
+          bracket: proposal.skillBracket,
+          zone: proposal.zone,
+        )));
         ref.invalidate(acceptedProposalsProvider);
 
         if (context.mounted) {
@@ -500,7 +506,10 @@ class ProposalDetailsPage extends ConsumerWidget {
       );
 
       // Invalidate the providers to refresh the streams
-      ref.invalidate(openProposalsProvider(proposal.skillBracket));
+      ref.invalidate(openProposalsProvider(ProposalFilterParams(
+        bracket: proposal.skillBracket,
+        zone: proposal.zone,
+      )));
       ref.invalidate(acceptedProposalsProvider);
 
       if (context.mounted) {
@@ -1130,7 +1139,10 @@ class ProposalDetailsPage extends ConsumerWidget {
           .toList();
 
       await ref.read(proposalActionsProvider).updateScores(proposal.proposalId, games);
-      ref.invalidate(openProposalsProvider);
+      ref.invalidate(openProposalsProvider(ProposalFilterParams(
+        bracket: proposal.skillBracket,
+        zone: proposal.zone,
+      )));
       ref.invalidate(userProposalsProvider);
 
       if (context.mounted) {
@@ -1166,7 +1178,10 @@ class ProposalDetailsPage extends ConsumerWidget {
         await ref.read(proposalActionsProvider).completeMatch(proposal.proposalId);
       }
 
-      ref.invalidate(openProposalsProvider);
+      ref.invalidate(openProposalsProvider(ProposalFilterParams(
+        bracket: proposal.skillBracket,
+        zone: proposal.zone,
+      )));
       ref.invalidate(userProposalsProvider);
 
       if (context.mounted) {
@@ -1216,7 +1231,10 @@ class ProposalDetailsPage extends ConsumerWidget {
       try {
         // Clear scores by setting them to null (we need a new method for this)
         await ref.read(proposalActionsProvider).clearScores(proposal.proposalId);
-        ref.invalidate(openProposalsProvider);
+        ref.invalidate(openProposalsProvider(ProposalFilterParams(
+          bracket: proposal.skillBracket,
+          zone: proposal.zone,
+        )));
         ref.invalidate(userProposalsProvider);
 
         if (context.mounted) {

@@ -50,6 +50,7 @@ Status: Done — Retook screenshots on real iPad Pro 12.9" (6th gen) in release 
 
 ────────────────────────────────────────
 ## Feature: Zone-Based Community Support (Firestore-Driven)
+Branch: `feat-app-zoning` → PR to `main`
 ────────────────────────────────────────
 **Goal**: Players only see other players, proposals, and standings within their geographic zone. Zones are stored in Firestore (not hardcoded) so new communities can be added without app updates.
 
@@ -85,7 +86,7 @@ Firestore:
 
 ### Implementation Steps
 
-**Step 1: Zone Model + Firestore Collection** `[ ]`
+**Step 1: Zone Model + Firestore Collection** `[x]`
 - Create `lib/shared/models/zone.dart` — freezed `AppZone` model class (not enum):
   - Fields: `id`, `displayName`, `description`, `cities` (List<String>), `region`, `active`, `createdAt`
 - Create `lib/shared/repositories/zones_repository.dart`:
@@ -96,7 +97,7 @@ Firestore:
   - `userZoneProvider` → derives from current user's `zone` field
 - Seed initial zone docs to Firestore (`east_triangle`, `west_triangle`)
 
-**Step 2: Update User + Proposal Models** `[ ]`
+**Step 2: Update User + Proposal Models** `[x]`
 - `user.dart`: Add `required String zone` field (plain string, not enum)
   - `@Default('east_triangle')` for Firestore default
   - Update `_migrateUserJson()` to default missing `zone` to `'east_triangle'`
@@ -104,7 +105,7 @@ Firestore:
   - Update `_migrateProposalJson()` to default missing `zone` to `'east_triangle'`
 - Run `build_runner`
 
-**Step 3: Update Repositories with Zone Filtering** `[ ]`
+**Step 3: Update Repositories with Zone Filtering** `[x]`
 - `proposals_repository.dart`:
   - `getProposalsForBracket(bracket)` → `getProposalsForBracketAndZone(bracket, zone)` — add `.where('zone', isEqualTo: zone)`
   - `getCompletedProposalsByBracket(bracket)` → add zone param + filter
@@ -117,7 +118,7 @@ Firestore:
   - Same path change: `doubles_standings/{zone}_{bracket}/players/`
   - All methods accept `String zone` param
 
-**Step 4: Update Providers** `[ ]`
+**Step 4: Update Providers** `[x]`
 - `proposals_providers.dart`:
   - Create `ProposalFilterParams` class with `bracket` + `zone` (String)
   - Update `openProposalsProvider` family from `SkillBracket` → `ProposalFilterParams`
@@ -130,7 +131,7 @@ Firestore:
 - `doubles_proposals_providers.dart`:
   - Same zone-scoping pattern for `openDoublesProposalsProvider`
 
-**Step 5: Update UI Pages** `[ ]`
+**Step 5: Update UI Pages** `[x]`
 - `signup_page.dart`:
   - Fetch zones from `activeZonesProvider`
   - Add `DropdownButtonFormField` after skill level — shows `zone.displayName` + info icon with tooltip listing cities
@@ -150,7 +151,7 @@ Firestore:
 - `create_proposal_page.dart` + doubles create page:
   - Auto-set `zone` from user's profile (user doesn't pick zone per-proposal)
 
-**Step 6: Update Cloud Functions** `[ ]`
+**Step 6: Update Cloud Functions** `[x]`
 - `on-proposal-updated.ts`:
   - Extract `zone` from proposal data: `const zone = proposalData.zone || 'east_triangle'`
   - Change standings path from `standings/${skillBracket}` to `standings/${zone}_${skillBracket}`
@@ -160,24 +161,32 @@ Firestore:
   - Add `.where('zone', '==', proposalData.zone)` to user notification query
   - Players only get notified about proposals in their zone
 
-**Step 7: Firestore Indexes** `[ ]`
+**Step 7: Firestore Indexes** `[x]`
 - Add composite indexes for `proposals` collection:
   - `status ASC + skillBracket ASC + zone ASC`
   - `matchType ASC + status ASC + skillBracket ASC + zone ASC`
 - Deploy early: `firebase deploy --only firestore:indexes`
 
-**Step 8: Data Migration** `[ ]`
-- Backfill `zone: 'east_triangle'` on all existing user docs
-- Backfill `zone: 'east_triangle'` on all existing proposal docs
-- Copy standings docs from `standings/{bracket}/players/` to `standings/east_triangle_{bracket}/players/`
-- Same for `doubles_standings/`
-- Seed `zones/east_triangle` and `zones/west_triangle` documents
+**Step 8: Data Migration** `[x]` *(completed Feb 17, 2026 via Cloud Shell)*
+- [x] Seed `zones/east_triangle` and `zones/west_triangle` documents to Firestore
+- [x] Backfill `zone: 'east_triangle'` on all existing user docs (15 users)
+- [x] Backfill `zone: 'east_triangle'` on all existing proposal docs (10 proposals)
+- [x] Copy standings docs from `standings/{bracket}/players/` to `standings/east_triangle_{bracket}/players/` (no existing standings to copy)
+- [x] Same for `doubles_standings/` (no existing standings to copy)
 
-**Step 9: Delete Account Cleanup** `[ ]`
+**Step 9: Delete Account Cleanup** `[x]`
 - Update `_deleteAccount` in `edit_profile_page.dart` to pass user's zone string when anonymizing standings in both `standings_repository` and `doubles_standings_repository`
 
+### Deployment Steps (after PR merge)
+1. `firebase deploy --only firestore:indexes` — deploy new composite indexes (takes minutes to build)
+2. Seed zone docs to Firestore (see Step 8 above)
+3. Run data migration scripts (backfill zone field, copy standings)
+4. `cd functions && npm run build && firebase deploy --only functions`
+5. Build + deploy app update
+
 ### Verification Checklist
-- [ ] `flutter analyze` — no errors
+- [x] `flutter analyze` — no new errors (pre-existing notification_service errors only)
+- [x] TypeScript compiles — `npx tsc --noEmit` passes
 - [ ] `flutter test` — all pass
 - [ ] Signup: zone dropdown appears, populated from Firestore, info tooltip shows cities
 - [ ] Edit profile: zone can be changed, old zone standings cleared

@@ -310,6 +310,7 @@ mixin _$User {
   DateTime get updatedAt => throw _privateConstructorUsedError;
   EmailNotificationPreferences? get emailNotifications =>
       throw _privateConstructorUsedError;
+  String get zone => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -343,7 +344,8 @@ abstract class $UserCopyWith<$Res> {
       DateTime createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       DateTime updatedAt,
-      EmailNotificationPreferences? emailNotifications});
+      EmailNotificationPreferences? emailNotifications,
+      String zone});
 
   $EmailNotificationPreferencesCopyWith<$Res>? get emailNotifications;
 }
@@ -379,6 +381,7 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? emailNotifications = freezed,
+    Object? zone = null,
   }) {
     return _then(_value.copyWith(
       userId: null == userId
@@ -453,6 +456,10 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.emailNotifications
           : emailNotifications // ignore: cast_nullable_to_non_nullable
               as EmailNotificationPreferences?,
+      zone: null == zone
+          ? _value.zone
+          : zone // ignore: cast_nullable_to_non_nullable
+              as String,
     ) as $Val);
   }
 
@@ -499,7 +506,8 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       DateTime createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       DateTime updatedAt,
-      EmailNotificationPreferences? emailNotifications});
+      EmailNotificationPreferences? emailNotifications,
+      String zone});
 
   @override
   $EmailNotificationPreferencesCopyWith<$Res>? get emailNotifications;
@@ -533,6 +541,7 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? emailNotifications = freezed,
+    Object? zone = null,
   }) {
     return _then(_$UserImpl(
       userId: null == userId
@@ -607,6 +616,10 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value.emailNotifications
           : emailNotifications // ignore: cast_nullable_to_non_nullable
               as EmailNotificationPreferences?,
+      zone: null == zone
+          ? _value.zone
+          : zone // ignore: cast_nullable_to_non_nullable
+              as String,
     ));
   }
 }
@@ -636,7 +649,8 @@ class _$UserImpl implements _User {
       required this.createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required this.updatedAt,
-      this.emailNotifications});
+      this.emailNotifications,
+      this.zone = 'east_triangle'});
 
   factory _$UserImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserImplFromJson(json);
@@ -692,10 +706,13 @@ class _$UserImpl implements _User {
   final DateTime updatedAt;
   @override
   final EmailNotificationPreferences? emailNotifications;
+  @override
+  @JsonKey()
+  final String zone;
 
   @override
   String toString() {
-    return 'User(userId: $userId, displayName: $displayName, email: $email, skillLevel: $skillLevel, skillBracket: $skillBracket, location: $location, profileImageURL: $profileImageURL, matchesPlayed: $matchesPlayed, matchesWon: $matchesWon, matchesLost: $matchesLost, winRate: $winRate, doublesPlayed: $doublesPlayed, doublesWon: $doublesWon, doublesLost: $doublesLost, doublesWinRate: $doublesWinRate, createdAt: $createdAt, updatedAt: $updatedAt, emailNotifications: $emailNotifications)';
+    return 'User(userId: $userId, displayName: $displayName, email: $email, skillLevel: $skillLevel, skillBracket: $skillBracket, location: $location, profileImageURL: $profileImageURL, matchesPlayed: $matchesPlayed, matchesWon: $matchesWon, matchesLost: $matchesLost, winRate: $winRate, doublesPlayed: $doublesPlayed, doublesWon: $doublesWon, doublesLost: $doublesLost, doublesWinRate: $doublesWinRate, createdAt: $createdAt, updatedAt: $updatedAt, emailNotifications: $emailNotifications, zone: $zone)';
   }
 
   @override
@@ -735,31 +752,34 @@ class _$UserImpl implements _User {
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt) &&
             (identical(other.emailNotifications, emailNotifications) ||
-                other.emailNotifications == emailNotifications));
+                other.emailNotifications == emailNotifications) &&
+            (identical(other.zone, zone) || other.zone == zone));
   }
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      userId,
-      displayName,
-      email,
-      skillLevel,
-      skillBracket,
-      location,
-      profileImageURL,
-      matchesPlayed,
-      matchesWon,
-      matchesLost,
-      winRate,
-      doublesPlayed,
-      doublesWon,
-      doublesLost,
-      doublesWinRate,
-      createdAt,
-      updatedAt,
-      emailNotifications);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        userId,
+        displayName,
+        email,
+        skillLevel,
+        skillBracket,
+        location,
+        profileImageURL,
+        matchesPlayed,
+        matchesWon,
+        matchesLost,
+        winRate,
+        doublesPlayed,
+        doublesWon,
+        doublesLost,
+        doublesWinRate,
+        createdAt,
+        updatedAt,
+        emailNotifications,
+        zone
+      ]);
 
   @JsonKey(ignore: true)
   @override
@@ -798,7 +818,8 @@ abstract class _User implements User {
       required final DateTime createdAt,
       @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
       required final DateTime updatedAt,
-      final EmailNotificationPreferences? emailNotifications}) = _$UserImpl;
+      final EmailNotificationPreferences? emailNotifications,
+      final String zone}) = _$UserImpl;
 
   factory _User.fromJson(Map<String, dynamic> json) = _$UserImpl.fromJson;
 
@@ -844,6 +865,8 @@ abstract class _User implements User {
   DateTime get updatedAt;
   @override
   EmailNotificationPreferences? get emailNotifications;
+  @override
+  String get zone;
   @override
   @JsonKey(ignore: true)
   _$$UserImplCopyWith<_$UserImpl> get copyWith =>

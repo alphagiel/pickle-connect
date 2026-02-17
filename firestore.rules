@@ -72,22 +72,9 @@ service cloud.firestore {
 
     // Proposals collection
     match /proposals/{proposalId} {
-      // READ: Can see proposals if:
-      // 1. Proposal is completed (for standings visibility - check FIRST to avoid get() calls)
-      // 2. You're admin
-      // 3. You created the proposal
-      // 4. You accepted the proposal
-      // 5. You're a doubles player (playerIds contains your uid)
-      // 6. Proposal matches your skill bracket
-      // NOTE: Order matters! Check simple conditions first before calling get()
-      allow read: if isAuthenticated() && (
-        resource.data.status == 'completed' ||
-        isCreator(resource.data, request.auth.uid) ||
-        isAcceptor(resource.data, request.auth.uid) ||
-        (resource.data.keys().hasAny(['playerIds']) && request.auth.uid in resource.data.playerIds) ||
-        (userExists(request.auth.uid) && matchesBracket(resource.data, request.auth.uid)) ||
-        isAdmin(request.auth.uid)
-      );
+      // READ: Any authenticated user can read proposals
+      // App-level filtering handles bracket and zone scoping
+      allow read: if isAuthenticated();
 
       // CREATE: Can only create proposals with your own skill bracket
       allow create: if isAuthenticated() &&
@@ -139,6 +126,12 @@ service cloud.firestore {
     match /invitationCodes/{codeId} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && isAdmin(request.auth.uid);
+    }
+
+    // Zones collection - read-only for authenticated users
+    match /zones/{zoneId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
     }
 
     // Seasons collection - read-only for authenticated users

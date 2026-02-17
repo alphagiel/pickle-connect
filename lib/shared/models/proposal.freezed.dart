@@ -724,6 +724,7 @@ mixin _$Proposal {
 
   /// Denormalized list of user IDs for Firestore array-contains queries
   List<String> get playerIds => throw _privateConstructorUsedError;
+  String get zone => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -758,7 +759,8 @@ abstract class $ProposalCopyWith<$Res> {
       MatchType matchType,
       List<DoublesPlayer> doublesPlayers,
       int openSlots,
-      List<String> playerIds});
+      List<String> playerIds,
+      String zone});
 
   $AcceptedByCopyWith<$Res>? get acceptedBy;
   $ScoresCopyWith<$Res>? get scores;
@@ -794,6 +796,7 @@ class _$ProposalCopyWithImpl<$Res, $Val extends Proposal>
     Object? doublesPlayers = null,
     Object? openSlots = null,
     Object? playerIds = null,
+    Object? zone = null,
   }) {
     return _then(_value.copyWith(
       proposalId: null == proposalId
@@ -864,6 +867,10 @@ class _$ProposalCopyWithImpl<$Res, $Val extends Proposal>
           ? _value.playerIds
           : playerIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      zone: null == zone
+          ? _value.zone
+          : zone // ignore: cast_nullable_to_non_nullable
+              as String,
     ) as $Val);
   }
 
@@ -922,7 +929,8 @@ abstract class _$$ProposalImplCopyWith<$Res>
       MatchType matchType,
       List<DoublesPlayer> doublesPlayers,
       int openSlots,
-      List<String> playerIds});
+      List<String> playerIds,
+      String zone});
 
   @override
   $AcceptedByCopyWith<$Res>? get acceptedBy;
@@ -958,6 +966,7 @@ class __$$ProposalImplCopyWithImpl<$Res>
     Object? doublesPlayers = null,
     Object? openSlots = null,
     Object? playerIds = null,
+    Object? zone = null,
   }) {
     return _then(_$ProposalImpl(
       proposalId: null == proposalId
@@ -1028,6 +1037,10 @@ class __$$ProposalImplCopyWithImpl<$Res>
           ? _value._playerIds
           : playerIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      zone: null == zone
+          ? _value.zone
+          : zone // ignore: cast_nullable_to_non_nullable
+              as String,
     ));
   }
 }
@@ -1058,7 +1071,8 @@ class _$ProposalImpl extends _Proposal {
       this.matchType = MatchType.singles,
       final List<DoublesPlayer> doublesPlayers = const [],
       this.openSlots = 0,
-      final List<String> playerIds = const []})
+      final List<String> playerIds = const [],
+      this.zone = 'east_triangle'})
       : _scoreConfirmedBy = scoreConfirmedBy,
         _doublesPlayers = doublesPlayers,
         _playerIds = playerIds,
@@ -1138,8 +1152,12 @@ class _$ProposalImpl extends _Proposal {
   }
 
   @override
+  @JsonKey()
+  final String zone;
+
+  @override
   String toString() {
-    return 'Proposal(proposalId: $proposalId, creatorId: $creatorId, creatorName: $creatorName, skillLevel: $skillLevel, skillBracket: $skillBracket, location: $location, dateTime: $dateTime, status: $status, acceptedBy: $acceptedBy, scores: $scores, scoreConfirmedBy: $scoreConfirmedBy, createdAt: $createdAt, updatedAt: $updatedAt, matchType: $matchType, doublesPlayers: $doublesPlayers, openSlots: $openSlots, playerIds: $playerIds)';
+    return 'Proposal(proposalId: $proposalId, creatorId: $creatorId, creatorName: $creatorName, skillLevel: $skillLevel, skillBracket: $skillBracket, location: $location, dateTime: $dateTime, status: $status, acceptedBy: $acceptedBy, scores: $scores, scoreConfirmedBy: $scoreConfirmedBy, createdAt: $createdAt, updatedAt: $updatedAt, matchType: $matchType, doublesPlayers: $doublesPlayers, openSlots: $openSlots, playerIds: $playerIds, zone: $zone)';
   }
 
   @override
@@ -1178,7 +1196,8 @@ class _$ProposalImpl extends _Proposal {
             (identical(other.openSlots, openSlots) ||
                 other.openSlots == openSlots) &&
             const DeepCollectionEquality()
-                .equals(other._playerIds, _playerIds));
+                .equals(other._playerIds, _playerIds) &&
+            (identical(other.zone, zone) || other.zone == zone));
   }
 
   @JsonKey(ignore: true)
@@ -1201,7 +1220,8 @@ class _$ProposalImpl extends _Proposal {
       matchType,
       const DeepCollectionEquality().hash(_doublesPlayers),
       openSlots,
-      const DeepCollectionEquality().hash(_playerIds));
+      const DeepCollectionEquality().hash(_playerIds),
+      zone);
 
   @JsonKey(ignore: true)
   @override
@@ -1240,7 +1260,8 @@ abstract class _Proposal extends Proposal {
       final MatchType matchType,
       final List<DoublesPlayer> doublesPlayers,
       final int openSlots,
-      final List<String> playerIds}) = _$ProposalImpl;
+      final List<String> playerIds,
+      final String zone}) = _$ProposalImpl;
   const _Proposal._() : super._();
 
   factory _Proposal.fromJson(Map<String, dynamic> json) =
@@ -1289,6 +1310,8 @@ abstract class _Proposal extends Proposal {
 
   /// Denormalized list of user IDs for Firestore array-contains queries
   List<String> get playerIds;
+  @override
+  String get zone;
   @override
   @JsonKey(ignore: true)
   _$$ProposalImplCopyWith<_$ProposalImpl> get copyWith =>

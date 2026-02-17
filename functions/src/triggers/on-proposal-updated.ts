@@ -485,6 +485,8 @@ async function handleMatchResultRecorded(
     return;
   }
 
+  const zone = proposalData.zone || "east_triangle";
+
   const creatorId = proposalData.creatorId;
   const opponentId = proposalData.acceptedBy?.userId;
 
@@ -501,7 +503,8 @@ async function handleMatchResultRecorded(
     creatorId,
     creatorDoc.exists ? creatorDoc.data()!.displayName : "Unknown",
     creatorDoc.exists ? creatorDoc.data()!.skillLevel : "3.5",
-    creatorWon
+    creatorWon,
+    zone
   );
 
   // Update opponent's standing
@@ -512,7 +515,8 @@ async function handleMatchResultRecorded(
     opponentId,
     opponentDoc?.exists ? opponentDoc.data()!.displayName : proposalData.acceptedBy.displayName,
     opponentDoc?.exists ? opponentDoc.data()!.skillLevel : "3.5",
-    !creatorWon
+    !creatorWon,
+    zone
   );
 
   console.log(`[onProposalUpdated] Standings updated for both players`);
@@ -635,6 +639,8 @@ async function handleDoublesMatchResultRecorded(
     return;
   }
 
+  const zone = proposalData.zone || "east_triangle";
+
   for (let i = 0; i < confirmedPlayers.length; i++) {
     const player = confirmedPlayers[i];
     const playerDoc = playerDocs[i];
@@ -648,7 +654,8 @@ async function handleDoublesMatchResultRecorded(
       player.userId,
       playerDoc.exists ? playerDoc.data()!.displayName : player.displayName,
       playerDoc.exists ? playerDoc.data()!.skillLevel : "3.5",
-      won
+      won,
+      zone
     );
 
     // Also update user's doubles stats
@@ -1284,11 +1291,13 @@ async function updatePlayerStanding(
   playerId: string,
   displayName: string,
   skillLevel: string,
-  won: boolean
+  won: boolean,
+  zone: string = "east_triangle"
 ): Promise<void> {
+  const docId = `${zone}_${skillBracket}`;
   const standingRef = db
     .collection(collection)
-    .doc(skillBracket)
+    .doc(docId)
     .collection("players")
     .doc(playerId);
 

@@ -4,8 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/widgets/responsive_center.dart';
 import '../../../../shared/models/user.dart';
+import '../../../../shared/models/zone.dart';
 import '../../../../shared/repositories/users_repository.dart';
-import '../providers/auth_providers.dart';
+import '../../../../shared/providers/zones_providers.dart';
 import '../../data/repositories/auth_repository.dart';
 
 class SignupPage extends ConsumerStatefulWidget {
@@ -23,6 +24,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   SkillLevel? _selectedSkillLevel;
+  AppZone? _selectedZone;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
@@ -69,6 +71,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
           skillBracket: _selectedSkillLevel!.bracket, // Derived from specific level
           location: 'Club Member', // Default location
           profileImageURL: null,
+          zone: _selectedZone!.id,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );
@@ -341,6 +344,90 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                                 return 'Please select your skill level';
                               }
                               return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Zone dropdown
+                          Builder(
+                            builder: (context) {
+                              final zonesAsync = ref.watch(activeZonesProvider);
+                              return zonesAsync.when(
+                                data: (zones) {
+                                  return DropdownButtonFormField<AppZone>(
+                                    value: _selectedZone,
+                                    decoration: InputDecoration(
+                                      labelText: 'Zone *',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
+                                      ),
+                                      prefixIcon: Icon(Icons.location_on),
+                                    ),
+                                    isExpanded: true,
+                                    items: zones.map((zone) {
+                                      return DropdownMenuItem<AppZone>(
+                                        value: zone,
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    zone.displayName,
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.w600,
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    zone.description,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: AppColors.secondaryText,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Tooltip(
+                                              message: zone.cities.join(', '),
+                                              child: Icon(
+                                                Icons.info_outline,
+                                                size: 18,
+                                                color: AppColors.secondaryText,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                    selectedItemBuilder: (BuildContext context) {
+                                      return zones.map((zone) {
+                                        return Text(zone.displayName);
+                                      }).toList();
+                                    },
+                                    onChanged: (AppZone? value) {
+                                      setState(() {
+                                        _selectedZone = value;
+                                      });
+                                    },
+                                    validator: (value) {
+                                      if (value == null) {
+                                        return 'Please select your zone';
+                                      }
+                                      return null;
+                                    },
+                                  );
+                                },
+                                loading: () => const LinearProgressIndicator(),
+                                error: (_, __) => const Text('Failed to load zones'),
+                              );
                             },
                           ),
                           const SizedBox(height: 24),

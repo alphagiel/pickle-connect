@@ -6,6 +6,7 @@ import '../../../../shared/models/standing.dart';
 import '../../../../shared/models/proposal.dart';
 import '../../../../shared/providers/standings_providers.dart';
 import '../../../../shared/providers/proposals_providers.dart';
+import '../../../../shared/providers/zones_providers.dart';
 import '../../../../core/utils/season_utils.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
@@ -19,6 +20,7 @@ class StandingsPage extends ConsumerStatefulWidget {
 
 class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  String? _selectedZoneId; // null = use user's home zone
 
   @override
   void initState() {
@@ -101,6 +103,18 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
       );
     }
 
+    final userProfileAsync = ref.watch(currentUserProfileProvider);
+    final zonesAsync = ref.watch(activeZonesProvider);
+
+    // Determine active zone ID
+    final userZone = userProfileAsync.valueOrNull?.zone ?? 'east_triangle';
+    final activeZoneId = _selectedZoneId ?? userZone;
+
+    // Look up the zone display name
+    final zones = zonesAsync.valueOrNull ?? [];
+    final activeZone = zones.where((z) => z.id == activeZoneId).firstOrNull;
+    final zoneLabel = activeZone?.displayName ?? activeZoneId;
+
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       body: Column(
@@ -135,7 +149,7 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Leaderboards by skill level',
+                          '$zoneLabel Leaderboards',
                           style: TextStyle(
                             fontSize: 16,
                             color: AppColors.onPrimary.withValues(alpha: 0.9),
@@ -143,9 +157,64 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
                         ),
                       ],
                     ),
-                    
-                    const SizedBox(height: 24),
-                    
+
+                    const SizedBox(height: 12),
+
+                    // Zone dropdown
+                    if (zones.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.onPrimary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: activeZoneId,
+                            isExpanded: true,
+                            dropdownColor: AppColors.darkBlue,
+                            icon: const Icon(Icons.arrow_drop_down, color: AppColors.onPrimary),
+                            style: const TextStyle(
+                              color: AppColors.onPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            items: zones.map((zone) {
+                              final isHome = zone.id == userZone;
+                              return DropdownMenuItem<String>(
+                                value: zone.id,
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '${zone.displayName}${isHome ? ' (Home)' : ''}',
+                                      ),
+                                    ),
+                                    Tooltip(
+                                      message: zone.description,
+                                      child: Icon(
+                                        Icons.info_outline,
+                                        size: 16,
+                                        color: AppColors.onPrimary.withValues(alpha: 0.7),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (zoneId) {
+                              if (zoneId != null) {
+                                setState(() {
+                                  _selectedZoneId = zoneId;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+
+                    const SizedBox(height: 12),
+
                     // Skill level tabs
                     Container(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -184,17 +253,17 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
               ),
             ),
           ),
-          
+
           // Tab content
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildStandingsContent(SkillBracket.beginner),
-                _buildStandingsContent(SkillBracket.novice),
-                _buildStandingsContent(SkillBracket.intermediate),
-                _buildStandingsContent(SkillBracket.advanced),
-                _buildStandingsContent(SkillBracket.expert),
+                _buildStandingsContent(SkillBracket.beginner, activeZoneId),
+                _buildStandingsContent(SkillBracket.novice, activeZoneId),
+                _buildStandingsContent(SkillBracket.intermediate, activeZoneId),
+                _buildStandingsContent(SkillBracket.advanced, activeZoneId),
+                _buildStandingsContent(SkillBracket.expert, activeZoneId),
               ],
             ),
           ),
@@ -203,9 +272,11 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
     );
   }
 
-  Widget _buildStandingsContent(SkillBracket bracket) {
-    final standingsAsync = ref.watch(standingsProvider(bracket));
-    final matchesAsync = ref.watch(completedMatchesByBracketProvider(bracket));
+  Widget _buildStandingsContent(SkillBracket bracket, String zoneId) {
+    final standingsParams = StandingsFilterParams(bracket: bracket, zone: zoneId);
+    final proposalParams = ProposalFilterParams(bracket: bracket, zone: zoneId);
+    final standingsAsync = ref.watch(standingsProvider(standingsParams));
+    final matchesAsync = ref.watch(completedMatchesByBracketProvider(proposalParams));
 
     // Debug logging
     print('[StandingsPage] Loading standings for bracket: ${bracket.jsonValue}');
@@ -218,8 +289,8 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
         }
         return RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(standingsProvider(bracket));
-            ref.invalidate(completedMatchesByBracketProvider(bracket));
+            ref.invalidate(standingsProvider(standingsParams));
+            ref.invalidate(completedMatchesByBracketProvider(proposalParams));
           },
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -248,7 +319,7 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
           valueColor: AlwaysStoppedAnimation<Color>(AppColors.accentBlue),
         ),
       ),
-      error: (error, stack) => _buildErrorState(error.toString(), bracket),
+      error: (error, stack) => _buildErrorState(error.toString(), bracket, zoneId: zoneId),
     );
   }
 
@@ -766,7 +837,8 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
     );
   }
 
-  Widget _buildErrorState(String error, SkillBracket bracket) {
+  Widget _buildErrorState(String error, SkillBracket bracket, {String zoneId = 'east_triangle'}) {
+    final standingsParams = StandingsFilterParams(bracket: bracket, zone: zoneId);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -800,7 +872,7 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
-                ref.invalidate(standingsProvider(bracket));
+                ref.invalidate(standingsProvider(standingsParams));
               },
               icon: const Icon(Icons.refresh),
               label: const Text('Try Again'),
