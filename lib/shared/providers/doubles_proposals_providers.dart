@@ -3,11 +3,12 @@ import '../models/proposal.dart';
 import '../models/user.dart';
 import '../repositories/proposals_repository.dart';
 import '../../core/utils/stream_retry.dart';
+import 'proposals_providers.dart' show ProposalFilterParams;
 
-/// Open doubles proposals for a skill bracket
-final openDoublesProposalsProvider = StreamProvider.family<List<Proposal>, SkillBracket>((ref, bracket) {
+/// Open doubles proposals for a skill bracket and zone
+final openDoublesProposalsProvider = StreamProvider.family<List<Proposal>, ProposalFilterParams>((ref, params) {
   final repository = ref.watch(proposalsRepositoryProvider);
-  return retryStream(() => repository.getDoublesProposalsForBracket(bracket));
+  return retryStream(() => repository.getDoublesProposalsForBracketAndZone(params.bracket, params.zone));
 });
 
 /// User's doubles proposals (any status where user is a playerIds member)
@@ -28,8 +29,8 @@ final doublesStatusFilterProvider = StateProvider<DoublesStatusFilter>((ref) => 
 enum DoublesStatusFilter { all, active, completed }
 
 /// Filtered doubles proposals
-final filteredDoublesProposalsProvider = Provider.family<AsyncValue<List<Proposal>>, SkillBracket>((ref, bracket) {
-  final proposalsAsync = ref.watch(openDoublesProposalsProvider(bracket));
+final filteredDoublesProposalsProvider = Provider.family<AsyncValue<List<Proposal>>, ProposalFilterParams>((ref, params) {
+  final proposalsAsync = ref.watch(openDoublesProposalsProvider(params));
   final statusFilter = ref.watch(doublesStatusFilterProvider);
 
   return proposalsAsync.when(

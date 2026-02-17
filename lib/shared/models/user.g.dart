@@ -50,6 +50,7 @@ _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
           ? null
           : EmailNotificationPreferences.fromJson(
               json['emailNotifications'] as Map<String, dynamic>),
+      zone: json['zone'] as String? ?? 'east_triangle',
     );
 
 Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
@@ -72,4 +73,5 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'createdAt': _timestampToJson(instance.createdAt),
       'updatedAt': _timestampToJson(instance.updatedAt),
       'emailNotifications': instance.emailNotifications,
+      'zone': instance.zone,
     };

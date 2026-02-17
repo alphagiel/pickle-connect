@@ -100,6 +100,7 @@ _$ProposalImpl _$$ProposalImplFromJson(Map<String, dynamic> json) =>
               ?.map((e) => e as String)
               .toList() ??
           const [],
+      zone: json['zone'] as String? ?? 'east_triangle',
     );
 
 Map<String, dynamic> _$$ProposalImplToJson(_$ProposalImpl instance) =>
@@ -121,6 +122,7 @@ Map<String, dynamic> _$$ProposalImplToJson(_$ProposalImpl instance) =>
       'doublesPlayers': instance.doublesPlayers.map((e) => e.toJson()).toList(),
       'openSlots': instance.openSlots,
       'playerIds': instance.playerIds,
+      'zone': instance.zone,
     };
 
 const _$ProposalStatusEnumMap = {

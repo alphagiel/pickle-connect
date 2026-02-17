@@ -6,6 +6,8 @@ import '../../../../shared/repositories/users_repository.dart';
 import '../../../../shared/repositories/proposals_repository.dart';
 import '../../../../shared/repositories/standings_repository.dart';
 import '../../../../shared/repositories/doubles_standings_repository.dart';
+import '../../../../shared/models/zone.dart';
+import '../../../../shared/providers/zones_providers.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/widgets/responsive_center.dart';
 import '../../../auth/data/repositories/auth_repository.dart';
@@ -23,6 +25,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   final _displayNameController = TextEditingController();
   final _locationController = TextEditingController();
   SkillLevel? _selectedSkillLevel;
+  String? _selectedZoneId;
+  String? _originalZoneId;
   bool _isLoading = false;
   bool _isInitialized = false;
 
@@ -38,6 +42,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       _displayNameController.text = userProfile.displayName;
       _locationController.text = userProfile.location;
       _selectedSkillLevel = userProfile.skillLevel;
+      _selectedZoneId = userProfile.zone;
+      _originalZoneId = userProfile.zone;
       _isInitialized = true;
     }
   }
@@ -155,6 +161,78 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                         return 'Please select your skill level';
                       }
                       return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Zone dropdown
+                  Builder(
+                    builder: (context) {
+                      final zonesAsync = ref.watch(activeZonesProvider);
+                      return zonesAsync.when(
+                        data: (zones) {
+                          // Ensure selected zone is valid
+                          final validZoneIds = zones.map((z) => z.id).toSet();
+                          final currentZoneId = validZoneIds.contains(_selectedZoneId)
+                              ? _selectedZoneId
+                              : (zones.isNotEmpty ? zones.first.id : null);
+
+                          return DropdownButtonFormField<String>(
+                            value: currentZoneId,
+                            style: const TextStyle(color: AppColors.primaryText, fontSize: 16),
+                            dropdownColor: AppColors.cardBackground,
+                            decoration: InputDecoration(
+                              labelText: 'Zone',
+                              labelStyle: const TextStyle(color: AppColors.secondaryText),
+                              prefixIcon: const Icon(Icons.location_on, color: AppColors.neutralGray),
+                              filled: true,
+                              fillColor: AppColors.cardBackground,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: AppColors.mediumGray),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
+                              ),
+                            ),
+                            items: zones.map((zone) {
+                              return DropdownMenuItem<String>(
+                                value: zone.id,
+                                child: Row(
+                                  children: [
+                                    Expanded(child: Text(zone.displayName)),
+                                    Tooltip(
+                                      message: zone.description,
+                                      child: Icon(
+                                        Icons.info_outline,
+                                        size: 16,
+                                        color: AppColors.secondaryText,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedZoneId = value;
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null) {
+                                return 'Please select your zone';
+                              }
+                              return null;
+                            },
+                          );
+                        },
+                        loading: () => const LinearProgressIndicator(),
+                        error: (_, __) => const Text('Failed to load zones'),
+                      );
                     },
                   ),
                   const SizedBox(height: 20),
@@ -396,10 +474,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
       // Step 4: Anonymize in standings
       if (bracket != null) {
+        final zone = userProfile?.zone ?? 'east_triangle';
         final standingsRepository = ref.read(standingsRepositoryProvider);
         final doublesStandingsRepository = ref.read(doublesStandingsRepositoryProvider);
-        await standingsRepository.anonymizeUserInStandings(userId, bracket);
-        await doublesStandingsRepository.anonymizeUserInStandings(userId, bracket);
+        await standingsRepository.anonymizeUserInStandings(userId, bracket, zone: zone);
+        await doublesStandingsRepository.anonymizeUserInStandings(userId, bracket, zone: zone);
       }
 
       // Step 5: Delete Firestore user profile
@@ -467,11 +546,28 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
       if (currentProfile != null) {
         // Update existing profile
-        await usersRepository.updateUser(userId, {
+        final updates = <String, dynamic>{
           'displayName': newDisplayName,
           'skillLevel': _selectedSkillLevel!.displayName,
           'location': _locationController.text.trim(),
-        });
+          'zone': _selectedZoneId ?? 'east_triangle',
+        };
+        await usersRepository.updateUser(userId, updates);
+
+        // If zone changed, remove user from old zone standings (rankings reset)
+        if (_originalZoneId != null && _selectedZoneId != _originalZoneId) {
+          final standingsRepository = ref.read(standingsRepositoryProvider);
+          final doublesStandingsRepository = ref.read(doublesStandingsRepositoryProvider);
+          final bracket = currentProfile.skillBracket;
+          await standingsRepository.removeUserFromStandings(userId, bracket, zone: _originalZoneId!);
+          // Also remove from doubles standings in old zone
+          try {
+            final doublesDoc = await doublesStandingsRepository.getUserStanding(userId, bracket, zone: _originalZoneId!);
+            if (doublesDoc != null) {
+              await doublesStandingsRepository.anonymizeUserInStandings(userId, bracket, zone: _originalZoneId!);
+            }
+          } catch (_) {}
+        }
 
         // If display name changed, update it in all user's proposals
         if (currentProfile.displayName != newDisplayName) {
@@ -487,6 +583,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           skillLevel: _selectedSkillLevel!,
           skillBracket: _selectedSkillLevel!.bracket,
           location: _locationController.text.trim(),
+          zone: _selectedZoneId ?? 'east_triangle',
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );

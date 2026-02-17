@@ -11,11 +11,15 @@ class DoublesStandingsRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'doubles_standings';
 
-  /// Get doubles standings for a specific skill bracket
-  Stream<List<Standing>> getStandingsForBracket(SkillBracket bracket) {
+  /// Build the document ID for zone-scoped doubles standings
+  String _docId(String zone, SkillBracket bracket) => '${zone}_${bracket.jsonValue}';
+
+  /// Get doubles standings for a specific skill bracket and zone
+  Stream<List<Standing>> getStandingsForBracket(SkillBracket bracket, {required String zone}) {
+    final docId = _docId(zone, bracket);
     return _firestore
         .collection(_collection)
-        .doc(bracket.jsonValue)
+        .doc(docId)
         .collection('players')
         .orderBy('winRate', descending: true)
         .orderBy('matchesWon', descending: true)
@@ -28,11 +32,12 @@ class DoublesStandingsRepository {
         });
   }
 
-  /// Get a user's doubles standing in their skill bracket
-  Future<Standing?> getUserStanding(String userId, SkillBracket bracket) async {
+  /// Get a user's doubles standing in their skill bracket and zone
+  Future<Standing?> getUserStanding(String userId, SkillBracket bracket, {required String zone}) async {
+    final docId = _docId(zone, bracket);
     final doc = await _firestore
         .collection(_collection)
-        .doc(bracket.jsonValue)
+        .doc(docId)
         .collection('players')
         .doc(userId)
         .get();
@@ -44,10 +49,11 @@ class DoublesStandingsRepository {
   }
 
   /// Anonymize a deleted user's name in doubles standings (preserves ladder history)
-  Future<void> anonymizeUserInStandings(String userId, SkillBracket bracket) async {
+  Future<void> anonymizeUserInStandings(String userId, SkillBracket bracket, {required String zone}) async {
+    final docId = _docId(zone, bracket);
     final doc = _firestore
         .collection(_collection)
-        .doc(bracket.jsonValue)
+        .doc(docId)
         .collection('players')
         .doc(userId);
 
@@ -57,9 +63,9 @@ class DoublesStandingsRepository {
     }
   }
 
-  /// Get a user's rank in doubles standings for their bracket
-  Future<int> getUserRank(String userId, SkillBracket bracket) async {
-    final standings = await getStandingsForBracket(bracket).first;
+  /// Get a user's rank in doubles standings for their bracket and zone
+  Future<int> getUserRank(String userId, SkillBracket bracket, {required String zone}) async {
+    final standings = await getStandingsForBracket(bracket, zone: zone).first;
     final userIndex = standings.indexWhere((standing) => standing.userId == userId);
     return userIndex == -1 ? 0 : userIndex + 1;
   }

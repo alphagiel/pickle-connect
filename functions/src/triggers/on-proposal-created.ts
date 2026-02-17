@@ -36,10 +36,13 @@ export const onProposalCreated = functions
     const emailService = getEmailService(process.env.RESEND_API_KEY);
     const isDoubles = proposalData.matchType === "doubles";
 
-    // Query users with the same skill level (except the creator)
+    const zone = proposalData.zone || "east_triangle";
+
+    // Query users with the same skill level and zone (except the creator)
     const usersSnapshot = await db
       .collection("users")
       .where("skillLevel", "==", proposalData.skillLevel)
+      .where("zone", "==", zone)
       .get();
 
     if (usersSnapshot.empty) {

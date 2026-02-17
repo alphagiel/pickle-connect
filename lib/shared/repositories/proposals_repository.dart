@@ -11,14 +11,15 @@ class ProposalsRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'proposals';
 
-  // Get singles proposals filtered by skill bracket (for interactibility)
+  // Get singles proposals filtered by skill bracket and zone
   // Users see all proposals in their bracket (e.g., 3.0 and 3.5 players see each other)
   // Filters out doubles proposals
-  Stream<List<Proposal>> getProposalsForBracket(SkillBracket bracket) {
+  Stream<List<Proposal>> getProposalsForBracketAndZone(SkillBracket bracket, String zone) {
     return _firestore
         .collection(_collection)
         .where('status', isEqualTo: 'open')
         .where('skillBracket', isEqualTo: bracket.jsonValue)
+        .where('zone', isEqualTo: zone)
         .snapshots()
         .map((snapshot) {
           final proposals = <Proposal>[];
@@ -49,9 +50,9 @@ class ProposalsRepository {
         });
   }
 
-  // Legacy method - redirects to bracket-based filtering
-  Stream<List<Proposal>> getProposalsForSkillLevel(SkillLevel skillLevel) {
-    return getProposalsForBracket(skillLevel.bracket);
+  // Legacy method - redirects to bracket+zone filtering
+  Stream<List<Proposal>> getProposalsForSkillLevel(SkillLevel skillLevel, String zone) {
+    return getProposalsForBracketAndZone(skillLevel.bracket, zone);
   }
 
   // Get all open proposals (only status = 'open')
@@ -211,12 +212,13 @@ class ProposalsRepository {
     });
   }
 
-  // Get completed proposals by skill bracket (for standings page)
-  Stream<List<Proposal>> getCompletedProposalsByBracket(SkillBracket bracket) {
+  // Get completed proposals by skill bracket and zone (for standings page)
+  Stream<List<Proposal>> getCompletedProposalsByBracketAndZone(SkillBracket bracket, String zone) {
     return _firestore
         .collection(_collection)
         .where('status', isEqualTo: 'completed')
         .where('skillBracket', isEqualTo: bracket.jsonValue)
+        .where('zone', isEqualTo: zone)
         .snapshots()
         .map((snapshot) {
           final proposals = <Proposal>[];
@@ -239,9 +241,9 @@ class ProposalsRepository {
         });
   }
 
-  // Legacy method - redirects to bracket-based filtering
-  Stream<List<Proposal>> getCompletedProposalsBySkillLevel(SkillLevel skillLevel) {
-    return getCompletedProposalsByBracket(skillLevel.bracket);
+  // Legacy method - redirects to bracket+zone filtering
+  Stream<List<Proposal>> getCompletedProposalsBySkillLevel(SkillLevel skillLevel, String zone) {
+    return getCompletedProposalsByBracketAndZone(skillLevel.bracket, zone);
   }
 
   // Get expired proposals where user is creator or acceptor
@@ -759,13 +761,14 @@ class ProposalsRepository {
   // Doubles-specific methods
   // ============================
 
-  /// Get open doubles proposals for a skill bracket
-  Stream<List<Proposal>> getDoublesProposalsForBracket(SkillBracket bracket) {
+  /// Get open doubles proposals for a skill bracket and zone
+  Stream<List<Proposal>> getDoublesProposalsForBracketAndZone(SkillBracket bracket, String zone) {
     return _firestore
         .collection(_collection)
         .where('matchType', isEqualTo: 'doubles')
         .where('status', isEqualTo: 'open')
         .where('skillBracket', isEqualTo: bracket.jsonValue)
+        .where('zone', isEqualTo: zone)
         .snapshots()
         .map((snapshot) {
           final proposals = <Proposal>[];

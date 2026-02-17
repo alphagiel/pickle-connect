@@ -5,6 +5,8 @@ import '../../../../shared/models/user.dart';
 import '../../../../shared/models/proposal.dart';
 import '../../../../shared/providers/doubles_proposals_providers.dart';
 import '../../../../shared/providers/doubles_standings_providers.dart';
+import '../../../../shared/providers/proposals_providers.dart' show ProposalFilterParams;
+import '../../../../shared/providers/standings_providers.dart' show StandingsFilterParams;
 import '../../../../shared/models/standing.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../../../../shared/theme/app_colors.dart';
@@ -217,10 +219,15 @@ class _DoublesProposalsContentState extends ConsumerState<_DoublesProposalsConte
                   );
                 }
 
+                final filterParams = ProposalFilterParams(
+                  bracket: userProfile.skillLevel.bracket,
+                  zone: userProfile.zone,
+                );
+
                 return TabBarView(
                   controller: _innerTabController,
                   children: [
-                    _buildAvailableDoubles(userProfile.skillLevel.bracket),
+                    _buildAvailableDoubles(filterParams),
                     _buildMyDoubles(currentUser.id),
                     _buildCompletedDoubles(currentUser.id),
                   ],
@@ -237,8 +244,9 @@ class _DoublesProposalsContentState extends ConsumerState<_DoublesProposalsConte
     );
   }
 
-  Widget _buildAvailableDoubles(SkillBracket bracket) {
-    final proposalsAsync = ref.watch(openDoublesProposalsProvider(bracket));
+  Widget _buildAvailableDoubles(ProposalFilterParams filterParams) {
+    final bracket = filterParams.bracket;
+    final proposalsAsync = ref.watch(openDoublesProposalsProvider(filterParams));
 
     return proposalsAsync.when(
       data: (proposals) {
@@ -254,7 +262,7 @@ class _DoublesProposalsContentState extends ConsumerState<_DoublesProposalsConte
 
         return RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(openDoublesProposalsProvider(bracket));
+            ref.invalidate(openDoublesProposalsProvider(filterParams));
           },
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -276,7 +284,7 @@ class _DoublesProposalsContentState extends ConsumerState<_DoublesProposalsConte
           Future.delayed(_retryDelay, () {
             if (mounted) {
               _retryAttempts[retryKey] = attempts + 1;
-              ref.invalidate(openDoublesProposalsProvider(bracket));
+              ref.invalidate(openDoublesProposalsProvider(filterParams));
             }
           });
           return const Center(
@@ -690,7 +698,9 @@ class _DoublesRankingsContentState extends ConsumerState<_DoublesRankingsContent
   }
 
   Widget _buildDoublesStandings(SkillBracket bracket) {
-    final standingsAsync = ref.watch(doublesStandingsProvider(bracket));
+    final userZone = ref.watch(currentUserProfileProvider).valueOrNull?.zone ?? 'east_triangle';
+    final standingsParams = StandingsFilterParams(bracket: bracket, zone: userZone);
+    final standingsAsync = ref.watch(doublesStandingsProvider(standingsParams));
 
     return standingsAsync.when(
       data: (standings) {
@@ -715,7 +725,7 @@ class _DoublesRankingsContentState extends ConsumerState<_DoublesRankingsContent
 
         return RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(doublesStandingsProvider(bracket));
+            ref.invalidate(doublesStandingsProvider(standingsParams));
           },
           child: ListView(
             padding: const EdgeInsets.all(16),
@@ -739,7 +749,7 @@ class _DoublesRankingsContentState extends ConsumerState<_DoublesRankingsContent
               Text('Error: $error', style: const TextStyle(color: AppColors.secondaryText)),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => ref.invalidate(doublesStandingsProvider(bracket)),
+                onPressed: () => ref.invalidate(doublesStandingsProvider(standingsParams)),
                 child: const Text('Try Again'),
               ),
             ],

@@ -26,6 +26,33 @@
         { "fieldPath": "playerIds", "arrayConfig": "CONTAINS" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "proposals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "skillBracket", "order": "ASCENDING" },
+        { "fieldPath": "zone", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "proposals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "matchType", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "skillBracket", "order": "ASCENDING" },
+        { "fieldPath": "zone", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "skillLevel", "order": "ASCENDING" },
+        { "fieldPath": "zone", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

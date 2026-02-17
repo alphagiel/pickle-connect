@@ -252,25 +252,38 @@ class User with _$User {
     @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
     required DateTime updatedAt,
     EmailNotificationPreferences? emailNotifications,
+    @Default('east_triangle') String zone,
   }) = _User;
 
   factory User.fromJson(Map<String, dynamic> json) =>
       _$UserFromJson(_migrateUserJson(json));
 }
 
-/// Migrate old user JSON to include skillBracket
+/// Migrate old user JSON to include skillBracket and zone
 Map<String, dynamic> _migrateUserJson(Map<String, dynamic> json) {
+  var needsMigration = false;
+  var modifiedJson = json;
+
   if (!json.containsKey('skillBracket') && json.containsKey('skillLevel')) {
-    final modifiedJson = Map<String, dynamic>.from(json);
+    needsMigration = true;
+    modifiedJson = Map<String, dynamic>.from(modifiedJson);
     final skillLevelStr = json['skillLevel'] as String?;
     if (skillLevelStr != null) {
       // Derive bracket from skill level
       final bracket = _bracketFromSkillLevelString(skillLevelStr);
       modifiedJson['skillBracket'] = bracket;
     }
-    return modifiedJson;
   }
-  return json;
+
+  // Default zone for existing users without one
+  if (!json.containsKey('zone')) {
+    if (!needsMigration) {
+      modifiedJson = Map<String, dynamic>.from(modifiedJson);
+    }
+    modifiedJson['zone'] = 'east_triangle';
+  }
+
+  return modifiedJson;
 }
 
 String _bracketFromSkillLevelString(String skillLevelStr) {

@@ -230,10 +230,15 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
                   );
                 }
 
+                final filterParams = ProposalFilterParams(
+                  bracket: userProfile.skillLevel.bracket,
+                  zone: userProfile.zone,
+                );
+
                 return TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildAvailableProposals(userProfile.skillLevel.bracket),
+                    _buildAvailableProposals(filterParams),
                     _buildMyMatches(),
                     _buildCompletedProposals(),
                   ],
@@ -252,8 +257,9 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
     );
   }
 
-  Widget _buildAvailableProposals(SkillBracket bracket) {
-    final proposalsAsync = ref.watch(filteredProposalsProvider(bracket));
+  Widget _buildAvailableProposals(ProposalFilterParams filterParams) {
+    final bracket = filterParams.bracket;
+    final proposalsAsync = ref.watch(filteredProposalsProvider(filterParams));
 
     return proposalsAsync.when(
       data: (proposals) {
@@ -270,7 +276,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
 
         return RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(openProposalsProvider(bracket));
+            ref.invalidate(openProposalsProvider(filterParams));
           },
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -335,7 +341,7 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
           Future.delayed(_retryDelay, () {
             if (mounted) {
               _retryAttempts[retryKey] = attempts + 1;
-              ref.invalidate(openProposalsProvider(bracket));
+              ref.invalidate(openProposalsProvider(filterParams));
             }
           });
           // Show loading while retrying
@@ -1047,7 +1053,10 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
               onPressed: () {
                 final userProfile = ref.read(currentUserProfileProvider).valueOrNull;
                 if (userProfile != null) {
-                  ref.invalidate(openProposalsProvider(userProfile.skillLevel.bracket));
+                  ref.invalidate(openProposalsProvider(ProposalFilterParams(
+                    bracket: userProfile.skillLevel.bracket,
+                    zone: userProfile.zone,
+                  )));
                 }
               },
               icon: const Icon(Icons.refresh),
@@ -1092,7 +1101,10 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
       );
 
       // Invalidate the providers to refresh the streams
-      ref.invalidate(openProposalsProvider(proposal.skillBracket));
+      ref.invalidate(openProposalsProvider(ProposalFilterParams(
+        bracket: proposal.skillBracket,
+        zone: proposal.zone,
+      )));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1155,8 +1167,12 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
         await ref.read(proposalActionsProvider).deleteProposal(proposal.proposalId);
 
         // Invalidate the providers to refresh the streams
-        ref.invalidate(openProposalsProvider(proposal.skillBracket));
-        ref.invalidate(filteredProposalsProvider(proposal.skillBracket));
+        final params = ProposalFilterParams(
+          bracket: proposal.skillBracket,
+          zone: proposal.zone,
+        );
+        ref.invalidate(openProposalsProvider(params));
+        ref.invalidate(filteredProposalsProvider(params));
 
         final currentUser = ref.read(currentUserProvider);
         if (currentUser != null) {

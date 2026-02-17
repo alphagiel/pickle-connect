@@ -529,6 +529,7 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
         scores: null,
         acceptedBy: null,
         scoreConfirmedBy: [],
+        zone: userProfile.zone,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );

@@ -223,6 +223,7 @@ class Proposal with _$Proposal {
     @Default(0) int openSlots,
     /// Denormalized list of user IDs for Firestore array-contains queries
     @Default([]) List<String> playerIds,
+    @Default('east_triangle') String zone,
   }) = _Proposal;
 
   factory Proposal.fromJson(Map<String, dynamic> json) =>
@@ -250,6 +251,11 @@ Map<String, dynamic> _migrateProposalJson(Map<String, dynamic> json) {
   // Default missing matchType to 'singles' for legacy documents
   if (!json.containsKey('matchType')) {
     modifiedJson['matchType'] = 'singles';
+  }
+
+  // Default missing zone for existing proposals
+  if (!json.containsKey('zone')) {
+    modifiedJson['zone'] = 'east_triangle';
   }
 
   return modifiedJson;

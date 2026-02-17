@@ -11,19 +11,23 @@ class StandingsRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'standings';
 
-  // Get standings for specific skill bracket
-  Stream<List<Standing>> getStandingsForBracket(SkillBracket bracket) {
-    print('[StandingsRepo] Querying standings/${bracket.jsonValue}/players');
+  /// Build the document ID for zone-scoped standings
+  String _docId(String zone, SkillBracket bracket) => '${zone}_${bracket.jsonValue}';
+
+  // Get standings for specific skill bracket and zone
+  Stream<List<Standing>> getStandingsForBracket(SkillBracket bracket, {required String zone}) {
+    final docId = _docId(zone, bracket);
+    print('[StandingsRepo] Querying standings/$docId/players');
     return _firestore
         .collection(_collection)
-        .doc(bracket.jsonValue)
+        .doc(docId)
         .collection('players')
         .orderBy('winRate', descending: true)
         .orderBy('matchesWon', descending: true)
         .limit(50)
         .snapshots()
         .map((snapshot) {
-          print('[StandingsRepo] Got ${snapshot.docs.length} docs for ${bracket.jsonValue}');
+          print('[StandingsRepo] Got ${snapshot.docs.length} docs for $docId');
           return snapshot.docs
               .map((doc) {
                 print('[StandingsRepo] Doc: ${doc.id} -> ${doc.data()}');
@@ -35,19 +39,14 @@ class StandingsRepository {
         });
   }
 
-  // Legacy method - redirects to bracket-based
-  Stream<List<Standing>> getStandingsForSkillLevel(SkillLevel skillLevel) {
-    return getStandingsForBracket(skillLevel.bracket);
-  }
-
-  // Get all standings across skill brackets
-  Future<Map<SkillBracket, List<Standing>>> getAllStandings() async {
+  // Get all standings across skill brackets for a zone
+  Future<Map<SkillBracket, List<Standing>>> getAllStandings({required String zone}) async {
     final results = await Future.wait([
-      getStandingsForBracket(SkillBracket.beginner).first,
-      getStandingsForBracket(SkillBracket.novice).first,
-      getStandingsForBracket(SkillBracket.intermediate).first,
-      getStandingsForBracket(SkillBracket.advanced).first,
-      getStandingsForBracket(SkillBracket.expert).first,
+      getStandingsForBracket(SkillBracket.beginner, zone: zone).first,
+      getStandingsForBracket(SkillBracket.novice, zone: zone).first,
+      getStandingsForBracket(SkillBracket.intermediate, zone: zone).first,
+      getStandingsForBracket(SkillBracket.advanced, zone: zone).first,
+      getStandingsForBracket(SkillBracket.expert, zone: zone).first,
     ]);
 
     return {
@@ -59,11 +58,12 @@ class StandingsRepository {
     };
   }
 
-  // Get user's standing in their skill bracket
-  Future<Standing?> getUserStanding(String userId, SkillBracket bracket) async {
+  // Get user's standing in their skill bracket and zone
+  Future<Standing?> getUserStanding(String userId, SkillBracket bracket, {required String zone}) async {
+    final docId = _docId(zone, bracket);
     final doc = await _firestore
         .collection(_collection)
-        .doc(bracket.jsonValue)
+        .doc(docId)
         .collection('players')
         .doc(userId)
         .get();
@@ -74,31 +74,23 @@ class StandingsRepository {
     return null;
   }
 
-  // Update or create standing (used by Cloud Functions)
-  Future<void> updateStanding(Standing standing) async {
+  // Remove user from standings (when zone or skill bracket changes)
+  Future<void> removeUserFromStandings(String userId, SkillBracket oldBracket, {required String zone}) async {
+    final docId = _docId(zone, oldBracket);
     await _firestore
         .collection(_collection)
-        .doc(standing.skillLevel.jsonValue)
-        .collection('players')
-        .doc(standing.userId)
-        .set(standing.toJson(), SetOptions(merge: true));
-  }
-
-  // Remove user from standings (when skill bracket changes)
-  Future<void> removeUserFromStandings(String userId, SkillBracket oldBracket) async {
-    await _firestore
-        .collection(_collection)
-        .doc(oldBracket.jsonValue)
+        .doc(docId)
         .collection('players')
         .doc(userId)
         .delete();
   }
 
   // Anonymize a deleted user's name in standings (preserves ladder history)
-  Future<void> anonymizeUserInStandings(String userId, SkillBracket bracket) async {
+  Future<void> anonymizeUserInStandings(String userId, SkillBracket bracket, {required String zone}) async {
+    final docId = _docId(zone, bracket);
     final doc = _firestore
         .collection(_collection)
-        .doc(bracket.jsonValue)
+        .doc(docId)
         .collection('players')
         .doc(userId);
 
@@ -108,9 +100,9 @@ class StandingsRepository {
     }
   }
 
-  // Get user's rank in their skill bracket
-  Future<int> getUserRank(String userId, SkillBracket bracket) async {
-    final standings = await getStandingsForBracket(bracket).first;
+  // Get user's rank in their skill bracket and zone
+  Future<int> getUserRank(String userId, SkillBracket bracket, {required String zone}) async {
+    final standings = await getStandingsForBracket(bracket, zone: zone).first;
     final userIndex = standings.indexWhere((standing) => standing.userId == userId);
     return userIndex == -1 ? 0 : userIndex + 1;
   }

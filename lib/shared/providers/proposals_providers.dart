@@ -6,17 +6,30 @@ import '../../core/utils/stream_retry.dart';
 // NOTE: Cleanup service disabled - should be handled by Cloud Functions
 // import '../services/proposal_cleanup_service.dart';
 
-// Provider for open proposals filtered by skill bracket (for interactibility)
+/// Parameters for filtering proposals by bracket and zone
+class ProposalFilterParams {
+  final SkillBracket bracket;
+  final String zone;
+
+  ProposalFilterParams({required this.bracket, required this.zone});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProposalFilterParams &&
+          runtimeType == other.runtimeType &&
+          bracket == other.bracket &&
+          zone == other.zone;
+
+  @override
+  int get hashCode => bracket.hashCode ^ zone.hashCode;
+}
+
+// Provider for open proposals filtered by skill bracket and zone
 // Uses retry logic to handle transient auth token refresh issues
-final openProposalsProvider = StreamProvider.family<List<Proposal>, SkillBracket>((ref, bracket) {
+final openProposalsProvider = StreamProvider.family<List<Proposal>, ProposalFilterParams>((ref, params) {
   final repository = ref.watch(proposalsRepositoryProvider);
-
-  // NOTE: Client-side cleanup disabled - should be handled by Cloud Functions
-  // The security rules don't allow querying all proposals for cleanup
-  // final cleanupService = ref.watch(proposalCleanupServiceProvider);
-  // cleanupService.runCleanupBeforeFetch();
-
-  return retryStream(() => repository.getProposalsForBracket(bracket));
+  return retryStream(() => repository.getProposalsForBracketAndZone(params.bracket, params.zone));
 });
 
 // Provider for all open proposals (admin only - bypasses skill level filter)
@@ -50,17 +63,11 @@ final expiredProposalsProvider = StreamProvider.family<List<Proposal>, String>((
   return repository.getExpiredProposals(userId);
 });
 
-// Provider for completed matches by skill bracket (for standings page)
+// Provider for completed matches by skill bracket and zone (for standings page)
 // Uses retry logic to handle transient auth token refresh issues
-final completedMatchesByBracketProvider = StreamProvider.family<List<Proposal>, SkillBracket>((ref, bracket) {
+final completedMatchesByBracketProvider = StreamProvider.family<List<Proposal>, ProposalFilterParams>((ref, params) {
   final repository = ref.watch(proposalsRepositoryProvider);
-  return retryStream(() => repository.getCompletedProposalsByBracket(bracket));
-});
-
-// Legacy alias - redirects to bracket-based filtering
-final completedMatchesBySkillLevelProvider = StreamProvider.family<List<Proposal>, SkillLevel>((ref, skillLevel) {
-  final repository = ref.watch(proposalsRepositoryProvider);
-  return repository.getCompletedProposalsByBracket(skillLevel.bracket);
+  return retryStream(() => repository.getCompletedProposalsByBracketAndZone(params.bracket, params.zone));
 });
 
 // Provider for fetching a single proposal by ID (for deep links)
@@ -94,8 +101,8 @@ final dateFilterProvider = StateProvider<DateSortFilter>((ref) => DateSortFilter
 final creatorFilterProvider = StateProvider<String?>((ref) => null); // null means no filter
 
 // Filtered proposals provider that applies all filters and sorting
-final filteredProposalsProvider = Provider.family<AsyncValue<List<Proposal>>, SkillBracket>((ref, bracket) {
-  final proposalsAsync = ref.watch(openProposalsProvider(bracket));
+final filteredProposalsProvider = Provider.family<AsyncValue<List<Proposal>>, ProposalFilterParams>((ref, params) {
+  final proposalsAsync = ref.watch(openProposalsProvider(params));
   final statusFilter = ref.watch(proposalStatusFilterProvider);
   final dateFilter = ref.watch(dateFilterProvider);
   final creatorFilter = ref.watch(creatorFilterProvider);
