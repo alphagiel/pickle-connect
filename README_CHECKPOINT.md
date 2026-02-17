@@ -39,3 +39,150 @@ Here's the full status against the rejection:
 
   ---
   Everything else is addressed. You're good to upload build 5 via Transporter and resubmit.
+
+────────────────────────────────────────
+## Review Round 2 — February 17, 2026
+────────────────────────────────────────
+#: 6
+Guideline: 2.3.10
+Issue: iPad screenshots contain simulator watermarks/artifacts (simulator status bar, Flutter debug banner)
+Status: Done — Retook screenshots on real iPad Pro 12.9" (6th gen) in release mode, re-uploaded to App Store Connect, resubmitted for review (Feb 17, 2026)
+
+────────────────────────────────────────
+## Feature: Zone-Based Community Support (Firestore-Driven)
+────────────────────────────────────────
+**Goal**: Players only see other players, proposals, and standings within their geographic zone. Zones are stored in Firestore (not hardcoded) so new communities can be added without app updates.
+
+### Zone Interaction Model
+- **Home zone locked for playing**: Users pick a home zone at signup. They can only create proposals and be ranked in their home zone.
+- **Browse other zones**: Standings page has a zone dropdown so any user can VIEW other zones' leaderboards (read-only).
+- **Proposals locked to home zone**: Users only see and create proposals in their home zone.
+- **Zone change via Edit Profile**: Changing home zone resets standings in the old zone.
+
+### Scalability
+- Zones live in Firestore `zones/` collection — add new zones without app updates
+- Each zone doc has: `id`, `displayName`, `description`, `cities[]`, `region`, `active`, `createdAt`
+- To onboard a new community: create a Firestore doc → it appears in all dropdowns instantly
+- Future: admin panel, regional grouping, zone-specific rules
+
+### Initial Zones (seeded to Firestore)
+- **east_triangle**: "East Triangle" — Clayton, Garner, Knightdale, South Raleigh
+- **west_triangle**: "West Triangle" — Cary, Apex, West Raleigh, Morrisville
+
+### Architecture
+```
+Firestore:
+  zones/
+    east_triangle   → { displayName, description, cities[], region, active, createdAt }
+    west_triangle   → { ... }
+
+  users/{uid}       → { ..., zone: "east_triangle" }  (string, not enum)
+  proposals/{id}    → { ..., zone: "east_triangle" }
+
+  standings/east_triangle_Intermediate/players/{uid} → { ... }
+  doubles_standings/east_triangle_Intermediate/players/{uid} → { ... }
+```
+
+### Implementation Steps
+
+**Step 1: Zone Model + Firestore Collection** `[ ]`
+- Create `lib/shared/models/zone.dart` — freezed `AppZone` model class (not enum):
+  - Fields: `id`, `displayName`, `description`, `cities` (List<String>), `region`, `active`, `createdAt`
+- Create `lib/shared/repositories/zones_repository.dart`:
+  - `getActiveZones()` → Stream<List<AppZone>> from `zones/` where `active == true`
+  - `getZoneById(String id)` → Future<AppZone?>
+- Create `lib/shared/providers/zones_providers.dart`:
+  - `activeZonesProvider` → StreamProvider cached list of zones
+  - `userZoneProvider` → derives from current user's `zone` field
+- Seed initial zone docs to Firestore (`east_triangle`, `west_triangle`)
+
+**Step 2: Update User + Proposal Models** `[ ]`
+- `user.dart`: Add `required String zone` field (plain string, not enum)
+  - `@Default('east_triangle')` for Firestore default
+  - Update `_migrateUserJson()` to default missing `zone` to `'east_triangle'`
+- `proposal.dart`: Add `required String zone` field
+  - Update `_migrateProposalJson()` to default missing `zone` to `'east_triangle'`
+- Run `build_runner`
+
+**Step 3: Update Repositories with Zone Filtering** `[ ]`
+- `proposals_repository.dart`:
+  - `getProposalsForBracket(bracket)` → `getProposalsForBracketAndZone(bracket, zone)` — add `.where('zone', isEqualTo: zone)`
+  - `getCompletedProposalsByBracket(bracket)` → add zone param + filter
+  - `getDoublesProposalsForBracket(bracket)` → add zone param + filter
+- `standings_repository.dart`:
+  - Change path from `standings/{bracket}/players/` to `standings/{zone}_{bracket}/players/`
+  - All methods (`getStandingsForBracket`, `getUserStanding`, `getUserRank`, `removeUserFromStandings`, `anonymizeUserInStandings`) accept `String zone` param
+  - `getAllStandings()` → accepts `String zone` param
+- `doubles_standings_repository.dart`:
+  - Same path change: `doubles_standings/{zone}_{bracket}/players/`
+  - All methods accept `String zone` param
+
+**Step 4: Update Providers** `[ ]`
+- `proposals_providers.dart`:
+  - Create `ProposalFilterParams` class with `bracket` + `zone` (String)
+  - Update `openProposalsProvider` family from `SkillBracket` → `ProposalFilterParams`
+  - Update `completedMatchesByBracketProvider` similarly
+  - Update `filteredProposalsProvider` similarly
+- `standings_providers.dart`:
+  - Create `StandingsFilterParams` class with `bracket` + `zone` (String)
+  - Update `standingsProvider` family from `SkillBracket` → `StandingsFilterParams`
+  - Update `UserStandingParams` to include `zone`
+- `doubles_proposals_providers.dart`:
+  - Same zone-scoping pattern for `openDoublesProposalsProvider`
+
+**Step 5: Update UI Pages** `[ ]`
+- `signup_page.dart`:
+  - Fetch zones from `activeZonesProvider`
+  - Add `DropdownButtonFormField` after skill level — shows `zone.displayName` + info icon with tooltip listing cities
+  - Include `zone: selectedZone.id` when creating User
+- `edit_profile_page.dart`:
+  - Add zone dropdown (same pattern), initialize from `userProfile.zone`
+  - On zone change: remove user from old zone's standings (rankings reset)
+  - Include `'zone': selectedZone.id` in update map
+- `standings_page.dart`:
+  - Add zone dropdown in header area (below subtitle, above bracket tabs)
+  - Defaults to user's home zone, switching loads that zone's standings (read-only browsing)
+  - Update subtitle to show selected zone name
+  - Pass selected zone string to `standingsProvider` and `completedMatchesByBracketProvider`
+- `proposals_page.dart`:
+  - Read current user's `zone` string
+  - Pass zone to `openProposalsProvider` and other providers
+- `create_proposal_page.dart` + doubles create page:
+  - Auto-set `zone` from user's profile (user doesn't pick zone per-proposal)
+
+**Step 6: Update Cloud Functions** `[ ]`
+- `on-proposal-updated.ts`:
+  - Extract `zone` from proposal data: `const zone = proposalData.zone || 'east_triangle'`
+  - Change standings path from `standings/${skillBracket}` to `standings/${zone}_${skillBracket}`
+  - Same for `doubles_standings/` path
+  - Pass zone to all `updatePlayerStanding` calls
+- `on-proposal-created.ts`:
+  - Add `.where('zone', '==', proposalData.zone)` to user notification query
+  - Players only get notified about proposals in their zone
+
+**Step 7: Firestore Indexes** `[ ]`
+- Add composite indexes for `proposals` collection:
+  - `status ASC + skillBracket ASC + zone ASC`
+  - `matchType ASC + status ASC + skillBracket ASC + zone ASC`
+- Deploy early: `firebase deploy --only firestore:indexes`
+
+**Step 8: Data Migration** `[ ]`
+- Backfill `zone: 'east_triangle'` on all existing user docs
+- Backfill `zone: 'east_triangle'` on all existing proposal docs
+- Copy standings docs from `standings/{bracket}/players/` to `standings/east_triangle_{bracket}/players/`
+- Same for `doubles_standings/`
+- Seed `zones/east_triangle` and `zones/west_triangle` documents
+
+**Step 9: Delete Account Cleanup** `[ ]`
+- Update `_deleteAccount` in `edit_profile_page.dart` to pass user's zone string when anonymizing standings in both `standings_repository` and `doubles_standings_repository`
+
+### Verification Checklist
+- [ ] `flutter analyze` — no errors
+- [ ] `flutter test` — all pass
+- [ ] Signup: zone dropdown appears, populated from Firestore, info tooltip shows cities
+- [ ] Edit profile: zone can be changed, old zone standings cleared
+- [ ] Proposals: only same-zone proposals visible, new proposals auto-tagged with zone
+- [ ] Standings: leaderboard scoped to zone, header shows zone name, can browse other zones
+- [ ] Cloud functions: match completion updates zone-scoped standings path
+- [ ] Notifications: only same-zone users notified of new proposals
+- [ ] iPad release mode: UI renders correctly
