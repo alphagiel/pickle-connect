@@ -76,9 +76,6 @@ class _SignupPageState extends ConsumerState<SignupPage> {
           updatedAt: DateTime.now(),
         );
 
-        print('=== Signup Firestore Debug ===');
-        print('Creating Firestore user profile with displayName: ${userProfile.displayName}');
-
         await usersRepository.saveUser(userProfile);
 
         ScaffoldMessenger.of(context).showSnackBar(

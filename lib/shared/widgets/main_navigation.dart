@@ -16,12 +16,17 @@ class MainNavigation extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pickle Connect'),
+        title: Row(
+          children: [
+            const Text('Pickle Connect'),
+            const Spacer(),
+            _buildProfileSection(context, ref),
+          ],
+        ),
+        titleSpacing: 16,
+        centerTitle: false,
         backgroundColor: AppColors.primaryGreen,
         foregroundColor: Colors.white,
-        actions: [
-          _buildProfileSection(context, ref),
-        ],
       ),
       body: Stack(
         children: [

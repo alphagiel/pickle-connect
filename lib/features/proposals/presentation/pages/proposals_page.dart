@@ -261,100 +261,103 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
     final bracket = filterParams.bracket;
     final proposalsAsync = ref.watch(filteredProposalsProvider(filterParams));
 
-    return proposalsAsync.when(
-      data: (proposals) {
-        // Clear retry counter on success
-        _retryAttempts.remove('available_${bracket.name}');
-
-        if (proposals.isEmpty) {
-          return _buildEmptyState(
-            icon: Icons.inbox_outlined,
-            title: 'No matches available',
-            subtitle: 'Be the first to create a match proposal!',
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(openProposalsProvider(filterParams));
-          },
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Table header
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryGreen,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(8),
-                      topRight: Radius.circular(8),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      _buildHeaderCell('Player', flex: 3),
-                      _buildHeaderCell('Location', flex: 2),
-                      _buildHeaderCell('Date', flex: 2),
-                      _buildHeaderCell('', flex: 1), // View column
-                    ],
-                  ),
-                ),
-                // Table rows
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.lightGray),
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(8),
-                      bottomRight: Radius.circular(8),
-                    ),
-                  ),
-                  child: Column(
-                    children: proposals.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final proposal = entry.value;
-                      final isLastRow = index == proposals.length - 1;
-                      return _buildAvailableRow(
-                        proposal,
-                        isLastRow: isLastRow,
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-      loading: () => const Center(
+    // Show loading spinner only on initial load (no previous data)
+    if (proposalsAsync.isLoading && !proposalsAsync.hasValue) {
+      return const Center(
         child: CircularProgressIndicator(
           valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
         ),
-      ),
-      error: (error, stack) {
-        // Auto-retry on permission-denied (race condition on login)
-        final retryKey = 'available_${bracket.name}';
-        final attempts = _retryAttempts[retryKey] ?? 0;
+      );
+    }
 
-        if (error.toString().contains('permission-denied') && attempts < _maxRetries) {
-          Future.delayed(_retryDelay, () {
-            if (mounted) {
-              _retryAttempts[retryKey] = attempts + 1;
-              ref.invalidate(openProposalsProvider(filterParams));
-            }
-          });
-          // Show loading while retrying
-          return const Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
-            ),
-          );
-        }
-        // Reset retry counter on non-permission errors or max retries reached
-        _retryAttempts.remove(retryKey);
-        return _buildErrorState(error.toString());
+    // Handle errors (with auto-retry for permission-denied)
+    if (proposalsAsync.hasError && !proposalsAsync.hasValue) {
+      final error = proposalsAsync.error;
+      final retryKey = 'available_${bracket.name}';
+      final attempts = _retryAttempts[retryKey] ?? 0;
+
+      if (error.toString().contains('permission-denied') && attempts < _maxRetries) {
+        Future.delayed(_retryDelay, () {
+          if (mounted) {
+            _retryAttempts[retryKey] = attempts + 1;
+            ref.invalidate(openProposalsProvider(filterParams));
+          }
+        });
+        return const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+          ),
+        );
+      }
+      _retryAttempts.remove(retryKey);
+      return _buildErrorState(error.toString());
+    }
+
+    // Clear retry counter on success
+    _retryAttempts.remove('available_${bracket.name}');
+
+    final proposals = proposalsAsync.valueOrNull ?? [];
+
+    // Only show empty state when we have data and it's genuinely empty
+    if (proposals.isEmpty && !proposalsAsync.isLoading) {
+      return _buildEmptyState(
+        icon: Icons.inbox_outlined,
+        title: 'No matches available',
+        subtitle: 'Be the first to create a match proposal!',
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(openProposalsProvider(filterParams));
       },
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Table header
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(8),
+                  topRight: Radius.circular(8),
+                ),
+              ),
+              child: Row(
+                children: [
+                  _buildHeaderCell('Player', flex: 3),
+                  _buildHeaderCell('Location', flex: 2),
+                  _buildHeaderCell('Date', flex: 2),
+                  _buildHeaderCell('', flex: 1), // View column
+                ],
+              ),
+            ),
+            // Table rows
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.lightGray),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(8),
+                  bottomRight: Radius.circular(8),
+                ),
+              ),
+              child: Column(
+                children: proposals.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final proposal = entry.value;
+                  final isLastRow = index == proposals.length - 1;
+                  return _buildAvailableRow(
+                    proposal,
+                    isLastRow: isLastRow,
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -373,148 +376,31 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
     final createdProposalsAsync = ref.watch(userProposalsProvider(currentUser.id));
     final acceptedProposalsAsync = ref.watch(acceptedProposalsProvider(currentUser.id));
 
-    // Combine both async values
-    return createdProposalsAsync.when(
-      data: (createdProposals) {
-        // Clear retry counter on success
-        _retryAttempts.remove('created_${currentUser.id}');
-
-        return acceptedProposalsAsync.when(
-          data: (acceptedProposals) {
-            // Clear retry counter on success
-            _retryAttempts.remove('accepted_${currentUser.id}');
-
-            // Combine and deduplicate (in case of any overlap)
-            final allProposals = <String, Proposal>{};
-            for (final p in createdProposals) {
-              allProposals[p.proposalId] = p;
-            }
-            for (final p in acceptedProposals) {
-              allProposals[p.proposalId] = p;
-            }
-
-            // Filter to current season (Winter 2026: Jan 1 - March 31)
-            final seasonStart = DateTime(2026, 1, 1);
-            final seasonEnd = DateTime(2026, 3, 31, 23, 59, 59);
-
-            // Sort by date (upcoming first, then recent)
-            // Only show active matches (open or accepted, not completed/expired/canceled)
-            final proposals = allProposals.values
-                .where((p) =>
-                    (p.status == ProposalStatus.open || p.status == ProposalStatus.accepted) &&
-                    p.dateTime.isAfter(seasonStart.subtract(const Duration(days: 1))) &&
-                    p.dateTime.isBefore(seasonEnd.add(const Duration(days: 1))))
-                .toList()
-              ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
-
-            if (proposals.isEmpty) {
-              return _buildEmptyState(
-                icon: Icons.sports_tennis_outlined,
-                title: 'No matches yet',
-                subtitle: 'Create a proposal or accept one to get started!',
-              );
-            }
-
-            return RefreshIndicator(
-              onRefresh: () async {
-                ref.invalidate(userProposalsProvider(currentUser.id));
-                ref.invalidate(acceptedProposalsProvider(currentUser.id));
-              },
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Table header
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryGreen,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(8),
-                          topRight: Radius.circular(8),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          _buildHeaderCell('Status', flex: 2),
-                          _buildHeaderCell('Opponent', flex: 2),
-                          _buildHeaderCell('Date', flex: 2),
-                          _buildHeaderCell('Time', flex: 2),
-                          _buildHeaderCell('Place', flex: 2),
-                          _buildHeaderCell('', flex: 1), // View column
-                        ],
-                      ),
-                    ),
-                    // Table rows
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.lightGray),
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(8),
-                          bottomRight: Radius.circular(8),
-                        ),
-                      ),
-                      child: Column(
-                        children: proposals.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final proposal = entry.value;
-                          final isLastRow = index == proposals.length - 1;
-                          return _buildMyMatchRow(
-                            proposal,
-                            currentUser.id,
-                            isLastRow: isLastRow,
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-          loading: () => const Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
-            ),
-          ),
-          error: (error, stack) {
-            // Auto-retry on permission-denied (race condition on login)
-            final retryKey = 'accepted_${currentUser.id}';
-            final attempts = _retryAttempts[retryKey] ?? 0;
-
-            if (error.toString().contains('permission-denied') && attempts < _maxRetries) {
-              Future.delayed(_retryDelay, () {
-                if (mounted) {
-                  _retryAttempts[retryKey] = attempts + 1;
-                  ref.invalidate(acceptedProposalsProvider(currentUser.id));
-                }
-              });
-              return const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
-                ),
-              );
-            }
-            _retryAttempts.remove(retryKey);
-            return _buildErrorState(error.toString());
-          },
-        );
-      },
-      loading: () => const Center(
+    // Show loading only on initial load (no previous data yet)
+    final bothLoading = (createdProposalsAsync.isLoading && !createdProposalsAsync.hasValue) ||
+        (acceptedProposalsAsync.isLoading && !acceptedProposalsAsync.hasValue);
+    if (bothLoading) {
+      return const Center(
         child: CircularProgressIndicator(
           valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
         ),
-      ),
-      error: (error, stack) {
-        // Auto-retry on permission-denied (race condition on login)
-        final retryKey = 'created_${currentUser.id}';
-        final attempts = _retryAttempts[retryKey] ?? 0;
+      );
+    }
 
-        if (error.toString().contains('permission-denied') && attempts < _maxRetries) {
+    // Handle errors with auto-retry for permission-denied
+    for (final entry in [
+      ('created', createdProposalsAsync, userProposalsProvider(currentUser.id)),
+      ('accepted', acceptedProposalsAsync, acceptedProposalsProvider(currentUser.id)),
+    ]) {
+      final (label, async, provider) = entry;
+      if (async.hasError && !async.hasValue) {
+        final retryKey = '${label}_${currentUser.id}';
+        final attempts = _retryAttempts[retryKey] ?? 0;
+        if (async.error.toString().contains('permission-denied') && attempts < _maxRetries) {
           Future.delayed(_retryDelay, () {
             if (mounted) {
               _retryAttempts[retryKey] = attempts + 1;
-              ref.invalidate(userProposalsProvider(currentUser.id));
+              ref.invalidate(provider);
             }
           });
           return const Center(
@@ -524,8 +410,102 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
           );
         }
         _retryAttempts.remove(retryKey);
-        return _buildErrorState(error.toString());
+        return _buildErrorState(async.error.toString());
+      }
+    }
+
+    // Clear retry counters on success
+    _retryAttempts.remove('created_${currentUser.id}');
+    _retryAttempts.remove('accepted_${currentUser.id}');
+
+    final createdProposals = createdProposalsAsync.valueOrNull ?? [];
+    final acceptedProposals = acceptedProposalsAsync.valueOrNull ?? [];
+
+    // Combine and deduplicate
+    final allProposals = <String, Proposal>{};
+    for (final p in createdProposals) {
+      allProposals[p.proposalId] = p;
+    }
+    for (final p in acceptedProposals) {
+      allProposals[p.proposalId] = p;
+    }
+
+    // Filter to current season (Winter 2026: Jan 1 - March 31)
+    final seasonStart = DateTime(2026, 1, 1);
+    final seasonEnd = DateTime(2026, 3, 31, 23, 59, 59);
+
+    // Only show active matches (open or accepted, not completed/expired/canceled)
+    final proposals = allProposals.values
+        .where((p) =>
+            (p.status == ProposalStatus.open || p.status == ProposalStatus.accepted) &&
+            p.dateTime.isAfter(seasonStart.subtract(const Duration(days: 1))) &&
+            p.dateTime.isBefore(seasonEnd.add(const Duration(days: 1))))
+        .toList()
+      ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+
+    if (proposals.isEmpty) {
+      return _buildEmptyState(
+        icon: Icons.sports_tennis_outlined,
+        title: 'No matches yet',
+        subtitle: 'Create a proposal or accept one to get started!',
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(userProposalsProvider(currentUser.id));
+        ref.invalidate(acceptedProposalsProvider(currentUser.id));
       },
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Table header
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(8),
+                  topRight: Radius.circular(8),
+                ),
+              ),
+              child: Row(
+                children: [
+                  _buildHeaderCell('Status', flex: 2),
+                  _buildHeaderCell('Opponent', flex: 2),
+                  _buildHeaderCell('Date', flex: 2),
+                  _buildHeaderCell('Time', flex: 2),
+                  _buildHeaderCell('Place', flex: 2),
+                  _buildHeaderCell('', flex: 1), // View column
+                ],
+              ),
+            ),
+            // Table rows
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.lightGray),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(8),
+                  bottomRight: Radius.circular(8),
+                ),
+              ),
+              child: Column(
+                children: proposals.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final proposal = entry.value;
+                  final isLastRow = index == proposals.length - 1;
+                  return _buildMyMatchRow(
+                    proposal,
+                    currentUser.id,
+                    isLastRow: isLastRow,
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -541,102 +521,104 @@ class _ProposalsPageState extends ConsumerState<ProposalsPage> with SingleTicker
 
     final proposalsAsync = ref.watch(completedProposalsProvider(currentUser.id));
 
-    return proposalsAsync.when(
-      data: (proposals) {
-        // Clear retry counter on success
-        _retryAttempts.remove('completed_${currentUser.id}');
-
-        if (proposals.isEmpty) {
-          return _buildEmptyState(
-            icon: Icons.emoji_events_outlined,
-            title: 'No completed matches',
-            subtitle: 'Your completed matches will appear here',
-            showCreateButton: false,
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(completedProposalsProvider(currentUser.id));
-          },
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Table header
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryGreen,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(8),
-                      topRight: Radius.circular(8),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      _buildHeaderCell('You', flex: 2),
-                      _buildHeaderCell('Opponent', flex: 2),
-                      _buildHeaderCell('Score', flex: 1),
-                      _buildHeaderCell('Date', flex: 2),
-                      _buildHeaderCell('Place', flex: 2),
-                      _buildHeaderCell('', flex: 1), // View column
-                    ],
-                  ),
-                ),
-                // Table rows
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.lightGray),
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(8),
-                      bottomRight: Radius.circular(8),
-                    ),
-                  ),
-                  child: Column(
-                    children: proposals.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final proposal = entry.value;
-                      final isLastRow = index == proposals.length - 1;
-                      return _buildCompletedMatchRow(
-                        proposal,
-                        currentUser.id,
-                        isLastRow: isLastRow,
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-      loading: () => const Center(
+    // Show loading only on initial load
+    if (proposalsAsync.isLoading && !proposalsAsync.hasValue) {
+      return const Center(
         child: CircularProgressIndicator(
           valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
         ),
-      ),
-      error: (error, stack) {
-        // Auto-retry on permission-denied (race condition on login)
-        final retryKey = 'completed_${currentUser.id}';
-        final attempts = _retryAttempts[retryKey] ?? 0;
+      );
+    }
 
-        if (error.toString().contains('permission-denied') && attempts < _maxRetries) {
-          Future.delayed(_retryDelay, () {
-            if (mounted) {
-              _retryAttempts[retryKey] = attempts + 1;
-              ref.invalidate(completedProposalsProvider(currentUser.id));
-            }
-          });
-          return const Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
-            ),
-          );
-        }
-        _retryAttempts.remove(retryKey);
-        return _buildErrorState(error.toString());
+    // Handle errors with auto-retry
+    if (proposalsAsync.hasError && !proposalsAsync.hasValue) {
+      final retryKey = 'completed_${currentUser.id}';
+      final attempts = _retryAttempts[retryKey] ?? 0;
+      if (proposalsAsync.error.toString().contains('permission-denied') && attempts < _maxRetries) {
+        Future.delayed(_retryDelay, () {
+          if (mounted) {
+            _retryAttempts[retryKey] = attempts + 1;
+            ref.invalidate(completedProposalsProvider(currentUser.id));
+          }
+        });
+        return const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+          ),
+        );
+      }
+      _retryAttempts.remove(retryKey);
+      return _buildErrorState(proposalsAsync.error.toString());
+    }
+
+    // Clear retry counter on success
+    _retryAttempts.remove('completed_${currentUser.id}');
+
+    final proposals = proposalsAsync.valueOrNull ?? [];
+
+    if (proposals.isEmpty && !proposalsAsync.isLoading) {
+      return _buildEmptyState(
+        icon: Icons.emoji_events_outlined,
+        title: 'No completed matches',
+        subtitle: 'Your completed matches will appear here',
+        showCreateButton: false,
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(completedProposalsProvider(currentUser.id));
       },
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Table header
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(8),
+                  topRight: Radius.circular(8),
+                ),
+              ),
+              child: Row(
+                children: [
+                  _buildHeaderCell('You', flex: 2),
+                  _buildHeaderCell('Opponent', flex: 2),
+                  _buildHeaderCell('Score', flex: 1),
+                  _buildHeaderCell('Date', flex: 2),
+                  _buildHeaderCell('Place', flex: 2),
+                  _buildHeaderCell('', flex: 1), // View column
+                ],
+              ),
+            ),
+            // Table rows
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.lightGray),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(8),
+                  bottomRight: Radius.circular(8),
+                ),
+              ),
+              child: Column(
+                children: proposals.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final proposal = entry.value;
+                  final isLastRow = index == proposals.length - 1;
+                  return _buildCompletedMatchRow(
+                    proposal,
+                    currentUser.id,
+                    isLastRow: isLastRow,
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

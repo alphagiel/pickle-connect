@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/auth_repository.dart';
@@ -63,6 +64,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthUser?>> {
 
       if (user != null) {
         state = AsyncValue.data(user);
+        // Migrate existing users: ensure skillBracket and zone exist in Firestore
+        _migrateUserProfileIfNeeded(user.id);
       }
     } on AuthException catch (e) {
       _ref.read(authErrorProvider.notifier).state = e.message;
@@ -72,6 +75,40 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthUser?>> {
       state = AsyncValue.error(e, StackTrace.current);
     } finally {
       _ref.read(authLoadingProvider.notifier).state = false;
+    }
+  }
+
+  /// Ensures existing user profiles have skillBracket and zone fields.
+  /// These fields are required by Firestore security rules for proposal creation.
+  Future<void> _migrateUserProfileIfNeeded(String userId) async {
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      if (!doc.exists) return;
+      final data = doc.data()!;
+      final updates = <String, dynamic>{};
+
+      if (!data.containsKey('skillBracket')) {
+        final skillLevelStr = data['skillLevel'] as String?;
+        if (skillLevelStr != null) {
+          final skillLevel = SkillLevel.values.cast<SkillLevel?>().firstWhere(
+            (l) => l!.jsonValue == skillLevelStr,
+            orElse: () => null,
+          );
+          updates['skillBracket'] = (skillLevel?.bracket ?? SkillBracket.intermediate).jsonValue;
+        } else {
+          updates['skillBracket'] = 'Intermediate';
+        }
+      }
+
+      if (!data.containsKey('zone')) {
+        updates['zone'] = 'east_triangle';
+      }
+
+      if (updates.isNotEmpty) {
+        await FirebaseFirestore.instance.collection('users').doc(userId).update(updates);
+      }
+    } catch (e) {
+      // Non-critical — don't block login if migration fails
     }
   }
 

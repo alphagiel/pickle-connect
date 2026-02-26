@@ -17,7 +17,6 @@ class StandingsRepository {
   // Get standings for specific skill bracket and zone
   Stream<List<Standing>> getStandingsForBracket(SkillBracket bracket, {required String zone}) {
     final docId = _docId(zone, bracket);
-    print('[StandingsRepo] Querying standings/$docId/players');
     return _firestore
         .collection(_collection)
         .doc(docId)
@@ -27,10 +26,8 @@ class StandingsRepository {
         .limit(50)
         .snapshots()
         .map((snapshot) {
-          print('[StandingsRepo] Got ${snapshot.docs.length} docs for $docId');
           return snapshot.docs
               .map((doc) {
-                print('[StandingsRepo] Doc: ${doc.id} -> ${doc.data()}');
                 return Standing.fromJson({
                   ...doc.data(),
                 });

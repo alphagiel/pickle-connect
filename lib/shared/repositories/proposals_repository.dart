@@ -10,6 +10,7 @@ final proposalsRepositoryProvider = Provider<ProposalsRepository>((ref) {
 class ProposalsRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'proposals';
+  final Set<String> _pendingExpirations = {};
 
   // Get singles proposals filtered by skill bracket and zone
   // Users see all proposals in their bracket (e.g., 3.0 and 3.5 players see each other)
@@ -317,63 +318,22 @@ class ProposalsRepository {
 
   // Create new proposal
   Future<void> createProposal(Proposal proposal) async {
-    print('=== Creating proposal ===');
-    print('Original proposal: $proposal');
-    
     final proposalData = proposal.toJson();
-    print('Proposal toJson result: $proposalData');
-    
-    // Check for null values
-    final nullKeys = proposalData.entries.where((entry) => entry.value == null).map((e) => e.key).toList();
-    if (nullKeys.isNotEmpty) {
-      print('WARNING: Found null values for keys: $nullKeys');
-    }
-    
-    // Check each field individually
-    proposalData.forEach((key, value) {
-      print('Field $key: $value (type: ${value.runtimeType})');
-    });
-    
-    // Convert any null values to appropriate defaults for Firestore
+
+    // Remove null values for Firestore compatibility
     proposalData.removeWhere((key, value) => value == null);
-    
-    // Convert any special list types to regular List for Firestore compatibility
+
+    // Convert special list types to regular List for Firestore compatibility
     if (proposalData.containsKey('scoreConfirmedBy')) {
-      print('Converting scoreConfirmedBy from type: ${proposalData['scoreConfirmedBy'].runtimeType}');
-      final newList = List<String>.from(proposalData['scoreConfirmedBy']);
-      proposalData['scoreConfirmedBy'] = newList;
-      print('Converted scoreConfirmedBy to type: ${proposalData['scoreConfirmedBy'].runtimeType}');
+      proposalData['scoreConfirmedBy'] = List<String>.from(proposalData['scoreConfirmedBy']);
     }
-    
-    print('Final data to send: $proposalData');
-    
-    try {
-      print('Attempting to write to Firestore collection: $_collection');
-      
-      // Add timeout to prevent hanging
-      final result = await _firestore.collection(_collection).add(proposalData).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          throw Exception('Firestore write operation timed out after 10 seconds');
-        },
-      );
-      
-      print('=== Proposal created successfully ===');
-      print('Document ID: ${result.id}');
-    } catch (e) {
-      print('ERROR: Failed to create proposal: $e');
-      print('Error type: ${e.runtimeType}');
-      
-      if (e.toString().contains('permission')) {
-        print('FIRESTORE PERMISSION ERROR - Check Firebase security rules');
-      } else if (e.toString().contains('network')) {
-        print('FIRESTORE NETWORK ERROR - Check internet connection');
-      } else if (e.toString().contains('timeout')) {
-        print('FIRESTORE TIMEOUT ERROR - Operation took too long');
-      }
-      
-      rethrow;
-    }
+
+    await _firestore.collection(_collection).add(proposalData).timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        throw Exception('Firestore write operation timed out after 10 seconds');
+      },
+    );
   }
 
   // Accept proposal
@@ -657,68 +617,41 @@ class ProposalsRepository {
 
   // Run cleanup operations
   Future<void> runCleanup() async {
-    print('Starting proposal cleanup...');
-
     final proposals = await getProposalsForCleanup();
-
-    if (proposals.isEmpty) {
-      print('No proposals found for cleanup');
-      return;
-    }
-
-    print('Found ${proposals.length} proposals for cleanup');
+    if (proposals.isEmpty) return;
 
     for (final proposal in proposals) {
       try {
-        // Check if the proposal document still exists before processing
         final doc = await _firestore.collection(_collection).doc(proposal.proposalId).get();
-        if (!doc.exists) {
-          continue;
-        }
+        if (!doc.exists) continue;
 
         if (proposal.shouldDelete) {
           await deleteProposal(proposal.proposalId);
         } else if (proposal.shouldAutoComplete) {
-          print('Auto-completing proposal ${proposal.proposalId} (${proposal.daysPastDue} days past due)');
           await autoCompleteProposal(proposal.proposalId);
         } else if (proposal.shouldExpire) {
-          print('Expiring proposal ${proposal.proposalId} (${proposal.daysPastDue} days past due)');
           await expireProposal(proposal.proposalId);
         }
-      } catch (e) {
-        // Check if the error is because the document doesn't exist
-        if (e.toString().contains('not-found') || e.toString().contains('No document')) {
-          print('Proposal ${proposal.proposalId} already deleted, skipping cleanup');
-        } else {
-          print('Error processing proposal ${proposal.proposalId}: $e');
-        }
+      } catch (_) {
+        // Non-critical — cleanup is best-effort
       }
     }
-
-    print('Proposal cleanup completed');
   }
 
-  // Schedule a proposal to be marked as expired in the database
+  // Schedule a proposal to be marked as expired in the database (deduplicated)
   void _scheduleExpireProposal(String proposalId) {
-    // Run async operation without blocking the stream
+    if (_pendingExpirations.contains(proposalId)) return;
+    _pendingExpirations.add(proposalId);
+
     Future(() async {
       try {
-        // Check if the proposal document still exists before processing
         final doc = await _firestore.collection(_collection).doc(proposalId).get();
-        if (!doc.exists) {
-          print('Proposal $proposalId already deleted, skipping expiration');
-          return;
-        }
-
+        if (!doc.exists) return;
         await expireProposal(proposalId);
-        print('Marked proposal $proposalId as expired');
-      } catch (e) {
-        // Check if the error is because the document doesn't exist
-        if (e.toString().contains('not-found') || e.toString().contains('No document')) {
-          print('Proposal $proposalId already deleted, skipping expiration');
-        } else {
-          print('Error marking proposal $proposalId as expired: $e');
-        }
+      } catch (_) {
+        // Non-critical — expiration is best-effort
+      } finally {
+        _pendingExpirations.remove(proposalId);
       }
     });
   }

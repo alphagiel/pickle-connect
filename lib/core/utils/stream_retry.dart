@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 
 /// Wraps a stream factory with retry logic for transient errors.
 ///
@@ -22,10 +21,6 @@ Stream<T> retryStream<T>(
            errorString.contains('permission_denied');
   };
 
-  // Debug: Log auth state when retry is created
-  final currentUser = FirebaseAuth.instance.currentUser;
-  print('[RetryStream] Stream created. Auth user: ${currentUser?.uid ?? 'NULL'}');
-
   void subscribe() {
     subscription?.cancel();
 
@@ -38,24 +33,16 @@ Stream<T> retryStream<T>(
           }
         },
         onError: (error, stackTrace) {
-          final authUser = FirebaseAuth.instance.currentUser;
-          print('[RetryStream] ERROR received. Auth user: ${authUser?.uid ?? 'NULL'}');
-          print('[RetryStream] Error type: ${error.runtimeType}, shouldRetry: ${retryCheck(error)}');
-
           if (retryCheck(error) && retryCount < maxRetries) {
             retryCount++;
             final delay = initialDelay * retryCount;
-            print('[RetryStream] Retry $retryCount/$maxRetries after ${delay.inMilliseconds}ms - Error: $error');
 
             Future.delayed(delay, () {
               if (!controller.isClosed) {
-                final retryAuthUser = FirebaseAuth.instance.currentUser;
-                print('[RetryStream] Retrying now. Auth user: ${retryAuthUser?.uid ?? 'NULL'}');
                 subscribe();
               }
             });
           } else {
-            print('[RetryStream] NOT retrying. retryCount=$retryCount, maxRetries=$maxRetries');
             if (!controller.isClosed) {
               controller.addError(error, stackTrace);
             }
@@ -71,7 +58,6 @@ Stream<T> retryStream<T>(
       if (retryCheck(e) && retryCount < maxRetries) {
         retryCount++;
         final delay = initialDelay * retryCount;
-        print('[RetryStream] Retry $retryCount/$maxRetries after ${delay.inMilliseconds}ms - Error: $e');
 
         Future.delayed(delay, () {
           if (!controller.isClosed) {

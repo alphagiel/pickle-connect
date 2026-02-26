@@ -128,9 +128,9 @@ service cloud.firestore {
       allow write: if isAuthenticated() && isAdmin(request.auth.uid);
     }
 
-    // Zones collection - read-only for authenticated users
+    // Zones collection - publicly readable (needed for signup zone picker)
     match /zones/{zoneId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow write: if false;
     }
 
@@ -138,6 +138,12 @@ service cloud.firestore {
     match /seasons/{seasonId} {
       allow read: if isAuthenticated();
       allow write: if false;
+    }
+
+    // Feedback collection - authenticated users can submit, only admins can read
+    match /feedback/{feedbackId} {
+      allow create: if isAuthenticated();
+      allow read, update, delete: if false;
     }
 
     // Any other collections - default deny

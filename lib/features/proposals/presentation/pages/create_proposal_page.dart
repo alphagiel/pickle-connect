@@ -38,7 +38,6 @@ class _CreateProposalPageState extends ConsumerState<CreateProposalPage> {
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(currentUserProvider);
-    print('Current user in CreateProposalPage: $currentUser');
     // Show login state if user is not authenticated
     if (currentUser == null) {
       return Scaffold(

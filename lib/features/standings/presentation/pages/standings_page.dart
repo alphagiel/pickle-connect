@@ -278,48 +278,46 @@ class _StandingsPageState extends ConsumerState<StandingsPage> with SingleTicker
     final standingsAsync = ref.watch(standingsProvider(standingsParams));
     final matchesAsync = ref.watch(completedMatchesByBracketProvider(proposalParams));
 
-    // Debug logging
-    print('[StandingsPage] Loading standings for bracket: ${bracket.jsonValue}');
-
-    return standingsAsync.when(
-      data: (standings) {
-        print('[StandingsPage] Received ${standings.length} standings for ${bracket.jsonValue}');
-        for (final s in standings) {
-          print('[StandingsPage] - ${s.displayName}: W${s.matchesWon} L${s.matchesLost} streak:${s.streak}');
-        }
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(standingsProvider(standingsParams));
-            ref.invalidate(completedMatchesByBracketProvider(proposalParams));
-          },
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Rankings Section
-                _buildSectionHeader('Rankings (${bracket.skillRange})', Icons.leaderboard),
-                const SizedBox(height: 12),
-                if (standings.isEmpty)
-                  _buildEmptyRankings(bracket)
-                else
-                  _buildRankingsTable(standings, bracket),
-
-                const SizedBox(height: 24),
-
-                // Season Matches Section (Accordion)
-                _buildMatchesAccordion(bracket, matchesAsync),
-              ],
-            ),
-          ),
-        );
-      },
-      loading: () => const Center(
+    // Show loading only on initial load
+    if (standingsAsync.isLoading && !standingsAsync.hasValue) {
+      return const Center(
         child: CircularProgressIndicator(
           valueColor: AlwaysStoppedAnimation<Color>(AppColors.accentBlue),
         ),
+      );
+    }
+
+    if (standingsAsync.hasError && !standingsAsync.hasValue) {
+      return _buildErrorState(standingsAsync.error.toString(), bracket, zoneId: zoneId);
+    }
+
+    final standings = standingsAsync.valueOrNull ?? [];
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(standingsProvider(standingsParams));
+        ref.invalidate(completedMatchesByBracketProvider(proposalParams));
+      },
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Rankings Section
+            _buildSectionHeader('Rankings (${bracket.skillRange})', Icons.leaderboard),
+            const SizedBox(height: 12),
+            if (standings.isEmpty)
+              _buildEmptyRankings(bracket)
+            else
+              _buildRankingsTable(standings, bracket),
+
+            const SizedBox(height: 24),
+
+            // Season Matches Section (Accordion)
+            _buildMatchesAccordion(bracket, matchesAsync),
+          ],
+        ),
       ),
-      error: (error, stack) => _buildErrorState(error.toString(), bracket, zoneId: zoneId),
     );
   }
 

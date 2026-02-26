@@ -248,123 +248,131 @@ class _DoublesProposalsContentState extends ConsumerState<_DoublesProposalsConte
     final bracket = filterParams.bracket;
     final proposalsAsync = ref.watch(openDoublesProposalsProvider(filterParams));
 
-    return proposalsAsync.when(
-      data: (proposals) {
-        _retryAttempts.remove('available_doubles_${bracket.name}');
-
-        if (proposals.isEmpty) {
-          return _buildEmptyState(
-            icon: Icons.group_outlined,
-            title: 'No doubles matches available',
-            subtitle: 'Be the first to create a doubles match!',
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(openDoublesProposalsProvider(filterParams));
-          },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: proposals.length,
-            itemBuilder: (context, index) {
-              final proposal = proposals[index];
-              return _buildDoublesProposalCard(proposal);
-            },
-          ),
-        );
-      },
-      loading: () => const Center(
+    // Show loading only on initial load
+    if (proposalsAsync.isLoading && !proposalsAsync.hasValue) {
+      return const Center(
         child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen)),
-      ),
-      error: (error, stack) {
-        final retryKey = 'available_doubles_${bracket.name}';
-        final attempts = _retryAttempts[retryKey] ?? 0;
-        if (error.toString().contains('permission-denied') && attempts < _maxRetries) {
-          Future.delayed(_retryDelay, () {
-            if (mounted) {
-              _retryAttempts[retryKey] = attempts + 1;
-              ref.invalidate(openDoublesProposalsProvider(filterParams));
-            }
-          });
-          return const Center(
-            child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen)),
-          );
-        }
-        _retryAttempts.remove(retryKey);
-        return _buildErrorState(error.toString());
+      );
+    }
+
+    if (proposalsAsync.hasError && !proposalsAsync.hasValue) {
+      final retryKey = 'available_doubles_${bracket.name}';
+      final attempts = _retryAttempts[retryKey] ?? 0;
+      if (proposalsAsync.error.toString().contains('permission-denied') && attempts < _maxRetries) {
+        Future.delayed(_retryDelay, () {
+          if (mounted) {
+            _retryAttempts[retryKey] = attempts + 1;
+            ref.invalidate(openDoublesProposalsProvider(filterParams));
+          }
+        });
+        return const Center(
+          child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen)),
+        );
+      }
+      _retryAttempts.remove(retryKey);
+      return _buildErrorState(proposalsAsync.error.toString());
+    }
+
+    _retryAttempts.remove('available_doubles_${bracket.name}');
+    final proposals = proposalsAsync.valueOrNull ?? [];
+
+    if (proposals.isEmpty && !proposalsAsync.isLoading) {
+      return _buildEmptyState(
+        icon: Icons.group_outlined,
+        title: 'No doubles matches available',
+        subtitle: 'Be the first to create a doubles match!',
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(openDoublesProposalsProvider(filterParams));
       },
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: proposals.length,
+        itemBuilder: (context, index) {
+          final proposal = proposals[index];
+          return _buildDoublesProposalCard(proposal);
+        },
+      ),
     );
   }
 
   Widget _buildMyDoubles(String userId) {
     final proposalsAsync = ref.watch(userDoublesProposalsProvider(userId));
 
-    return proposalsAsync.when(
-      data: (proposals) {
-        final activeProposals = proposals
-            .where((p) => p.status == ProposalStatus.open || p.status == ProposalStatus.accepted)
-            .toList();
-
-        if (activeProposals.isEmpty) {
-          return _buildEmptyState(
-            icon: Icons.group_outlined,
-            title: 'No active doubles matches',
-            subtitle: 'Create a doubles proposal or join one!',
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(userDoublesProposalsProvider(userId));
-          },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: activeProposals.length,
-            itemBuilder: (context, index) {
-              return _buildDoublesProposalCard(activeProposals[index]);
-            },
-          ),
-        );
-      },
-      loading: () => const Center(
+    if (proposalsAsync.isLoading && !proposalsAsync.hasValue) {
+      return const Center(
         child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen)),
+      );
+    }
+
+    if (proposalsAsync.hasError && !proposalsAsync.hasValue) {
+      return _buildErrorState(proposalsAsync.error.toString());
+    }
+
+    final activeProposals = (proposalsAsync.valueOrNull ?? [])
+        .where((p) => p.status == ProposalStatus.open || p.status == ProposalStatus.accepted)
+        .toList();
+
+    if (activeProposals.isEmpty && !proposalsAsync.isLoading) {
+      return _buildEmptyState(
+        icon: Icons.group_outlined,
+        title: 'No active doubles matches',
+        subtitle: 'Create a doubles proposal or join one!',
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(userDoublesProposalsProvider(userId));
+      },
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: activeProposals.length,
+        itemBuilder: (context, index) {
+          return _buildDoublesProposalCard(activeProposals[index]);
+        },
       ),
-      error: (error, stack) => _buildErrorState(error.toString()),
     );
   }
 
   Widget _buildCompletedDoubles(String userId) {
     final proposalsAsync = ref.watch(completedDoublesProposalsProvider(userId));
 
-    return proposalsAsync.when(
-      data: (proposals) {
-        if (proposals.isEmpty) {
-          return _buildEmptyState(
-            icon: Icons.emoji_events_outlined,
-            title: 'No completed doubles matches',
-            subtitle: 'Your completed doubles matches will appear here',
-            showCreateButton: false,
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(completedDoublesProposalsProvider(userId));
-          },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: proposals.length,
-            itemBuilder: (context, index) {
-              return _buildDoublesProposalCard(proposals[index]);
-            },
-          ),
-        );
-      },
-      loading: () => const Center(
+    if (proposalsAsync.isLoading && !proposalsAsync.hasValue) {
+      return const Center(
         child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen)),
+      );
+    }
+
+    if (proposalsAsync.hasError && !proposalsAsync.hasValue) {
+      return _buildErrorState(proposalsAsync.error.toString());
+    }
+
+    final proposals = proposalsAsync.valueOrNull ?? [];
+
+    if (proposals.isEmpty && !proposalsAsync.isLoading) {
+      return _buildEmptyState(
+        icon: Icons.emoji_events_outlined,
+        title: 'No completed doubles matches',
+        subtitle: 'Your completed doubles matches will appear here',
+        showCreateButton: false,
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(completedDoublesProposalsProvider(userId));
+      },
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: proposals.length,
+        itemBuilder: (context, index) {
+          return _buildDoublesProposalCard(proposals[index]);
+        },
       ),
-      error: (error, stack) => _buildErrorState(error.toString()),
     );
   }
 

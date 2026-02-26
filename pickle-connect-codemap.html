@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pickle Connect — Code Map</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #242836;
+    --border: #2e3345; --text: #e2e4ed; --text2: #8b8fa3;
+    --blue: #60a5fa; --purple: #a78bfa; --green: #34d399;
+    --orange: #fb923c; --red: #f87171; --pink: #f472b6;
+    --amber: #fbbf24; --cyan: #22d3ee; --teal: #2dd4bf;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+  code, .mono { font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace; }
+
+  /* Top bar */
+  .topbar { display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; min-height: 44px; }
+  .topbar h1 { font-size: 14px; font-weight: 600; white-space: nowrap; }
+  .topbar h1 span { color: var(--green); }
+  .view-tabs { display: flex; gap: 2px; background: var(--bg); border-radius: 6px; padding: 2px; }
+  .view-tab { padding: 5px 12px; font-size: 12px; border: none; background: none; color: var(--text2); cursor: pointer; border-radius: 4px; white-space: nowrap; transition: all .15s; }
+  .view-tab:hover { color: var(--text); }
+  .view-tab.active { background: var(--surface2); color: var(--text); }
+  .zoom-controls { display: flex; gap: 4px; margin-left: auto; }
+  .zoom-btn { width: 28px; height: 28px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .zoom-btn:hover { border-color: var(--text2); }
+
+  /* Main layout */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* Sidebar */
+  .sidebar { width: 280px; min-width: 280px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .sidebar-section { padding: 12px; border-bottom: 1px solid var(--border); }
+  .sidebar-section h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text2); margin-bottom: 8px; }
+
+  .search-box { width: 100%; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 12px; outline: none; }
+  .search-box:focus { border-color: var(--green); }
+  .search-box::placeholder { color: var(--text2); }
+
+  .layer-toggles { display: flex; flex-direction: column; gap: 4px; }
+  .layer-toggle { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: background .1s; }
+  .layer-toggle:hover { background: var(--surface2); }
+  .layer-toggle input { display: none; }
+  .layer-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .layer-toggle.off .layer-label { color: var(--text2); text-decoration: line-through; }
+
+  .conn-toggles { display: flex; flex-direction: column; gap: 4px; }
+  .conn-toggle { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .conn-toggle:hover { background: var(--surface2); }
+  .conn-line { width: 18px; height: 2px; flex-shrink: 0; border-radius: 1px; }
+
+  /* File tree */
+  .file-tree { flex: 1; overflow-y: auto; padding: 8px 12px; font-size: 12px; }
+  .file-tree::-webkit-scrollbar { width: 4px; }
+  .file-tree::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .ft-dir { cursor: pointer; padding: 2px 0; color: var(--text2); user-select: none; }
+  .ft-dir:hover { color: var(--text); }
+  .ft-dir::before { content: '▶ '; font-size: 8px; display: inline-block; transition: transform .1s; }
+  .ft-dir.open::before { transform: rotate(90deg); }
+  .ft-children { padding-left: 14px; display: none; }
+  .ft-dir.open + .ft-children { display: block; }
+  .ft-file { padding: 2px 0; color: var(--text2); cursor: pointer; font-size: 11px; }
+  .ft-file:hover { color: var(--text); }
+  .ft-file.highlight { color: var(--green); font-weight: 600; }
+  .hidden { display: none !important; }
+
+  /* Comments */
+  .comments-section { border-top: 1px solid var(--border); max-height: 200px; overflow-y: auto; }
+  .comments-section::-webkit-scrollbar { width: 4px; }
+  .comments-section::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .comment-item { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 11px; }
+  .comment-item .comment-target { color: var(--green); font-weight: 600; }
+  .comment-item .comment-text { color: var(--text2); margin-top: 2px; }
+  .comment-item .comment-del { float: right; background: none; border: none; color: var(--red); cursor: pointer; font-size: 11px; opacity: .6; }
+  .comment-item .comment-del:hover { opacity: 1; }
+
+  /* Canvas */
+  .canvas-area { flex: 1; position: relative; overflow: hidden; background: var(--bg); }
+  .canvas-area svg { width: 100%; height: 100%; cursor: grab; }
+  .canvas-area svg:active { cursor: grabbing; }
+
+  /* Node styles */
+  .node-rect { rx: 6; ry: 6; stroke-width: 1.5; cursor: pointer; transition: filter .15s; }
+  .node-rect:hover { filter: brightness(1.3); }
+  .node-group text { pointer-events: none; }
+  .node-title { font-size: 11px; font-weight: 600; fill: var(--text); }
+  .node-subtitle { font-size: 9px; fill: var(--text2); font-family: 'SF Mono', monospace; }
+  .node-commented { stroke-dasharray: none !important; stroke-width: 2.5 !important; }
+
+  .conn-path { fill: none; stroke-width: 1.5; }
+  .conn-label { font-size: 9px; fill: var(--text2); }
+
+  /* State machine */
+  .state-node { cursor: pointer; }
+  .state-circle { stroke-width: 2; }
+  .state-label { font-size: 11px; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
+  .state-arrow { fill: none; stroke-width: 1.5; }
+  .state-arrow-label { font-size: 9px; fill: var(--text2); }
+
+  /* Detail panel */
+  .detail-panel { position: absolute; top: 12px; right: 12px; width: 320px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-size: 12px; display: none; max-height: 80%; overflow-y: auto; z-index: 10; box-shadow: 0 8px 32px rgba(0,0,0,.4); }
+  .detail-panel::-webkit-scrollbar { width: 4px; }
+  .detail-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .detail-panel.visible { display: block; }
+  .detail-panel h3 { font-size: 14px; margin-bottom: 4px; }
+  .detail-panel .detail-path { font-size: 11px; color: var(--text2); font-family: monospace; margin-bottom: 12px; }
+  .detail-panel .detail-desc { color: var(--text2); margin-bottom: 12px; line-height: 1.5; }
+  .detail-panel .detail-list { list-style: none; }
+  .detail-panel .detail-list li { padding: 3px 0; color: var(--text2); }
+  .detail-panel .detail-list li code { color: var(--blue); background: var(--bg); padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+  .detail-close { position: absolute; top: 8px; right: 12px; background: none; border: none; color: var(--text2); cursor: pointer; font-size: 16px; }
+  .detail-close:hover { color: var(--text); }
+  .detail-comment-btn { margin-top: 8px; padding: 6px 12px; background: var(--green); color: #000; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; }
+  .detail-comment-btn:hover { filter: brightness(1.1); }
+
+  /* Comment modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 100; }
+  .modal-overlay.visible { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; width: 400px; }
+  .modal h3 { font-size: 14px; margin-bottom: 12px; }
+  .modal textarea { width: 100%; height: 80px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); padding: 8px; font-size: 12px; resize: vertical; outline: none; font-family: inherit; }
+  .modal textarea:focus { border-color: var(--green); }
+  .modal-actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+  .modal-actions button { padding: 6px 16px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px; }
+  .modal-cancel { background: var(--surface2); color: var(--text); }
+  .modal-save { background: var(--green); color: #000; font-weight: 600; }
+
+  /* Prompt bar */
+  .prompt-bar { background: var(--surface); border-top: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: flex-start; gap: 12px; flex-shrink: 0; }
+  .prompt-text { flex: 1; font-size: 12px; color: var(--text2); line-height: 1.5; max-height: 80px; overflow-y: auto; white-space: pre-wrap; }
+  .prompt-text::-webkit-scrollbar { width: 4px; }
+  .prompt-text::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .copy-btn { padding: 6px 14px; background: var(--green); color: #000; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+  .copy-btn:hover { filter: brightness(1.1); }
+
+  /* Legend */
+  .legend { position: absolute; bottom: 12px; left: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; font-size: 10px; z-index: 5; }
+  .legend-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .legend-row:last-child { margin-bottom: 0; }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .legend-line { width: 20px; height: 0; border-top: 2px solid; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <h1><span>Pickle Connect</span> Code Map</h1>
+  <div class="view-tabs" id="viewTabs">
+    <button class="view-tab active" data-view="architecture">Architecture</button>
+    <button class="view-tab" data-view="dataflow">Data Flow</button>
+    <button class="view-tab" data-view="features">Feature Map</button>
+    <button class="view-tab" data-view="firestore">Firestore Schema</button>
+    <button class="view-tab" data-view="lifecycle">Match Lifecycle</button>
+  </div>
+  <div class="zoom-controls">
+    <button class="zoom-btn" id="zoomOut">−</button>
+    <button class="zoom-btn" id="zoomReset" style="font-size:11px;">1:1</button>
+    <button class="zoom-btn" id="zoomIn">+</button>
+  </div>
+</div>
+
+<div class="main">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <input class="search-box" id="searchBox" placeholder="Search files, classes, methods..." />
+    </div>
+    <div class="sidebar-section" id="layerSection">
+      <h3>Layers</h3>
+      <div class="layer-toggles" id="layerToggles"></div>
+    </div>
+    <div class="sidebar-section" id="connSection">
+      <h3>Connections</h3>
+      <div class="conn-toggles" id="connToggles"></div>
+    </div>
+    <div class="sidebar-section" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding-bottom:0;">
+      <h3>File Tree</h3>
+      <div class="file-tree" id="fileTree"></div>
+    </div>
+    <div class="comments-section" id="commentsSection">
+      <div class="sidebar-section" style="border-bottom:none;">
+        <h3>Comments (<span id="commentCount">0</span>)</h3>
+      </div>
+      <div id="commentsList"></div>
+    </div>
+  </div>
+
+  <!-- Canvas -->
+  <div class="canvas-area" id="canvasArea">
+    <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow-blue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#60a5fa"/></marker>
+        <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#34d399"/></marker>
+        <marker id="arrow-red" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#f87171"/></marker>
+        <marker id="arrow-orange" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#fb923c"/></marker>
+        <marker id="arrow-purple" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#a78bfa"/></marker>
+        <marker id="arrow-gray" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#6b7280"/></marker>
+        <marker id="arrow-cyan" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#22d3ee"/></marker>
+        <marker id="arrow-amber" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#fbbf24"/></marker>
+      </defs>
+      <g id="svgGroup"></g>
+    </svg>
+    <div class="legend" id="legend"></div>
+    <div class="detail-panel" id="detailPanel">
+      <button class="detail-close" id="detailClose">&times;</button>
+      <h3 id="detailTitle"></h3>
+      <div class="detail-path mono" id="detailPath"></div>
+      <div class="detail-desc" id="detailDesc"></div>
+      <ul class="detail-list" id="detailList"></ul>
+      <button class="detail-comment-btn" id="detailCommentBtn">Add Comment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Comment modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">Add Comment</h3>
+    <textarea id="modalText" placeholder="Describe what you'd like to change or ask about this component..."></textarea>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="modalCancel">Cancel</button>
+      <button class="modal-save" id="modalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Prompt bar -->
+<div class="prompt-bar">
+  <div class="prompt-text" id="promptText">Select a view and click components to add comments. The generated prompt will appear here.</div>
+  <button class="copy-btn" id="copyBtn">Copy Prompt</button>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────
+const state = {
+  view: 'architecture',
+  layers: { presentation: true, providers: true, repositories: true, models: true, firebase: true, config: true },
+  connections: { 'data-flow': true, 'state-mgmt': true, 'event': true, 'dependency': true },
+  comments: [],
+  zoom: 1,
+  panX: 0, panY: 0,
+  selectedNode: null,
+  commentTarget: null
+};
+
+// ─── LAYER DEFINITIONS ──────────────────────────────────────────────
+const LAYERS = {
+  presentation: { label: 'Presentation (Pages/Widgets)', color: '#3b82f6' },
+  providers:    { label: 'Providers (Riverpod)', color: '#a78bfa' },
+  repositories: { label: 'Repositories (Data Access)', color: '#34d399' },
+  models:       { label: 'Models (Freezed)', color: '#fb923c' },
+  firebase:     { label: 'Firebase (Functions/Firestore)', color: '#f87171' },
+  config:       { label: 'Config & Routing', color: '#fbbf24' }
+};
+
+const CONN_TYPES = {
+  'data-flow':  { label: 'Data Flow', color: '#60a5fa', dash: '' },
+  'state-mgmt': { label: 'State Management', color: '#a78bfa', dash: '6,3' },
+  'event':      { label: 'Events / Triggers', color: '#f87171', dash: '4,4' },
+  'dependency':  { label: 'Dependency', color: '#6b7280', dash: '2,2' }
+};
+
+// ─── ARCHITECTURE VIEW ──────────────────────────────────────────────
+const archNodes = [
+  // Presentation layer (y ~40-80)
+  { id:'login', label:'LoginPage', subtitle:'auth/pages/login_page.dart', x:40, y:40, w:130, h:44, layer:'presentation',
+    desc:'Email/password login form with validation and error display.',
+    details:['signIn(email, password)', 'authErrorProvider display', 'Navigate to signup/reset'] },
+  { id:'signup', label:'SignupPage', subtitle:'auth/pages/signup_page.dart', x:190, y:40, w:130, h:44, layer:'presentation',
+    desc:'User registration with skill level selection.',
+    details:['createUser(email, password, name, skill)', 'SkillLevel picker', 'Creates Firestore profile'] },
+  { id:'singles-page', label:'SinglesPage', subtitle:'singles/pages/singles_page.dart', x:340, y:40, w:130, h:44, layer:'presentation',
+    desc:'Tab view: Proposals + Rankings for singles matches.',
+    details:['TabBar with 2 tabs', 'ProposalsPage child', 'StandingsPage child'] },
+  { id:'proposals-page', label:'ProposalsPage', subtitle:'proposals/pages/proposals_page.dart', x:490, y:40, w:140, h:44, layer:'presentation',
+    desc:'Lists open proposals with filtering. Tabs: Open | Accepted | Completed.',
+    details:['ref.watch(filteredProposalsProvider)', 'Status/date/creator filters', 'ProposalCard widgets', 'Pull-to-refresh'] },
+  { id:'proposal-details', label:'ProposalDetails', subtitle:'proposals/pages/proposal_details_page.dart', x:650, y:40, w:140, h:44, layer:'presentation',
+    desc:'Full proposal info with accept, score entry, and confirm actions.',
+    details:['Accept/Unaccept for opponents', 'Score entry (best of 3)', 'Confirm scores workflow', 'Creator: edit, cancel, delete'] },
+  { id:'doubles-page', label:'DoublesPage', subtitle:'doubles/pages/doubles_page.dart', x:810, y:40, w:130, h:44, layer:'presentation',
+    desc:'Tab view: Doubles Proposals + Rankings.',
+    details:['Similar to SinglesPage', 'Doubles-specific providers'] },
+  { id:'doubles-details', label:'DoublesDetails', subtitle:'doubles/pages/doubles_proposal_details_page.dart', x:960, y:40, w:140, h:44, layer:'presentation',
+    desc:'Manage doubles match: approve players, assign teams, score.',
+    details:['Player list with statuses', 'Approve/decline join requests', 'Team 1 / Team 2 assignment', 'Same scoring as singles'] },
+  { id:'standings-page', label:'StandingsPage', subtitle:'standings/pages/standings_page.dart', x:1120, y:40, w:130, h:44, layer:'presentation',
+    desc:'Leaderboards by skill bracket with rank, win rate, streak.',
+    details:['SkillLevelTabs widget', 'StandingCard per player', 'Ordered by winRate DESC'] },
+  { id:'main-nav', label:'MainNavigation', subtitle:'shared/widgets/main_navigation.dart', x:490, y:110, w:140, h:44, layer:'presentation',
+    desc:'Bottom nav shell: Singles | Doubles | + Create | Standings | Profile.',
+    details:['ShellRoute builder', 'GoRouter integration', 'AppBar with logout'] },
+
+  // Providers layer (y ~170-210)
+  { id:'auth-providers', label:'AuthProviders', subtitle:'auth/providers/auth_providers.dart', x:40, y:180, w:150, h:44, layer:'providers',
+    desc:'Auth state management: login, signup, current user profile.',
+    details:['authStateProvider (StreamProvider)', 'currentUserProfileProvider', 'authNotifierProvider', 'authLoadingProvider, authErrorProvider'] },
+  { id:'proposal-providers', label:'ProposalProviders', subtitle:'shared/providers/proposals_providers.dart', x:240, y:180, w:160, h:44, layer:'providers',
+    desc:'248 lines. Singles proposal data + filters + actions.',
+    details:['openProposalsProvider (Stream)', 'userProposalsProvider (Stream)', 'filteredProposalsProvider (derived)', 'proposalActionsProvider (mutations)', 'statusFilter, dateFilter, creatorFilter'] },
+  { id:'doubles-providers', label:'DoublesProviders', subtitle:'shared/providers/doubles_proposals_providers.dart', x:440, y:180, w:160, h:44, layer:'providers',
+    desc:'Doubles proposal providers with join/approve actions.',
+    details:['openDoublesProposalsProvider', 'doublesProposalActionsProvider', 'requestJoin, approvePlayer', 'confirmPartnerInvite'] },
+  { id:'standings-providers', label:'StandingsProviders', subtitle:'shared/providers/standings_providers.dart', x:640, y:180, w:160, h:44, layer:'providers',
+    desc:'Singles + doubles standings by bracket and zone.',
+    details:['standingsProvider(bracket, zone)', 'userStandingProvider'] },
+  { id:'users-providers', label:'UsersProviders', subtitle:'shared/providers/users_providers.dart', x:840, y:180, w:150, h:44, layer:'providers',
+    desc:'User search and lookup providers.',
+    details:['usersProvider', 'userSearchProvider', 'userProvider(userId)'] },
+  { id:'zones-providers', label:'ZonesProviders', subtitle:'shared/providers/zones_providers.dart', x:1030, y:180, w:140, h:44, layer:'providers',
+    desc:'Zone data for geographic scoping.',
+    details:['zonesProvider', 'Zone lookup by ID'] },
+
+  // Repositories layer (y ~260-300)
+  { id:'auth-repo', label:'AuthRepository', subtitle:'auth/data/repositories/auth_repository.dart', x:40, y:280, w:160, h:44, layer:'repositories',
+    desc:'Firebase Auth operations with error mapping.',
+    details:['signInWithEmailPassword()', 'createUserWithEmailPassword()', 'sendPasswordResetEmail()', '_createUserProfile() → Firestore'] },
+  { id:'proposals-repo', label:'ProposalsRepository', subtitle:'shared/repositories/proposals_repository.dart', x:260, y:280, w:170, h:44, layer:'repositories',
+    desc:'965 lines. Full CRUD for singles + doubles proposals.',
+    details:['getProposalsForBracketAndZone()', 'createProposal, acceptProposal', 'updateScores, confirmScores', 'Doubles: requestJoin, approvePlayer', 'Auto-expire logic, cleanup'] },
+  { id:'standings-repo', label:'StandingsRepository', subtitle:'shared/repositories/standings_repository.dart', x:490, y:280, w:170, h:44, layer:'repositories',
+    desc:'Read standings ordered by winRate DESC, matchesWon DESC.',
+    details:['getStandingsForBracket(bracket, zone)', 'getUserStanding(userId)', 'removeUserFromStandings()'] },
+  { id:'users-repo', label:'UsersRepository', subtitle:'shared/repositories/users_repository.dart', x:720, y:280, w:160, h:44, layer:'repositories',
+    desc:'User CRUD and search in Firestore.',
+    details:['getUserById, getUserStream', 'saveUser, updateUser', 'searchUsers (prefix match)', 'updateUserStats()'] },
+  { id:'zones-repo', label:'ZonesRepository', subtitle:'shared/repositories/zones_repository.dart', x:940, y:280, w:150, h:44, layer:'repositories',
+    desc:'Reads zone documents from Firestore.',
+    details:['getZones()', 'getZoneById()'] },
+
+  // Models layer (y ~360-400)
+  { id:'user-model', label:'User', subtitle:'shared/models/user.dart', x:40, y:380, w:140, h:44, layer:'models',
+    desc:'381 lines. @freezed user with skill system, stats, notifications.',
+    details:['SkillLevel enum (9 levels)', 'SkillBracket enum (5 brackets)', 'EmailNotificationPreferences', '_migrateUserJson() compat'] },
+  { id:'proposal-model', label:'Proposal', subtitle:'shared/models/proposal.dart', x:220, y:380, w:150, h:44, layer:'models',
+    desc:'331 lines. @freezed proposal with scoring and doubles support.',
+    details:['MatchType enum (singles/doubles)', 'ProposalStatus enum (5 states)', 'Scores + GameScore (best of 3)', 'DoublesPlayer, AcceptedBy', 'ProposalLifecycle extension', 'DoublesProposalLifecycle ext'] },
+  { id:'standing-model', label:'Standing', subtitle:'shared/models/standing.dart', x:410, y:380, w:130, h:44, layer:'models',
+    desc:'Player ranking entry with stats and streak.',
+    details:['matchesPlayed/Won/Lost', 'winRate, rankingPoints', 'streak (consecutive)'] },
+  { id:'zone-model', label:'AppZone', subtitle:'shared/models/zone.dart', x:580, y:380, w:120, h:44, layer:'models',
+    desc:'Geographic zone for scoping matches and standings.',
+    details:['id, displayName', 'cities: List<String>', 'region, active flag'] },
+
+  // Firebase layer (y ~460-520)
+  { id:'firestore', label:'Firestore', subtitle:'Cloud Firestore Database', x:40, y:480, w:140, h:44, layer:'firebase',
+    desc:'Document database with real-time snapshots.',
+    details:['users/{userId}', 'proposals/{proposalId}', 'standings/{zone}_{bracket}/players/{uid}', 'doubles_standings/...', 'zones/{zoneId}'] },
+  { id:'firebase-auth', label:'Firebase Auth', subtitle:'Authentication Service', x:220, y:480, w:140, h:44, layer:'firebase',
+    desc:'Email/password authentication with token refresh.',
+    details:['signIn, createUser', 'sendPasswordResetEmail', 'Token auto-refresh', 'Auth state stream'] },
+  { id:'on-user-created', label:'onUserCreated', subtitle:'functions/triggers/on-user-created.ts', x:400, y:480, w:140, h:44, layer:'firebase',
+    desc:'Trigger on new user document. Sends welcome email.',
+    details:['Send welcome email', 'Set default preferences', 'Initialize stats'] },
+  { id:'on-proposal-updated', label:'onProposalUpdated', subtitle:'functions/triggers/on-proposal-updated.ts', x:580, y:480, w:160, h:44, layer:'firebase',
+    desc:'Core trigger: handles accept, complete, score, doubles player changes.',
+    details:['open→accepted: email creator', 'accepted→completed: update standings', 'Calculate win rates/streaks', 'Doubles player change emails', 'Update both players stats'] },
+  { id:'on-proposal-created', label:'onProposalCreated', subtitle:'functions/triggers/on-proposal-created.ts', x:780, y:480, w:150, h:44, layer:'firebase',
+    desc:'Sends notification emails to players in same bracket/zone.',
+    details:['new-proposal email', 'doubles-new-proposal email', 'Filter by skill bracket'] },
+  { id:'email-service', label:'EmailService', subtitle:'functions/services/email/', x:980, y:480, w:140, h:44, layer:'firebase',
+    desc:'Adapter pattern: Resend (prod) / Mailpit (dev).',
+    details:['IEmailService interface', 'ResendService (production)', 'MailpitService (development)', 'EmailFactory creates service'] },
+  { id:'email-templates', label:'Email Templates', subtitle:'functions/templates/', x:980, y:540, w:140, h:44, layer:'firebase',
+    desc:'15+ email templates for all lifecycle events.',
+    details:['baseTemplate(content, prefsUrl)', 'welcome, match-result', 'proposal-accepted/cancelled', '12 doubles-* templates', 'password-reset, account-deleted'] },
+
+  // Config (y ~110)
+  { id:'app-router', label:'AppRouter', subtitle:'core/utils/app_router.dart', x:40, y:110, w:130, h:44, layer:'config',
+    desc:'GoRouter configuration with auth redirect and deep links.',
+    details:['/login, /signup, /reset-password', '/, /singles, /doubles', '/create-proposal, /edit-proposal', '/proposal/:proposalId (deep link)', 'Auth redirect logic'] },
+  { id:'main-dart', label:'main.dart', subtitle:'lib/main.dart', x:190, y:110, w:120, h:44, layer:'config',
+    desc:'App entry: Firebase init, Riverpod, Hive, emulator setup.',
+    details:['Firebase.initializeApp()', 'ProviderScope wrapper', 'Emulator connection in debug', 'MaterialApp.router()'] },
+  { id:'stream-retry', label:'streamRetry', subtitle:'core/utils/stream_retry.dart', x:340, y:110, w:120, h:44, layer:'config',
+    desc:'Wraps Firestore streams with retry on transient errors.',
+    details:['retryStream(() => stream)', 'Handles auth token refresh', '1s delay before retry'] },
+];
+
+const archConnections = [
+  // Pages → Providers
+  { from:'login', to:'auth-providers', type:'state-mgmt', label:'ref.watch' },
+  { from:'signup', to:'auth-providers', type:'state-mgmt', label:'ref.watch' },
+  { from:'proposals-page', to:'proposal-providers', type:'state-mgmt', label:'ref.watch' },
+  { from:'proposal-details', to:'proposal-providers', type:'state-mgmt', label:'ref.watch/read' },
+  { from:'doubles-page', to:'doubles-providers', type:'state-mgmt', label:'ref.watch' },
+  { from:'doubles-details', to:'doubles-providers', type:'state-mgmt', label:'ref.watch/read' },
+  { from:'standings-page', to:'standings-providers', type:'state-mgmt', label:'ref.watch' },
+  // Providers → Repositories
+  { from:'auth-providers', to:'auth-repo', type:'data-flow', label:'calls' },
+  { from:'proposal-providers', to:'proposals-repo', type:'data-flow', label:'Stream<List>' },
+  { from:'doubles-providers', to:'proposals-repo', type:'data-flow', label:'Stream<List>' },
+  { from:'standings-providers', to:'standings-repo', type:'data-flow', label:'Stream<List>' },
+  { from:'users-providers', to:'users-repo', type:'data-flow', label:'Stream/Future' },
+  { from:'zones-providers', to:'zones-repo', type:'data-flow', label:'Stream' },
+  // Repositories → Firestore
+  { from:'auth-repo', to:'firebase-auth', type:'data-flow', label:'Auth SDK' },
+  { from:'auth-repo', to:'firestore', type:'data-flow', label:'createProfile' },
+  { from:'proposals-repo', to:'firestore', type:'data-flow', label:'snapshots()' },
+  { from:'standings-repo', to:'firestore', type:'data-flow', label:'snapshots()' },
+  { from:'users-repo', to:'firestore', type:'data-flow', label:'snapshots()' },
+  { from:'zones-repo', to:'firestore', type:'data-flow', label:'snapshots()' },
+  // Repos → Models
+  { from:'proposals-repo', to:'proposal-model', type:'dependency', label:'fromJson' },
+  { from:'users-repo', to:'user-model', type:'dependency', label:'fromJson' },
+  { from:'standings-repo', to:'standing-model', type:'dependency', label:'fromJson' },
+  { from:'zones-repo', to:'zone-model', type:'dependency', label:'fromJson' },
+  // Firebase triggers
+  { from:'firestore', to:'on-user-created', type:'event', label:'onCreate' },
+  { from:'firestore', to:'on-proposal-created', type:'event', label:'onCreate' },
+  { from:'firestore', to:'on-proposal-updated', type:'event', label:'onUpdate' },
+  { from:'on-proposal-updated', to:'firestore', type:'data-flow', label:'updateStandings' },
+  { from:'on-user-created', to:'email-service', type:'data-flow', label:'sendEmail' },
+  { from:'on-proposal-created', to:'email-service', type:'data-flow', label:'sendEmail' },
+  { from:'on-proposal-updated', to:'email-service', type:'data-flow', label:'sendEmail' },
+  { from:'email-service', to:'email-templates', type:'dependency', label:'renders' },
+  // Config
+  { from:'main-dart', to:'app-router', type:'dependency', label:'configures' },
+  { from:'main-nav', to:'app-router', type:'dependency', label:'ShellRoute' },
+  { from:'proposal-providers', to:'stream-retry', type:'dependency', label:'wraps stream' },
+];
+
+// ─── DATA FLOW VIEW ────────────────────────────────────────────────
+const dataflowNodes = [
+  { id:'df-ui', label:'ConsumerWidget', subtitle:'UI Layer', x:100, y:40, w:160, h:50, layer:'presentation',
+    desc:'Flutter widget that watches Riverpod providers. Rebuilds on data change.', details:['ref.watch(provider)', 'AsyncValue.when(data:, loading:, error:)', 'ConsumerStatefulWidget for tabs'] },
+  { id:'df-refwatch', label:'ref.watch()', subtitle:'Riverpod Hook', x:100, y:130, w:160, h:50, layer:'providers',
+    desc:'Subscribes widget to provider changes. Auto-disposes when widget unmounts.', details:['Caches by provider key', 'Auto-deduplicates subscriptions', 'Triggers rebuild on change'] },
+  { id:'df-stream', label:'StreamProvider', subtitle:'Real-time Data', x:100, y:220, w:160, h:50, layer:'providers',
+    desc:'Wraps Firestore Stream into Riverpod AsyncValue.', details:['retryStream() wrapper', 'Auto-cancel on dispose', 'Family variants for params'] },
+  { id:'df-filter', label:'Derived Provider', subtitle:'Filter + Sort', x:360, y:130, w:160, h:50, layer:'providers',
+    desc:'Combines data providers with StateProviders for filtering.', details:['filteredProposalsProvider', 'Reads: data + statusFilter + dateFilter', 'Returns sorted, filtered list'] },
+  { id:'df-state', label:'StateProvider', subtitle:'UI State', x:360, y:40, w:160, h:50, layer:'providers',
+    desc:'Mutable filter state: status, date sort, creator search, skill level.', details:['proposalStatusFilterProvider', 'dateFilterProvider', 'creatorFilterProvider', 'selectedSkillLevelProvider'] },
+  { id:'df-actions', label:'Actions Provider', subtitle:'Mutation Methods', x:580, y:40, w:160, h:50, layer:'providers',
+    desc:'Wraps repository mutation calls for UI use.', details:['ProposalActions class', 'createProposal, acceptProposal', 'updateScores, confirmScores'] },
+  { id:'df-repo', label:'Repository', subtitle:'Data Access Layer', x:100, y:320, w:160, h:50, layer:'repositories',
+    desc:'Firestore queries returning Stream<List<T>> or Future<T>.', details:['collection.where().snapshots()', 'Error handling + null checks', 'Auto-expire on read'] },
+  { id:'df-fromjson', label:'Model.fromJson()', subtitle:'Deserialization', x:360, y:320, w:160, h:50, layer:'models',
+    desc:'Freezed-generated JSON deserialization with migration hooks.', details:['_migrateProposalJson()', '_migrateUserJson()', 'Handles missing fields'] },
+  { id:'df-firestore', label:'Firestore', subtitle:'.snapshots()', x:100, y:420, w:160, h:50, layer:'firebase',
+    desc:'Real-time document snapshots pushed to client.', details:['Composite index queries', 'skillBracket + zone + status', 'Auto-reconnect on network'] },
+  { id:'df-functions', label:'Cloud Functions', subtitle:'Event-driven', x:360, y:420, w:160, h:50, layer:'firebase',
+    desc:'Firestore triggers update standings, send emails on changes.', details:['onProposalUpdated → standings', 'onProposalCreated → emails', 'Admin SDK bypasses rules'] },
+  { id:'df-asyncvalue', label:'AsyncValue<T>', subtitle:'Three States', x:580, y:220, w:160, h:50, layer:'providers',
+    desc:'Riverpod wrapper: loading | data(T) | error(e).', details:['.when(data:, loading:, error:)', 'Drives UI skeleton/error states', 'Auto-transitions on stream events'] },
+];
+const dataflowConnections = [
+  { from:'df-ui', to:'df-refwatch', type:'state-mgmt', label:'subscribes' },
+  { from:'df-refwatch', to:'df-stream', type:'state-mgmt', label:'watches' },
+  { from:'df-stream', to:'df-repo', type:'data-flow', label:'calls' },
+  { from:'df-repo', to:'df-firestore', type:'data-flow', label:'.snapshots()' },
+  { from:'df-firestore', to:'df-repo', type:'data-flow', label:'Stream<QuerySnap>' },
+  { from:'df-repo', to:'df-fromjson', type:'data-flow', label:'doc.data()' },
+  { from:'df-fromjson', to:'df-stream', type:'data-flow', label:'List<Model>' },
+  { from:'df-stream', to:'df-asyncvalue', type:'data-flow', label:'emits' },
+  { from:'df-asyncvalue', to:'df-ui', type:'state-mgmt', label:'.when()' },
+  { from:'df-state', to:'df-filter', type:'state-mgmt', label:'filter values' },
+  { from:'df-stream', to:'df-filter', type:'data-flow', label:'raw data' },
+  { from:'df-filter', to:'df-ui', type:'state-mgmt', label:'filtered list' },
+  { from:'df-actions', to:'df-repo', type:'data-flow', label:'mutations' },
+  { from:'df-firestore', to:'df-functions', type:'event', label:'trigger' },
+  { from:'df-functions', to:'df-firestore', type:'data-flow', label:'update' },
+];
+
+// ─── FEATURE MAP VIEW ──────────────────────────────────────────────
+const featureNodes = [
+  { id:'feat-auth', label:'Auth Feature', subtitle:'Login / Signup / Reset', x:60, y:50, w:180, h:55, layer:'presentation',
+    desc:'Complete authentication flow with Firebase Auth.', details:['LoginPage, SignupPage, ResetPasswordPage', 'AuthRepository → Firebase Auth', 'AuthProviders (state management)', 'GoRouter redirect on auth change'] },
+  { id:'feat-singles', label:'Singles Feature', subtitle:'1v1 Match Proposals', x:300, y:50, w:180, h:55, layer:'presentation',
+    desc:'Core feature: create, accept, score singles matches.', details:['ProposalsPage (Open|Accepted|Completed)', 'CreateProposalPage', 'ProposalDetailsPage (accept, score)', 'Filters: status, date, creator, skill'] },
+  { id:'feat-doubles', label:'Doubles Feature', subtitle:'2v2 Match Proposals', x:540, y:50, w:180, h:55, layer:'presentation',
+    desc:'Team matches with partner invite and join requests.', details:['CreateDoublesProposalPage', 'DoublesProposalDetailsPage', 'Team assignment (1 or 2)', 'Player states: confirmed|invited|requested'] },
+  { id:'feat-standings', label:'Standings Feature', subtitle:'Rankings & Leaderboards', x:780, y:50, w:180, h:55, layer:'presentation',
+    desc:'Seasonal rankings scoped by skill bracket and zone.', details:['StandingsPage with SkillLevelTabs', 'Ordered by winRate DESC', 'Both singles and doubles', 'StandingCard per player'] },
+  { id:'feat-profile', label:'Profile Feature', subtitle:'User Settings', x:1020, y:50, w:180, h:55, layer:'presentation',
+    desc:'Edit display name, skill level, location.', details:['EditProfilePage', 'Updates Firestore user doc', 'Triggers proposal name updates'] },
+  // Shared layer
+  { id:'feat-models', label:'Shared Models', subtitle:'6 Freezed model files', x:60, y:170, w:180, h:55, layer:'models',
+    desc:'Immutable data classes with JSON serialization.', details:['User (381 lines) + SkillLevel/Bracket', 'Proposal (331 lines) + Scores', 'Standing, AppZone, Ladder, Feedback'] },
+  { id:'feat-providers', label:'Shared Providers', subtitle:'6 provider files', x:300, y:170, w:180, h:55, layer:'providers',
+    desc:'Riverpod providers shared across features.', details:['proposals_providers (248 lines)', 'doubles_proposals_providers', 'standings + doubles_standings', 'users + zones providers'] },
+  { id:'feat-repos', label:'Shared Repositories', subtitle:'6 repository files', x:540, y:170, w:180, h:55, layer:'repositories',
+    desc:'Firebase data access layer used by all features.', details:['proposals_repository (965 lines)', 'standings + doubles_standings', 'users + zones + feedback'] },
+  { id:'feat-functions', label:'Cloud Functions', subtitle:'5 triggers + 2 callable', x:780, y:170, w:180, h:55, layer:'firebase',
+    desc:'Event-driven backend: standings, emails, cleanup.', details:['onProposalUpdated (core logic)', 'onUserCreated/Deleted', 'onProposalCreated/Deleted', 'requestPasswordReset', 'confirmPasswordReset'] },
+  { id:'feat-emails', label:'Email System', subtitle:'15+ templates', x:1020, y:170, w:180, h:55, layer:'firebase',
+    desc:'Resend (prod) / Mailpit (dev) with HTML templates.', details:['baseTemplate wrapper', 'Singles: 5 templates', 'Doubles: 12 templates', 'Transactional: 3 templates'] },
+  // Skill bracket
+  { id:'feat-bracket', label:'Skill Bracket System', subtitle:'9 levels → 5 brackets', x:300, y:290, w:200, h:55, layer:'models',
+    desc:'Fair matchmaking: players see proposals in their bracket.', details:['1.0-2.0 → Beginner', '2.5 → Novice', '3.0-3.5 → Intermediate', '4.0-4.5 → Advanced', '5.0+ → Expert'] },
+  { id:'feat-zones', label:'Zone Scoping', subtitle:'Geographic regions', x:560, y:290, w:180, h:55, layer:'models',
+    desc:'Proposals and standings scoped by geographic zone.', details:['Default: east_triangle', 'Future: multiple zones', 'standings/{zone}_{bracket}'] },
+];
+const featureConnections = [
+  { from:'feat-auth', to:'feat-providers', type:'dependency' },
+  { from:'feat-singles', to:'feat-providers', type:'state-mgmt', label:'ref.watch' },
+  { from:'feat-doubles', to:'feat-providers', type:'state-mgmt', label:'ref.watch' },
+  { from:'feat-standings', to:'feat-providers', type:'state-mgmt', label:'ref.watch' },
+  { from:'feat-profile', to:'feat-repos', type:'data-flow' },
+  { from:'feat-providers', to:'feat-repos', type:'data-flow', label:'Stream<List>' },
+  { from:'feat-repos', to:'feat-models', type:'dependency', label:'fromJson' },
+  { from:'feat-repos', to:'feat-functions', type:'event', label:'Firestore triggers' },
+  { from:'feat-functions', to:'feat-emails', type:'data-flow', label:'sendEmail' },
+  { from:'feat-bracket', to:'feat-providers', type:'dependency', label:'filter key' },
+  { from:'feat-zones', to:'feat-providers', type:'dependency', label:'scope key' },
+];
+
+// ─── FIRESTORE SCHEMA VIEW ─────────────────────────────────────────
+const firestoreNodes = [
+  { id:'fs-users', label:'users/{userId}', subtitle:'User profiles', x:60, y:50, w:200, h:50, layer:'firebase',
+    desc:'User profile documents with stats and preferences.', details:['userId, displayName, email', 'skillLevel (1.0-5.0+)', 'skillBracket (Beginner-Expert)', 'matchesPlayed/Won/Lost, winRate', 'doublesPlayed/Won/Lost', 'zone (default: east_triangle)', 'emailNotifications (6 booleans)'] },
+  { id:'fs-proposals', label:'proposals/{proposalId}', subtitle:'Singles + Doubles matches', x:340, y:50, w:220, h:50, layer:'firebase',
+    desc:'All match proposals in single collection, filtered by matchType.', details:['creatorId, creatorName', 'skillLevel, skillBracket, zone', 'status: open|accepted|expired|completed|canceled', 'matchType: singles|doubles', 'acceptedBy: {userId, displayName}', 'scores: {games: [{creator, opponent}]}', 'scoreConfirmedBy: [userId]', 'doublesPlayers: [{userId, team, status}]', 'playerIds: [] (denormalized)', 'openSlots: number'] },
+  { id:'fs-standings', label:'standings/{zone}_{bracket}', subtitle:'Singles leaderboards', x:60, y:170, w:200, h:50, layer:'firebase',
+    desc:'Container doc per zone+bracket. Subcollection has player rankings.', details:['Composite ID: east_triangle_Intermediate', 'Subcollection: players/{userId}', 'Ordered by: winRate DESC, matchesWon DESC'] },
+  { id:'fs-standings-players', label:'…/players/{userId}', subtitle:'Individual ranking', x:60, y:260, w:200, h:50, layer:'models',
+    desc:'Per-player standing within a bracket leaderboard.', details:['userId, displayName, skillLevel', 'matchesPlayed, matchesWon, matchesLost', 'winRate (0.0 - 1.0)', 'rankingPoints (default 1000)', 'streak (positive=wins, negative=losses)', 'lastUpdated'] },
+  { id:'fs-doubles-standings', label:'doubles_standings/{zone}_{bracket}', subtitle:'Doubles leaderboards', x:340, y:170, w:230, h:50, layer:'firebase',
+    desc:'Same structure as singles standings but for doubles matches.', details:['Same subcollection pattern', 'Updated by onProposalUpdated', 'Doubles-specific stats'] },
+  { id:'fs-doubles-players', label:'…/players/{userId}', subtitle:'Doubles ranking', x:340, y:260, w:200, h:50, layer:'models',
+    desc:'Same schema as singles standing.', details:['Identical fields', 'Separate collection'] },
+  { id:'fs-zones', label:'zones/{zoneId}', subtitle:'Geographic zones', x:640, y:50, w:180, h:50, layer:'firebase',
+    desc:'Zone definitions for geographic scoping.', details:['id, displayName, description', 'cities: [string]', 'region, active'] },
+  { id:'fs-invitations', label:'invitationCodes/{codeId}', subtitle:'Beta access', x:640, y:170, w:200, h:50, layer:'firebase',
+    desc:'Invitation codes for gated beta access.', details:['code, usedBy, createdAt', 'Beta access control'] },
+  { id:'fs-rules', label:'firestore.rules', subtitle:'Security Rules', x:640, y:260, w:180, h:50, layer:'config',
+    desc:'Access control for all collections.', details:['isAuthenticated() check', 'users: owner-write only', 'proposals: creator can write', 'standings: Cloud Functions only', 'Default: deny all'] },
+  { id:'fs-indexes', label:'firestore.indexes.json', subtitle:'Composite Indexes', x:340, y:350, w:200, h:50, layer:'config',
+    desc:'Required for multi-field Firestore queries.', details:['proposals: status+bracket+zone+dateTime', 'proposals: matchType+status+bracket+zone', 'standings: winRate DESC + matchesWon DESC'] },
+];
+const firestoreConnections = [
+  { from:'fs-standings', to:'fs-standings-players', type:'data-flow', label:'subcollection' },
+  { from:'fs-doubles-standings', to:'fs-doubles-players', type:'data-flow', label:'subcollection' },
+  { from:'fs-proposals', to:'fs-standings', type:'event', label:'onComplete → update' },
+  { from:'fs-proposals', to:'fs-doubles-standings', type:'event', label:'onComplete → update' },
+  { from:'fs-users', to:'fs-proposals', type:'dependency', label:'creatorId ref' },
+  { from:'fs-users', to:'fs-standings-players', type:'dependency', label:'userId ref' },
+  { from:'fs-zones', to:'fs-proposals', type:'dependency', label:'zone field' },
+  { from:'fs-zones', to:'fs-standings', type:'dependency', label:'zone in ID' },
+  { from:'fs-rules', to:'fs-users', type:'dependency', label:'secures' },
+  { from:'fs-rules', to:'fs-proposals', type:'dependency', label:'secures' },
+  { from:'fs-indexes', to:'fs-proposals', type:'dependency', label:'optimizes' },
+  { from:'fs-indexes', to:'fs-standings-players', type:'dependency', label:'optimizes' },
+];
+
+// ─── MATCH LIFECYCLE VIEW (state machine) ───────────────────────────
+const lifecycleNodes = [
+  // Singles
+  { id:'lc-title-singles', label:'Singles Match Lifecycle', subtitle:'', x:250, y:10, w:220, h:30, layer:'config', desc:'State machine for 1v1 match proposals.', details:[] },
+  { id:'lc-open', label:'Open', subtitle:'Waiting for opponent', x:100, y:80, w:130, h:50, layer:'presentation',
+    desc:'Creator published proposal. Visible to players in same bracket/zone.', details:['Created by user', 'Filtered by skillBracket + zone', 'Email sent to bracket peers'] },
+  { id:'lc-accepted', label:'Accepted', subtitle:'Opponent found', x:300, y:80, w:130, h:50, layer:'providers',
+    desc:'Another player accepted. Both see match details.', details:['acceptedBy set', 'Both players can enter scores', 'Can be unaccepted'] },
+  { id:'lc-completed', label:'Completed', subtitle:'Scores confirmed', x:500, y:80, w:130, h:50, layer:'repositories',
+    desc:'Match played and scores confirmed by both players.', details:['Scores recorded (best of 3)', 'Both players confirmed', 'Standings updated via Cloud Function', 'Stats recalculated'] },
+  { id:'lc-expired', label:'Expired', subtitle:'Past due date', x:200, y:200, w:130, h:50, layer:'models',
+    desc:'Proposal past scheduled date without completion.', details:['Auto-detected client-side', '24+ hours past dateTime', 'Also handled by Cloud Function'] },
+  { id:'lc-canceled', label:'Canceled', subtitle:'Creator withdrew', x:400, y:200, w:130, h:50, layer:'firebase',
+    desc:'Creator manually canceled the proposal.', details:['Creator action only', 'Before or after acceptance', 'Email to accepted opponent'] },
+
+  // Doubles
+  { id:'lc-title-doubles', label:'Doubles Match Lifecycle', subtitle:'', x:250, y:310, w:220, h:30, layer:'config', desc:'Team formation + match flow.', details:[] },
+  { id:'lc-d-create', label:'Create', subtitle:'Pick partner', x:60, y:380, w:120, h:50, layer:'presentation',
+    desc:'Creator picks skill level, location, date, and invites a partner.', details:['Creator auto-confirmed Team 1', 'Partner status: invited', '2 openSlots'] },
+  { id:'lc-d-lobby', label:'Lobby', subtitle:'Open for joins', x:210, y:380, w:120, h:50, layer:'providers',
+    desc:'Partner confirmed. 2 open slots for join requests.', details:['Partner confirms invite', 'Others send join requests', 'Status: requested → pending'] },
+  { id:'lc-d-approve', label:'Approve', subtitle:'Assign teams', x:360, y:380, w:120, h:50, layer:'repositories',
+    desc:'Creator reviews requests, approves players, assigns to Team 1 or 2.', details:['Creator approves/declines', 'Assigns player to team', 'openSlots decrements'] },
+  { id:'lc-d-filled', label:'Filled', subtitle:'4 players ready', x:510, y:380, w:120, h:50, layer:'models',
+    desc:'All 4 slots filled. Match ready to play.', details:['isFilled = true', 'Team 1: creator + partner', 'Team 2: 2 approved players', 'Lobby full email sent'] },
+  { id:'lc-d-score', label:'Score', subtitle:'Enter results', x:660, y:380, w:120, h:50, layer:'firebase',
+    desc:'Same scoring as singles. Team 1 vs Team 2.', details:['creatorScore = Team 1', 'opponentScore = Team 2', 'Best of 3 games', 'Both confirm → complete'] },
+];
+const lifecycleConnections = [
+  // Singles
+  { from:'lc-open', to:'lc-accepted', type:'data-flow', label:'accept' },
+  { from:'lc-accepted', to:'lc-open', type:'state-mgmt', label:'unaccept' },
+  { from:'lc-accepted', to:'lc-completed', type:'data-flow', label:'scores confirmed' },
+  { from:'lc-open', to:'lc-expired', type:'event', label:'24h past due' },
+  { from:'lc-accepted', to:'lc-expired', type:'event', label:'past due' },
+  { from:'lc-open', to:'lc-canceled', type:'event', label:'creator cancels' },
+  { from:'lc-accepted', to:'lc-canceled', type:'event', label:'creator cancels' },
+  // Doubles
+  { from:'lc-d-create', to:'lc-d-lobby', type:'data-flow', label:'partner confirms' },
+  { from:'lc-d-lobby', to:'lc-d-approve', type:'data-flow', label:'join requests' },
+  { from:'lc-d-approve', to:'lc-d-filled', type:'data-flow', label:'all 4 confirmed' },
+  { from:'lc-d-filled', to:'lc-d-score', type:'data-flow', label:'play match' },
+];
+
+// ─── VIEW MAP ───────────────────────────────────────────────────────
+const VIEWS = {
+  architecture: { nodes: archNodes, connections: archConnections },
+  dataflow: { nodes: dataflowNodes, connections: dataflowConnections },
+  features: { nodes: featureNodes, connections: featureConnections },
+  firestore: { nodes: firestoreNodes, connections: firestoreConnections },
+  lifecycle: { nodes: lifecycleNodes, connections: lifecycleConnections },
+};
+
+// ─── FILE TREE DATA ─────────────────────────────────────────────────
+const fileTreeData = [
+  { name:'lib/', children:[
+    { name:'main.dart' },
+    { name:'core/', children:[
+      { name:'theme/', children:[{ name:'app_theme.dart' }] },
+      { name:'utils/', children:[{ name:'app_router.dart' },{ name:'stream_retry.dart' },{ name:'season_utils.dart' }] }
+    ]},
+    { name:'features/', children:[
+      { name:'auth/', children:[
+        { name:'data/repositories/', children:[{ name:'auth_repository.dart' }] },
+        { name:'presentation/', children:[
+          { name:'pages/', children:[{ name:'login_page.dart' },{ name:'signup_page.dart' },{ name:'reset_password_page.dart' }] },
+          { name:'providers/', children:[{ name:'auth_providers.dart' }] }
+        ]}
+      ]},
+      { name:'proposals/', children:[
+        { name:'presentation/', children:[
+          { name:'pages/', children:[{ name:'proposals_page.dart' },{ name:'create_proposal_page.dart' },{ name:'edit_proposal_page.dart' },{ name:'proposal_details_page.dart' }] },
+          { name:'widgets/', children:[{ name:'proposal_card.dart' },{ name:'proposal_filters.dart' },{ name:'skill_level_filter.dart' }] }
+        ]}
+      ]},
+      { name:'singles/', children:[{ name:'presentation/pages/', children:[{ name:'singles_page.dart' }] }] },
+      { name:'doubles/', children:[{ name:'presentation/pages/', children:[{ name:'doubles_page.dart' },{ name:'create_doubles_proposal_page.dart' },{ name:'doubles_proposal_details_page.dart' }] }] },
+      { name:'standings/', children:[{ name:'presentation/', children:[{ name:'pages/', children:[{ name:'standings_page.dart' }] },{ name:'widgets/', children:[{ name:'skill_level_tabs.dart' },{ name:'standing_card.dart' }] }] }] },
+      { name:'profile/', children:[{ name:'presentation/pages/', children:[{ name:'edit_profile_page.dart' }] }] }
+    ]},
+    { name:'shared/', children:[
+      { name:'models/', children:[{ name:'user.dart' },{ name:'proposal.dart' },{ name:'standing.dart' },{ name:'zone.dart' },{ name:'ladder.dart' },{ name:'feedback.dart' }] },
+      { name:'providers/', children:[{ name:'proposals_providers.dart' },{ name:'doubles_proposals_providers.dart' },{ name:'standings_providers.dart' },{ name:'doubles_standings_providers.dart' },{ name:'users_providers.dart' },{ name:'zones_providers.dart' }] },
+      { name:'repositories/', children:[{ name:'proposals_repository.dart' },{ name:'standings_repository.dart' },{ name:'users_repository.dart' },{ name:'zones_repository.dart' },{ name:'doubles_standings_repository.dart' },{ name:'feedback_repository.dart' }] },
+      { name:'services/', children:[{ name:'notification_service.dart' },{ name:'proposal_cleanup_service.dart' }] },
+      { name:'theme/', children:[{ name:'app_colors.dart' }] },
+      { name:'widgets/', children:[{ name:'main_navigation.dart' },{ name:'responsive_center.dart' }] }
+    ]}
+  ]},
+  { name:'functions/', children:[
+    { name:'src/', children:[
+      { name:'index.ts' },{ name:'config.ts' },
+      { name:'callable/', children:[{ name:'request-password-reset.ts' },{ name:'confirm-password-reset.ts' }] },
+      { name:'triggers/', children:[{ name:'on-user-created.ts' },{ name:'on-user-deleted.ts' },{ name:'on-proposal-created.ts' },{ name:'on-proposal-updated.ts' },{ name:'on-proposal-deleted.ts' }] },
+      { name:'migrations/', children:[{ name:'migrate-skill-levels.ts' },{ name:'migrate-proposals-doubles-fields.ts' }] },
+      { name:'services/email/', children:[{ name:'email-service.interface.ts' },{ name:'resend.service.ts' },{ name:'mailpit.service.ts' },{ name:'email-factory.ts' }] },
+      { name:'templates/', children:[{ name:'base.ts' },{ name:'welcome.ts' },{ name:'new-proposal.ts' },{ name:'proposal-accepted.ts' },{ name:'match-result.ts' },{ name:'password-reset.ts' },{ name:'account-deleted.ts' },{ name:'doubles-*.ts (12 files)' }] }
+    ]}
+  ]},
+  { name:'firestore.rules' },
+  { name:'firestore.indexes.json' },
+  { name:'firebase.json' },
+  { name:'pubspec.yaml' }
+];
+
+// ─── SVG HELPERS ────────────────────────────────────────────────────
+const svg = document.getElementById('svg');
+const svgGroup = document.getElementById('svgGroup');
+
+function getNodeCenter(n) { return { x: n.x + n.w/2, y: n.y + n.h/2 }; }
+
+function getNodeEdge(from, to) {
+  const fc = getNodeCenter(from), tc = getNodeCenter(to);
+  const dx = tc.x - fc.x, dy = tc.y - fc.y;
+  const absDx = Math.abs(dx), absDy = Math.abs(dy);
+  let fx, fy, tx, ty;
+  // From node edge
+  if (absDx / from.w > absDy / from.h) {
+    fx = fc.x + (dx > 0 ? from.w/2 : -from.w/2);
+    fy = fc.y + dy * (from.w/2) / absDx * (dx > 0 ? 1 : -1);
+    fy = Math.max(from.y, Math.min(from.y + from.h, fy));
+  } else {
+    fy = fc.y + (dy > 0 ? from.h/2 : -from.h/2);
+    fx = fc.x + dx * (from.h/2) / absDy * (dy > 0 ? 1 : -1);
+    fx = Math.max(from.x, Math.min(from.x + from.w, fx));
+  }
+  // To node edge
+  const dx2 = fx - tc.x, dy2 = fy - tc.y;
+  const absDx2 = Math.abs(dx2), absDy2 = Math.abs(dy2);
+  if (absDx2 / to.w > absDy2 / to.h) {
+    tx = tc.x + (dx2 > 0 ? to.w/2 : -to.w/2);
+    ty = tc.y + dy2 * (to.w/2) / absDx2 * (dx2 > 0 ? 1 : -1);
+    ty = Math.max(to.y, Math.min(to.y + to.h, ty));
+  } else {
+    ty = tc.y + (dy2 > 0 ? to.h/2 : -to.h/2);
+    tx = tc.x + dx2 * (to.h/2) / absDy2 * (dy2 > 0 ? 1 : -1);
+    tx = Math.max(to.x, Math.min(to.x + to.w, tx));
+  }
+  return { fx, fy, tx, ty };
+}
+
+function svgEl(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, v);
+  return el;
+}
+
+function nodeColor(layer) {
+  const map = { presentation:'#1e3a5f', providers:'#2d1f5e', repositories:'#1a3d2e', models:'#4a2e10', firebase:'#4a1a1a', config:'#3d3410' };
+  return map[layer] || '#1a1d27';
+}
+function nodeBorder(layer) {
+  return LAYERS[layer]?.color || '#6b7280';
+}
+
+// ─── RENDER ─────────────────────────────────────────────────────────
+function render() {
+  const view = VIEWS[state.view];
+  if (!view) return;
+  svgGroup.innerHTML = '';
+
+  const nodesById = {};
+  view.nodes.forEach(n => nodesById[n.id] = n);
+
+  // Draw connections
+  view.connections.forEach(c => {
+    const fromN = nodesById[c.from], toN = nodesById[c.to];
+    if (!fromN || !toN) return;
+    if (!state.layers[fromN.layer] || !state.layers[toN.layer]) return;
+    if (!state.connections[c.type]) return;
+
+    const ct = CONN_TYPES[c.type];
+    if (!ct) return;
+    const { fx, fy, tx, ty } = getNodeEdge(fromN, toN);
+    const mx = (fx+tx)/2, my = (fy+ty)/2;
+    const cpOffset = Math.min(40, Math.max(15, Math.abs(fy-ty)*0.3));
+
+    const path = svgEl('path', {
+      d: `M${fx},${fy} C${fx},${fy+cpOffset} ${tx},${ty-cpOffset} ${tx},${ty}`,
+      stroke: ct.color, fill:'none', 'stroke-width':'1.5', class:'conn-path',
+      'stroke-dasharray': ct.dash || '', 'marker-end': `url(#arrow-${ct.color === '#60a5fa' ? 'blue' : ct.color === '#a78bfa' ? 'purple' : ct.color === '#f87171' ? 'red' : 'gray'})`
+    });
+    svgGroup.appendChild(path);
+
+    if (c.label) {
+      const lbl = svgEl('text', { x: mx, y: my - 4, class:'conn-label', 'text-anchor':'middle', fill:'#6b7280', 'font-size':'9' });
+      lbl.textContent = c.label;
+      svgGroup.appendChild(lbl);
+    }
+  });
+
+  // Draw nodes
+  view.nodes.forEach(n => {
+    if (!state.layers[n.layer]) return;
+    const g = svgEl('g', { class:'node-group', 'data-id': n.id });
+
+    const hasComment = state.comments.some(c => c.target === n.id);
+    const rect = svgEl('rect', {
+      x: n.x, y: n.y, width: n.w, height: n.h,
+      fill: nodeColor(n.layer), stroke: nodeBorder(n.layer),
+      class: 'node-rect' + (hasComment ? ' node-commented' : ''),
+      'stroke-width': hasComment ? '2.5' : '1.5'
+    });
+    g.appendChild(rect);
+
+    const title = svgEl('text', { x: n.x + 8, y: n.y + 16, class:'node-title', 'font-size':'11', 'font-weight':'600', fill:'#e2e4ed' });
+    title.textContent = n.label;
+    g.appendChild(title);
+
+    if (n.subtitle) {
+      const sub = svgEl('text', { x: n.x + 8, y: n.y + 30, class:'node-subtitle', 'font-size':'9', fill:'#8b8fa3', 'font-family':'monospace' });
+      sub.textContent = n.subtitle.length > 28 ? n.subtitle.slice(0, 26) + '…' : n.subtitle;
+      g.appendChild(sub);
+    }
+
+    g.addEventListener('click', (e) => { e.stopPropagation(); showDetail(n); });
+    svgGroup.appendChild(g);
+  });
+
+  // Update transform
+  updateTransform();
+  updateLegend();
+  updatePrompt();
+}
+
+function updateTransform() {
+  svgGroup.setAttribute('transform', `translate(${state.panX},${state.panY}) scale(${state.zoom})`);
+}
+
+// ─── DETAIL PANEL ───────────────────────────────────────────────────
+const detailPanel = document.getElementById('detailPanel');
+const detailTitle = document.getElementById('detailTitle');
+const detailPath = document.getElementById('detailPath');
+const detailDesc = document.getElementById('detailDesc');
+const detailList = document.getElementById('detailList');
+
+function showDetail(n) {
+  state.selectedNode = n;
+  detailTitle.textContent = n.label;
+  detailPath.textContent = n.subtitle;
+  detailDesc.textContent = n.desc || '';
+  detailList.innerHTML = '';
+  (n.details || []).forEach(d => {
+    const li = document.createElement('li');
+    li.innerHTML = `<code>${d}</code>`;
+    detailList.appendChild(li);
+  });
+  detailPanel.classList.add('visible');
+}
+
+document.getElementById('detailClose').addEventListener('click', () => {
+  detailPanel.classList.remove('visible');
+  state.selectedNode = null;
+});
+
+document.getElementById('detailCommentBtn').addEventListener('click', () => {
+  if (!state.selectedNode) return;
+  state.commentTarget = state.selectedNode;
+  document.getElementById('modalTitle').textContent = `Comment on: ${state.selectedNode.label}`;
+  document.getElementById('modalText').value = '';
+  document.getElementById('modalOverlay').classList.add('visible');
+  setTimeout(() => document.getElementById('modalText').focus(), 50);
+});
+
+// ─── COMMENT MODAL ──────────────────────────────────────────────────
+document.getElementById('modalCancel').addEventListener('click', () => {
+  document.getElementById('modalOverlay').classList.remove('visible');
+});
+document.getElementById('modalSave').addEventListener('click', () => {
+  const text = document.getElementById('modalText').value.trim();
+  if (!text || !state.commentTarget) return;
+  state.comments.push({
+    id: Date.now(),
+    target: state.commentTarget.id,
+    targetLabel: state.commentTarget.label,
+    targetFile: state.commentTarget.subtitle,
+    text
+  });
+  document.getElementById('modalOverlay').classList.remove('visible');
+  renderComments();
+  render();
+});
+
+function renderComments() {
+  const list = document.getElementById('commentsList');
+  list.innerHTML = '';
+  document.getElementById('commentCount').textContent = state.comments.length;
+  state.comments.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'comment-item';
+    div.innerHTML = `<button class="comment-del" data-id="${c.id}">&times;</button><div class="comment-target">${c.targetLabel}</div><div class="comment-text">${c.text}</div>`;
+    div.querySelector('.comment-del').addEventListener('click', () => {
+      state.comments = state.comments.filter(x => x.id !== c.id);
+      renderComments();
+      render();
+    });
+    list.appendChild(div);
+  });
+}
+
+// ─── LEGEND ─────────────────────────────────────────────────────────
+function updateLegend() {
+  const legend = document.getElementById('legend');
+  let html = '<div style="font-weight:600;margin-bottom:6px;">Layers</div>';
+  for (const [k, v] of Object.entries(LAYERS)) {
+    if (state.layers[k]) html += `<div class="legend-row"><div class="legend-swatch" style="background:${v.color}"></div><span>${v.label.split('(')[0].trim()}</span></div>`;
+  }
+  html += '<div style="font-weight:600;margin-top:8px;margin-bottom:6px;">Connections</div>';
+  for (const [k, v] of Object.entries(CONN_TYPES)) {
+    if (state.connections[k]) html += `<div class="legend-row"><div class="legend-line" style="border-color:${v.color};${v.dash ? 'border-style:dashed;' : ''}"></div><span>${v.label}</span></div>`;
+  }
+  legend.innerHTML = html;
+}
+
+// ─── PROMPT ─────────────────────────────────────────────────────────
+function updatePrompt() {
+  const viewLabels = { architecture:'full architecture', dataflow:'data flow', features:'feature map', firestore:'Firestore schema', lifecycle:'match lifecycle' };
+  const visibleLayers = Object.entries(state.layers).filter(([,v])=>v).map(([k])=>LAYERS[k]?.label.split('(')[0].trim()).filter(Boolean);
+
+  let text = `This is the Pickle Connect ${viewLabels[state.view] || 'architecture'}, showing ${visibleLayers.join(', ')} layers.`;
+
+  if (state.comments.length > 0) {
+    text += '\n\nFeedback on specific components:\n';
+    state.comments.forEach(c => {
+      text += `\n**${c.targetLabel}** (${c.targetFile}):\n${c.text}\n`;
+    });
+  }
+
+  document.getElementById('promptText').textContent = text;
+}
+
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const text = document.getElementById('promptText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy Prompt', 1500);
+  });
+});
+
+// ─── VIEW TABS ──────────────────────────────────────────────────────
+document.querySelectorAll('.view-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    state.view = tab.dataset.view;
+    state.panX = 20; state.panY = 20; state.zoom = 1;
+    detailPanel.classList.remove('visible');
+    render();
+  });
+});
+
+// ─── LAYER TOGGLES ──────────────────────────────────────────────────
+function buildLayerToggles() {
+  const container = document.getElementById('layerToggles');
+  container.innerHTML = '';
+  for (const [k, v] of Object.entries(LAYERS)) {
+    const div = document.createElement('label');
+    div.className = 'layer-toggle' + (state.layers[k] ? '' : ' off');
+    div.innerHTML = `<input type="checkbox" ${state.layers[k] ? 'checked' : ''} data-layer="${k}"><div class="layer-dot" style="background:${v.color}"></div><span class="layer-label">${v.label}</span>`;
+    div.querySelector('input').addEventListener('change', (e) => {
+      state.layers[k] = e.target.checked;
+      div.classList.toggle('off', !e.target.checked);
+      render();
+    });
+    container.appendChild(div);
+  }
+}
+
+function buildConnToggles() {
+  const container = document.getElementById('connToggles');
+  container.innerHTML = '';
+  for (const [k, v] of Object.entries(CONN_TYPES)) {
+    const div = document.createElement('label');
+    div.className = 'conn-toggle';
+    div.innerHTML = `<input type="checkbox" ${state.connections[k] ? 'checked' : ''} data-conn="${k}"><div class="conn-line" style="background:${v.color};${v.dash ? 'border-top:2px dashed ' + v.color + ';background:none;' : ''}"></div><span>${v.label}</span>`;
+    div.querySelector('input').addEventListener('change', (e) => {
+      state.connections[k] = e.target.checked;
+      render();
+    });
+    container.appendChild(div);
+  }
+}
+
+// ─── FILE TREE ──────────────────────────────────────────────────────
+function buildFileTree(items, container, searchTerm) {
+  items.forEach(item => {
+    if (item.children) {
+      const dir = document.createElement('div');
+      dir.className = 'ft-dir';
+      dir.textContent = item.name;
+      const childDiv = document.createElement('div');
+      childDiv.className = 'ft-children';
+      buildFileTree(item.children, childDiv, searchTerm);
+
+      // If searching, auto-open if has visible children
+      if (searchTerm) {
+        const hasMatch = childDiv.querySelector('.ft-file:not(.hidden)') || childDiv.querySelector('.ft-dir:not(.hidden)');
+        if (hasMatch) {
+          dir.classList.add('open');
+        } else {
+          dir.classList.add('hidden');
+          childDiv.classList.add('hidden');
+        }
+      }
+
+      dir.addEventListener('click', (e) => { e.stopPropagation(); dir.classList.toggle('open'); });
+      container.appendChild(dir);
+      container.appendChild(childDiv);
+    } else {
+      const file = document.createElement('div');
+      file.className = 'ft-file';
+      file.textContent = item.name;
+      if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) {
+        file.classList.add('hidden');
+      } else if (searchTerm) {
+        file.classList.add('highlight');
+      }
+      file.addEventListener('click', () => {
+        // Find matching node
+        const views = Object.values(VIEWS);
+        for (const v of views) {
+          const node = v.nodes.find(n => n.subtitle && n.subtitle.includes(item.name.replace('.dart','').replace('.ts','')));
+          if (node) { showDetail(node); break; }
+        }
+      });
+      container.appendChild(file);
+    }
+  });
+}
+
+function refreshFileTree(search) {
+  const container = document.getElementById('fileTree');
+  container.innerHTML = '';
+  buildFileTree(fileTreeData, container, search);
+}
+
+document.getElementById('searchBox').addEventListener('input', (e) => {
+  refreshFileTree(e.target.value.toLowerCase().trim());
+});
+
+// ─── ZOOM & PAN ─────────────────────────────────────────────────────
+document.getElementById('zoomIn').addEventListener('click', () => { state.zoom = Math.min(3, state.zoom + 0.15); updateTransform(); });
+document.getElementById('zoomOut').addEventListener('click', () => { state.zoom = Math.max(0.3, state.zoom - 0.15); updateTransform(); });
+document.getElementById('zoomReset').addEventListener('click', () => { state.zoom = 1; state.panX = 20; state.panY = 20; updateTransform(); });
+
+// Pan with mouse drag
+let isPanning = false, panStart = { x:0, y:0 };
+const canvasArea = document.getElementById('canvasArea');
+canvasArea.addEventListener('mousedown', (e) => {
+  if (e.target.closest('.node-group') || e.target.closest('.detail-panel')) return;
+  isPanning = true; panStart = { x: e.clientX - state.panX, y: e.clientY - state.panY };
+});
+canvasArea.addEventListener('mousemove', (e) => {
+  if (!isPanning) return;
+  state.panX = e.clientX - panStart.x;
+  state.panY = e.clientY - panStart.y;
+  updateTransform();
+});
+canvasArea.addEventListener('mouseup', () => isPanning = false);
+canvasArea.addEventListener('mouseleave', () => isPanning = false);
+
+// Zoom with scroll
+canvasArea.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -0.08 : 0.08;
+  state.zoom = Math.min(3, Math.max(0.3, state.zoom + delta));
+  updateTransform();
+}, { passive: false });
+
+// Click outside to close detail
+svg.addEventListener('click', (e) => {
+  if (!e.target.closest('.node-group')) {
+    detailPanel.classList.remove('visible');
+    state.selectedNode = null;
+  }
+});
+
+// ─── INIT ───────────────────────────────────────────────────────────
+state.panX = 20; state.panY = 20;
+buildLayerToggles();
+buildConnToggles();
+refreshFileTree('');
+render();
+</script>
+</body>
+</html>

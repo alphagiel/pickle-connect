@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../../../shared/models/user.dart' as app_user;
@@ -66,14 +65,6 @@ class AuthRepository {
 
         // Reload the user to get updated display name
         await credential.user!.reload();
-
-        // Debug: Check the display name after update
-        print('=== Signup Debug ===');
-        print('Full name provided: $fullName');
-        print('User displayName after update: ${credential.user!.displayName}');
-
-        // Create user profile in Firestore
-        await _createUserProfile(credential.user!, fullName, email);
 
         return AuthUser.fromFirebaseUser(credential.user!);
       }
@@ -151,32 +142,6 @@ class AuthRepository {
     }
   }
 
-  // Create user profile in Firestore
-  Future<void> _createUserProfile(User user, String fullName, String email) async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-      final userData = {
-        'userId': user.uid,
-        'displayName': fullName,
-        'email': email,
-        'skillLevel': '3.5', // Default skill level (Intermediate bracket)
-        'location': 'Unknown', // Default location
-        'profileImageURL': null,
-        'matchesPlayed': 0,
-        'matchesWon': 0,
-        'matchesLost': 0,
-        'winRate': 0.0,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-
-      await firestore.collection('users').doc(user.uid).set(userData);
-      print('User profile created in Firestore for user: ${user.uid}');
-    } catch (e) {
-      print('Error creating user profile in Firestore: $e');
-      // Don't throw here - we still want the auth to succeed even if Firestore fails
-    }
-  }
 }
 
 class AuthUser {
