@@ -6,7 +6,7 @@ import '../../core/utils/stream_retry.dart';
 /// Provider for all active zones (cached, auto-updates from Firestore)
 final activeZonesProvider = StreamProvider<List<AppZone>>((ref) {
   final repository = ref.watch(zonesRepositoryProvider);
-  return retryStream(() => repository.getActiveZones());
+  return repository.getActiveZones();
 });
 
 /// Provider to look up a single zone by ID from the cached list

@@ -365,6 +365,8 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                                       prefixIcon: Icon(Icons.location_on),
                                     ),
                                     isExpanded: true,
+                                    itemHeight: 60,
+                                    menuMaxHeight: 300,
                                     items: zones.map((zone) {
                                       return DropdownMenuItem<AppZone>(
                                         value: zone,

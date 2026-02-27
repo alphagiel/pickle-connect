@@ -17,9 +17,65 @@ flutter analyze
 
 # Run tests
 flutter test
+```
 
-# Run app
-flutter run
+### Running the App
+
+```bash
+# List all connected/available devices
+flutter devices
+
+# Run on a specific device (use device ID from flutter devices)
+flutter run -d <device-id>
+```
+
+**Device examples:**
+```bash
+# iPad Simulator (boot first if needed: xcrun simctl boot <simulator-id>)
+flutter run -d <simulator-id>
+
+# Physical iPad via USB/wireless
+flutter run -d 00008112-00196156118BC01E
+
+# Chrome (web) — NOTE: Firebase web config is a placeholder, Firestore/Auth won't work
+flutter run -d chrome
+
+# macOS desktop
+flutter run -d macos
+```
+
+**Firebase Emulators vs Production:**
+
+By default, debug mode connects to **local Firebase Emulators** (`USE_EMULATORS=true`). To test against **production Firebase**, pass the flag:
+
+```bash
+# Run with production Firebase (required for testing real data, emails, zones, etc.)
+flutter run -d <device-id> --dart-define=USE_EMULATORS=false
+
+# Run with local emulators (default in debug mode)
+flutter run -d <device-id>
+```
+
+**Simulator management:**
+```bash
+# List available simulators
+xcrun simctl list devices available | grep -i ipad
+
+# Boot a simulator
+xcrun simctl boot <simulator-id>
+
+# Check which simulators are running
+xcrun simctl list devices booted
+
+# Shutdown a simulator
+xcrun simctl shutdown <simulator-id>
+```
+
+### Build IPA for App Store
+```bash
+flutter clean && flutter pub get
+flutter build ipa --release
+# Upload build/ios/ipa/*.ipa via Apple Transporter app
 ```
 
 ### Linting and Formatting
