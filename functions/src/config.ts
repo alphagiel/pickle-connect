@@ -13,7 +13,7 @@ export const APP_STORE_URL = "https://apps.apple.com/app/id6758889208";
 export function getAppBaseUrl(): string {
   return process.env.FUNCTIONS_EMULATOR === "true"
     ? "http://localhost:5500"
-    : "https://pickleconnect.app";
+    : "https://pickleconnect.club";
 }
 
 /**

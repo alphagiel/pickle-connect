@@ -9,5 +9,8 @@ export { onUserCreated, onUserDeleted, onProposalCreated, onProposalUpdated, onP
 // Export callable functions
 export { requestPasswordReset, confirmPasswordReset } from "./callable";
 
+// Export HTTP endpoints
+export { resetPasswordHttp } from "./http/reset-password";
+
 // Export migration functions (admin only)
 export { migrateSkillLevels, migrateSkillLevelsDryRun, migrateProposalsDoublesFields, migrateProposalsDoublesFieldsDryRun } from "./migrations";

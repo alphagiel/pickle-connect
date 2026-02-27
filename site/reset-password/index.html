@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Password - Pickle Connect</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f7f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 40px 32px;
+      max-width: 420px;
+      width: 100%;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .logo h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #2e7d32;
+    }
+
+    .logo p {
+      color: #666;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #333;
+    }
+
+    input[type="password"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid #ddd;
+      border-radius: 10px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 16px;
+    }
+
+    input[type="password"]:focus {
+      border-color: #2e7d32;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: #2e7d32;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn:hover { background: #256b29; }
+    .btn:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+
+    .error {
+      background: #fef2f2;
+      color: #b91c1c;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .success-state {
+      text-align: center;
+      display: none;
+    }
+
+    .success-state .check {
+      width: 64px;
+      height: 64px;
+      background: #e8f5e9;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 32px;
+    }
+
+    .success-state h2 { color: #2e7d32; }
+
+    .success-state p {
+      color: #666;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    .no-token {
+      text-align: center;
+      display: none;
+    }
+
+    .no-token p { color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <h1>Pickle Connect</h1>
+      <p>Pickleball Community App</p>
+    </div>
+
+    <!-- No token state -->
+    <div class="no-token" id="noToken">
+      <h2>Invalid Link</h2>
+      <p>This password reset link is invalid. Please request a new one from the app.</p>
+    </div>
+
+    <!-- Form state -->
+    <form id="resetForm">
+      <h2>Reset Your Password</h2>
+      <p class="subtitle">Enter your new password below.</p>
+
+      <div class="error" id="errorMsg"></div>
+
+      <label for="password">New Password</label>
+      <input type="password" id="password" placeholder="At least 6 characters" autocomplete="new-password" required minlength="6">
+
+      <label for="confirmPassword">Confirm Password</label>
+      <input type="password" id="confirmPassword" placeholder="Re-enter your password" autocomplete="new-password" required minlength="6">
+
+      <button type="submit" class="btn" id="submitBtn">Reset Password</button>
+    </form>
+
+    <!-- Success state -->
+    <div class="success-state" id="successState">
+      <div class="check">&#10003;</div>
+      <h2>Password Reset!</h2>
+      <p>Your password has been updated. You can now sign in with your new password in the Pickle Connect app.</p>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'https://us-central1-myapp1-c6012.cloudfunctions.net/resetPasswordHttp';
+
+    const form = document.getElementById('resetForm');
+    const errorMsg = document.getElementById('errorMsg');
+    const successState = document.getElementById('successState');
+    const noToken = document.getElementById('noToken');
+    const submitBtn = document.getElementById('submitBtn');
+    const passwordInput = document.getElementById('password');
+    const confirmInput = document.getElementById('confirmPassword');
+
+    // Get token from URL
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
+    if (!token) {
+      form.style.display = 'none';
+      noToken.style.display = 'block';
+    }
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.style.display = 'block';
+    }
+
+    function hideError() {
+      errorMsg.style.display = 'none';
+    }
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      hideError();
+
+      const password = passwordInput.value;
+      const confirm = confirmInput.value;
+
+      if (password.length < 6) {
+        showError('Password must be at least 6 characters.');
+        return;
+      }
+
+      if (password !== confirm) {
+        showError('Passwords do not match.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Resetting...';
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: token, newPassword: password }),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          form.style.display = 'none';
+          successState.style.display = 'block';
+        } else {
+          showError(data.message || 'Something went wrong. Please try again.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Reset Password';
+        }
+      } catch (err) {
+        showError('Unable to connect. Please check your internet and try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Reset Password';
+      }
+    });
+  </script>
+</body>
+</html>
