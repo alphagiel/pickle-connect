@@ -134,6 +134,20 @@ export const onProposalUpdated = functions
       }
     }
 
+    // Handle both players confirming scores → update standings
+    // This is gated on confirmation (not score submission) to avoid
+    // double-counting if scores are cleared and re-submitted.
+    const beforeConfirmedBy: string[] = beforeData.scoreConfirmedBy || [];
+    const afterConfirmedBy: string[] = afterData.scoreConfirmedBy || [];
+
+    if (!isDoubles && afterConfirmedBy.length >= 2 && beforeConfirmedBy.length < 2 && afterData.scores) {
+      await handleSinglesScoresConfirmed(db, proposalId, afterData);
+    }
+
+    if (isDoubles && afterConfirmedBy.length >= 2 && beforeConfirmedBy.length < 2 && afterData.scores) {
+      await handleDoublesScoresConfirmed(db, proposalId, afterData);
+    }
+
     // Handle doubles lifecycle changes (player array diffs, cancellation, score confirmation)
     if (isDoubles) {
       await handleDoublesLifecycleChanges(
@@ -478,48 +492,9 @@ async function handleMatchResultRecorded(
     }
   }
 
-  // Update standings for both players
-  const skillBracket = proposalData.skillBracket;
-  if (!skillBracket) {
-    console.log(`[onProposalUpdated] No skill bracket found, skipping standings update`);
-    return;
-  }
-
-  const zone = proposalData.zone || "east_triangle";
-
-  const creatorId = proposalData.creatorId;
-  const opponentId = proposalData.acceptedBy?.userId;
-
-  if (!opponentId) {
-    console.log(`[onProposalUpdated] No opponent found, skipping standings update`);
-    return;
-  }
-
-  // Update creator's standing
-  await updatePlayerStanding(
-    db,
-    "standings",
-    skillBracket,
-    creatorId,
-    creatorDoc.exists ? creatorDoc.data()!.displayName : "Unknown",
-    creatorDoc.exists ? creatorDoc.data()!.skillLevel : "3.5",
-    creatorWon,
-    zone
-  );
-
-  // Update opponent's standing
-  await updatePlayerStanding(
-    db,
-    "standings",
-    skillBracket,
-    opponentId,
-    opponentDoc?.exists ? opponentDoc.data()!.displayName : proposalData.acceptedBy.displayName,
-    opponentDoc?.exists ? opponentDoc.data()!.skillLevel : "3.5",
-    !creatorWon,
-    zone
-  );
-
-  console.log(`[onProposalUpdated] Standings updated for both players`);
+  // Note: standings are updated when both players confirm scores
+  // (see handleSinglesScoresConfirmed), not here — to avoid double-counting
+  // if scores are cleared and re-submitted.
 }
 
 /**
@@ -632,50 +607,9 @@ async function handleDoublesMatchResultRecorded(
     }
   }
 
-  // Update doubles standings for all 4 players
-  const skillBracket = proposalData.skillBracket;
-  if (!skillBracket) {
-    console.log(`[onProposalUpdated] No skill bracket found, skipping doubles standings update`);
-    return;
-  }
-
-  const zone = proposalData.zone || "east_triangle";
-
-  for (let i = 0; i < confirmedPlayers.length; i++) {
-    const player = confirmedPlayers[i];
-    const playerDoc = playerDocs[i];
-    const isOnTeam1 = player.team === 1;
-    const won = isOnTeam1 ? team1Won : !team1Won;
-
-    await updatePlayerStanding(
-      db,
-      "doubles_standings",
-      skillBracket,
-      player.userId,
-      playerDoc.exists ? playerDoc.data()!.displayName : player.displayName,
-      playerDoc.exists ? playerDoc.data()!.skillLevel : "3.5",
-      won,
-      zone
-    );
-
-    // Also update user's doubles stats
-    if (playerDoc.exists) {
-      const userData = playerDoc.data()!;
-      const doublesPlayed = (userData.doublesPlayed || 0) + 1;
-      const doublesWon = (userData.doublesWon || 0) + (won ? 1 : 0);
-      const doublesLost = (userData.doublesLost || 0) + (won ? 0 : 1);
-      const doublesWinRate = doublesPlayed > 0 ? doublesWon / doublesPlayed : 0;
-
-      await db.collection("users").doc(player.userId).update({
-        doublesPlayed,
-        doublesWon,
-        doublesLost,
-        doublesWinRate,
-      });
-    }
-  }
-
-  console.log(`[onProposalUpdated] Doubles standings updated for all 4 players`);
+  // Note: standings are updated when both players confirm scores
+  // (see handleDoublesScoresConfirmed), not here — to avoid double-counting
+  // if scores are cleared and re-submitted.
 }
 
 // --- Doubles lifecycle diff & dispatch ---
@@ -1282,6 +1216,167 @@ async function sendScoresConfirmedEmails(
       console.error(`[onProposalUpdated] Failed to send scores confirmed email: ${result.error}`);
     }
   }
+}
+
+/**
+ * Handle singles scores confirmed by both players → update standings.
+ * Only called when scoreConfirmedBy transitions from <2 to >=2 entries.
+ */
+async function handleSinglesScoresConfirmed(
+  db: admin.firestore.Firestore,
+  proposalId: string,
+  proposalData: admin.firestore.DocumentData
+): Promise<void> {
+  console.log(`[onProposalUpdated] Both players confirmed singles scores for ${proposalId}, updating standings`);
+
+  const scores: Scores = proposalData.scores;
+  if (!scores || !scores.games || scores.games.length === 0) {
+    console.log(`[onProposalUpdated] No valid scores found, skipping standings`);
+    return;
+  }
+
+  const skillBracket = proposalData.skillBracket;
+  if (!skillBracket) {
+    console.log(`[onProposalUpdated] No skill bracket found, skipping standings update`);
+    return;
+  }
+
+  const zone = proposalData.zone || "east_triangle";
+  const creatorId = proposalData.creatorId;
+  const opponentId = proposalData.acceptedBy?.userId;
+
+  if (!opponentId) {
+    console.log(`[onProposalUpdated] No opponent found, skipping standings update`);
+    return;
+  }
+
+  // Determine winner
+  const creatorGamesWon = scores.games.filter(
+    (g: GameScore) => g.creatorScore > g.opponentScore
+  ).length;
+  const opponentGamesWon = scores.games.filter(
+    (g: GameScore) => g.opponentScore > g.creatorScore
+  ).length;
+  const creatorWon = creatorGamesWon > opponentGamesWon;
+
+  // Get user docs for display names and skill levels
+  const creatorDoc = await db.collection("users").doc(creatorId).get();
+  const opponentDoc = await db.collection("users").doc(opponentId).get();
+
+  await updatePlayerStanding(
+    db,
+    "standings",
+    skillBracket,
+    creatorId,
+    creatorDoc.exists ? creatorDoc.data()!.displayName : "Unknown",
+    creatorDoc.exists ? creatorDoc.data()!.skillLevel : "3.5",
+    creatorWon,
+    zone
+  );
+
+  await updatePlayerStanding(
+    db,
+    "standings",
+    skillBracket,
+    opponentId,
+    opponentDoc.exists ? opponentDoc.data()!.displayName : proposalData.acceptedBy.displayName,
+    opponentDoc.exists ? opponentDoc.data()!.skillLevel : "3.5",
+    !creatorWon,
+    zone
+  );
+
+  console.log(`[onProposalUpdated] Standings updated for both players`);
+}
+
+/**
+ * Handle doubles scores confirmed by both players → update standings.
+ * Only called when scoreConfirmedBy transitions from <2 to >=2 entries.
+ */
+async function handleDoublesScoresConfirmed(
+  db: admin.firestore.Firestore,
+  proposalId: string,
+  proposalData: admin.firestore.DocumentData
+): Promise<void> {
+  console.log(`[onProposalUpdated] Scores confirmed for doubles proposal ${proposalId}, updating standings`);
+
+  const scores: Scores = proposalData.scores;
+  if (!scores || !scores.games || scores.games.length === 0) {
+    console.log(`[onProposalUpdated] No valid scores found, skipping doubles standings`);
+    return;
+  }
+
+  const doublesPlayers: DoublesPlayer[] = proposalData.doublesPlayers || [];
+  const confirmedPlayers = doublesPlayers.filter((p) => p.status === "confirmed");
+
+  if (confirmedPlayers.length < 4) {
+    console.log(`[onProposalUpdated] Doubles match does not have 4 confirmed players, skipping standings`);
+    return;
+  }
+
+  const team1 = confirmedPlayers.filter((p) => p.team === 1);
+  const team2 = confirmedPlayers.filter((p) => p.team === 2);
+
+  if (team1.length !== 2 || team2.length !== 2) {
+    console.log(`[onProposalUpdated] Invalid team configuration, skipping standings`);
+    return;
+  }
+
+  const team1GamesWon = scores.games.filter(
+    (g: GameScore) => g.creatorScore > g.opponentScore
+  ).length;
+  const team2GamesWon = scores.games.filter(
+    (g: GameScore) => g.opponentScore > g.creatorScore
+  ).length;
+  const team1Won = team1GamesWon > team2GamesWon;
+
+  const skillBracket = proposalData.skillBracket;
+  if (!skillBracket) {
+    console.log(`[onProposalUpdated] No skill bracket found, skipping doubles standings update`);
+    return;
+  }
+
+  const zone = proposalData.zone || "east_triangle";
+
+  // Fetch all player docs
+  const playerDocs = await Promise.all(
+    confirmedPlayers.map((p) => db.collection("users").doc(p.userId).get())
+  );
+
+  for (let i = 0; i < confirmedPlayers.length; i++) {
+    const player = confirmedPlayers[i];
+    const playerDoc = playerDocs[i];
+    const isOnTeam1 = player.team === 1;
+    const won = isOnTeam1 ? team1Won : !team1Won;
+
+    await updatePlayerStanding(
+      db,
+      "doubles_standings",
+      skillBracket,
+      player.userId,
+      playerDoc.exists ? playerDoc.data()!.displayName : player.displayName,
+      playerDoc.exists ? playerDoc.data()!.skillLevel : "3.5",
+      won,
+      zone
+    );
+
+    // Also update user's doubles stats
+    if (playerDoc.exists) {
+      const userData = playerDoc.data()!;
+      const doublesPlayed = (userData.doublesPlayed || 0) + 1;
+      const doublesWon = (userData.doublesWon || 0) + (won ? 1 : 0);
+      const doublesLost = (userData.doublesLost || 0) + (won ? 0 : 1);
+      const doublesWinRate = doublesPlayed > 0 ? doublesWon / doublesPlayed : 0;
+
+      await db.collection("users").doc(player.userId).update({
+        doublesPlayed,
+        doublesWon,
+        doublesLost,
+        doublesWinRate,
+      });
+    }
+  }
+
+  console.log(`[onProposalUpdated] Doubles standings updated for all players`);
 }
 
 async function updatePlayerStanding(
