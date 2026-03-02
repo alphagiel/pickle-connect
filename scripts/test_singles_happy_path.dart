@@ -9,6 +9,7 @@
 ///   1. Firebase Emulators running: firebase emulators:start
 ///
 /// Run with: dart run scripts/test_singles_happy_path.dart
+/// Flags:  --no-cleanup  Keep test data in emulator after run
 
 import 'dart:io';
 
@@ -16,7 +17,8 @@ import 'test_helpers.dart';
 
 // ─── Main test ────────────────────────────────────────
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
+  final cleanup = parseCleanupFlag(args);
   String? aliceUid;
   String? bobUid;
   String? proposalId;
@@ -159,25 +161,29 @@ Future<void> main() async {
     testFailures.add('Unhandled exception: $e');
   } finally {
     // ── Cleanup ───────────────────────────────────────
-    print('\nCleaning up...');
-    try {
-      if (aliceUid != null) {
-        await signIn(aliceEmail, password);
-        if (proposalId != null) {
-          await fsDelete('proposals/$proposalId');
-          print('  Deleted proposal');
+    if (cleanup) {
+      print('\nCleaning up...');
+      try {
+        if (aliceUid != null) {
+          await signIn(aliceEmail, password);
+          if (proposalId != null) {
+            await fsDelete('proposals/$proposalId');
+            print('  Deleted proposal');
+          }
+          await fsDelete('users/$aliceUid');
+          print('  Deleted Alice user doc');
         }
-        await fsDelete('users/$aliceUid');
-        print('  Deleted Alice user doc');
+        if (bobUid != null) {
+          await signIn(bobEmail, password);
+          await fsDelete('users/$bobUid');
+          print('  Deleted Bob user doc');
+        }
+        print('  (Standings docs cleared on emulator restart)');
+      } catch (e) {
+        print('  Cleanup error (non-fatal): $e');
       }
-      if (bobUid != null) {
-        await signIn(bobEmail, password);
-        await fsDelete('users/$bobUid');
-        print('  Deleted Bob user doc');
-      }
-      print('  (Standings docs cleared on emulator restart)');
-    } catch (e) {
-      print('  Cleanup error (non-fatal): $e');
+    } else {
+      print('\n  Skipping cleanup (--no-cleanup). Data preserved in emulator.');
     }
 
     // ── Summary ───────────────────────────────────────

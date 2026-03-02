@@ -16,6 +16,14 @@ String get fsBase =>
 // Current auth token for Firestore requests
 String? authToken;
 
+// ─── CLI flags ───────────────────────────────────────
+
+/// Parse `--no-cleanup` flag from command-line args.
+/// Returns true if cleanup should run (default), false if `--no-cleanup` passed.
+bool parseCleanupFlag(List<String> args) {
+  return !args.contains('--no-cleanup');
+}
+
 // ─── Test results tracking ───────────────────────────
 
 int testPassed = 0;
@@ -391,6 +399,151 @@ Future<void> clearScores(String proposalId) async {
     },
     ['scores'],
   );
+}
+
+// ─── Doubles helpers ──────────────────────────────────
+
+/// Create a doubles proposal. Returns proposal ID.
+/// Creator is added as first doublesPlayer (confirmed, team 1).
+Future<String> createDoublesProposal({
+  required String creatorId,
+  required String creatorName,
+  String skillLevel = '3.5',
+  String skillBracket = 'Intermediate',
+  String zone = 'east_triangle',
+  String location = 'Court A',
+}) async {
+  final tomorrow = DateTime.now().add(const Duration(days: 1));
+  final resp = await fsCreate('proposals', {
+    'creatorId': creatorId,
+    'creatorName': creatorName,
+    'skillLevel': skillLevel,
+    'skillBracket': skillBracket,
+    'location': location,
+    'dateTime': tomorrow,
+    'status': 'open',
+    'matchType': 'doubles',
+    'zone': zone,
+    'openSlots': 3,
+    'doublesPlayers': [
+      {
+        'userId': creatorId,
+        'displayName': creatorName,
+        'status': 'confirmed',
+        'team': 1,
+      }
+    ],
+    'playerIds': [creatorId],
+    'scoreConfirmedBy': <String>[],
+    'createdAt': DateTime.now(),
+    'updatedAt': DateTime.now(),
+  });
+  return docIdFromName(resp['name'] as String);
+}
+
+/// Read doublesPlayers array from a proposal doc.
+Future<List<Map<String, dynamic>>> _getDoublesPlayers(
+    String proposalId) async {
+  final doc = await fsGet('proposals/$proposalId');
+  if (doc == null) throw StateError('Proposal $proposalId not found');
+  final data = decodeDoc(doc);
+  final players = data['doublesPlayers'] as List<dynamic>? ?? [];
+  return players.cast<Map<String, dynamic>>();
+}
+
+/// Add a player to the lobby with status=requested.
+Future<void> requestJoinDoubles(
+    String proposalId, String userId, String displayName) async {
+  final players = await _getDoublesPlayers(proposalId);
+  players.add({
+    'userId': userId,
+    'displayName': displayName,
+    'status': 'requested',
+  });
+  await fsUpdate('proposals/$proposalId', {
+    'doublesPlayers': players,
+    'playerIds': [...players.map((p) => p['userId'] as String)],
+    'updatedAt': DateTime.now(),
+  });
+}
+
+/// Approve a requested player → confirmed + assign team.
+Future<void> approveDoublesPlayer(
+    String proposalId, String userId, int team) async {
+  final players = await _getDoublesPlayers(proposalId);
+  final idx = players.indexWhere((p) => p['userId'] == userId);
+  if (idx == -1) throw StateError('Player $userId not in doublesPlayers');
+  players[idx] = {
+    ...players[idx],
+    'status': 'confirmed',
+    'team': team,
+  };
+  // Count confirmed to calculate openSlots
+  final confirmed = players.where((p) => p['status'] == 'confirmed').length;
+  await fsUpdate('proposals/$proposalId', {
+    'doublesPlayers': players,
+    'openSlots': 4 - confirmed,
+    'updatedAt': DateTime.now(),
+  });
+}
+
+/// Decline a requested player (remove from lobby).
+Future<void> declineDoublesPlayer(String proposalId, String userId) async {
+  final players = await _getDoublesPlayers(proposalId);
+  players.removeWhere((p) => p['userId'] == userId);
+  await fsUpdate('proposals/$proposalId', {
+    'doublesPlayers': players,
+    'playerIds': [...players.map((p) => p['userId'] as String)],
+    'updatedAt': DateTime.now(),
+  });
+}
+
+/// Confirmed player leaves the match.
+Future<void> leaveDoublesProposal(String proposalId, String userId) async {
+  final players = await _getDoublesPlayers(proposalId);
+  players.removeWhere((p) => p['userId'] == userId);
+  final confirmed = players.where((p) => p['status'] == 'confirmed').length;
+  await fsUpdate('proposals/$proposalId', {
+    'doublesPlayers': players,
+    'playerIds': [...players.map((p) => p['userId'] as String)],
+    'openSlots': 4 - confirmed,
+    'updatedAt': DateTime.now(),
+  });
+}
+
+/// Invite a partner (add with status=invited, team assignment).
+Future<void> invitePartner(String proposalId, String userId,
+    String displayName, String invitedBy, int team) async {
+  final players = await _getDoublesPlayers(proposalId);
+  players.add({
+    'userId': userId,
+    'displayName': displayName,
+    'status': 'invited',
+    'team': team,
+    'invitedBy': invitedBy,
+  });
+  await fsUpdate('proposals/$proposalId', {
+    'doublesPlayers': players,
+    'playerIds': [...players.map((p) => p['userId'] as String)],
+    'updatedAt': DateTime.now(),
+  });
+}
+
+/// Partner confirms invite (status: invited → confirmed).
+Future<void> confirmPartnerInvite(String proposalId, String userId) async {
+  final players = await _getDoublesPlayers(proposalId);
+  final idx = players.indexWhere((p) => p['userId'] == userId);
+  if (idx == -1) throw StateError('Player $userId not in doublesPlayers');
+  players[idx] = {
+    ...players[idx],
+    'status': 'confirmed',
+  };
+  final confirmed = players.where((p) => p['status'] == 'confirmed').length;
+  await fsUpdate('proposals/$proposalId', {
+    'doublesPlayers': players,
+    'openSlots': 4 - confirmed,
+    'updatedAt': DateTime.now(),
+  });
 }
 
 /// Wait for standings doc to appear. Returns true if found.

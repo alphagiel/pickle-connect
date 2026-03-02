@@ -188,6 +188,20 @@ class MainNavigation extends ConsumerWidget {
             ),
             PopupMenuItem(
               child: const ListTile(
+                leading: Icon(Icons.menu_book),
+                title: Text('Rules'),
+                contentPadding: EdgeInsets.zero,
+              ),
+              onTap: () {
+                Future.delayed(Duration.zero, () {
+                  if (context.mounted) {
+                    GoRouter.of(context).push('/rules');
+                  }
+                });
+              },
+            ),
+            PopupMenuItem(
+              child: const ListTile(
                 leading: Icon(Icons.logout),
                 title: Text('Logout'),
                 contentPadding: EdgeInsets.zero,
@@ -287,10 +301,7 @@ class _FeedbackFormState extends ConsumerState<_FeedbackForm> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Your feedback is gold. We take this to heart and will prioritize it '
-              'based on need, feasibility and other factors. Once your suggestion is '
-              'noted you earn a pioneer badge which can be valuable later on in the '
-              'life of the app.',
+              'Got ideas? Let us know how we can improve.',
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.secondaryText,

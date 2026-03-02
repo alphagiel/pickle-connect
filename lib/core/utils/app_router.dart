@@ -10,6 +10,7 @@ import '../../features/proposals/presentation/pages/create_proposal_page.dart';
 import '../../features/proposals/presentation/pages/edit_proposal_page.dart';
 import '../../features/proposals/presentation/pages/proposal_details_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
+import '../../features/profile/presentation/pages/rules_page.dart';
 import '../../features/singles/presentation/pages/singles_page.dart';
 import '../../features/doubles/presentation/pages/doubles_page.dart';
 import '../../features/doubles/presentation/pages/create_doubles_proposal_page.dart';
@@ -105,6 +106,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/edit-profile',
         name: 'edit-profile',
         builder: (context, state) => const EditProfilePage(),
+      ),
+
+      // Rules page (standalone, no shell)
+      GoRoute(
+        path: '/rules',
+        name: 'rules',
+        builder: (context, state) => const RulesPage(),
       ),
 
       // Doubles proposal routes (standalone, no shell)

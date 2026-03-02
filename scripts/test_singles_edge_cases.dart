@@ -12,10 +12,13 @@
 ///   1. Firebase Emulators running: firebase emulators:start
 ///
 /// Run with: dart run scripts/test_singles_edge_cases.dart
+/// Flags:  --no-cleanup  Keep test data in emulator after run
 
 import 'dart:io';
 
 import 'test_helpers.dart';
+
+bool _cleanup = true;
 
 // ─── Scenario runner ──────────────────────────────────
 
@@ -93,11 +96,12 @@ Future<void> testCancelOpen() async {
       check('No acceptedBy', data['acceptedBy'] == null);
     }
   } finally {
-    // Cleanup
-    if (aliceUid != null) {
-      await signIn(aliceEmail, _password);
-      if (proposalId != null) await fsDelete('proposals/$proposalId');
-      await fsDelete('users/$aliceUid');
+    if (_cleanup) {
+      if (aliceUid != null) {
+        await signIn(aliceEmail, _password);
+        if (proposalId != null) await fsDelete('proposals/$proposalId');
+        await fsDelete('users/$aliceUid');
+      }
     }
   }
 }
@@ -154,14 +158,16 @@ Future<void> testCancelAccepted() async {
       check('AcceptedBy is Bob', acceptedBy?['userId'] == bobUid);
     }
   } finally {
-    if (aliceUid != null) {
-      await signIn(aliceEmail, _password);
-      if (proposalId != null) await fsDelete('proposals/$proposalId');
-      await fsDelete('users/$aliceUid');
-    }
-    if (bobUid != null) {
-      await signIn(bobEmail, _password);
-      await fsDelete('users/$bobUid');
+    if (_cleanup) {
+      if (aliceUid != null) {
+        await signIn(aliceEmail, _password);
+        if (proposalId != null) await fsDelete('proposals/$proposalId');
+        await fsDelete('users/$aliceUid');
+      }
+      if (bobUid != null) {
+        await signIn(bobEmail, _password);
+        await fsDelete('users/$bobUid');
+      }
     }
   }
 }
@@ -222,14 +228,16 @@ Future<void> testUnaccept() async {
       check('CreatorId preserved', data['creatorId'] == aliceUid);
     }
   } finally {
-    if (aliceUid != null) {
-      await signIn(aliceEmail, _password);
-      if (proposalId != null) await fsDelete('proposals/$proposalId');
-      await fsDelete('users/$aliceUid');
-    }
-    if (bobUid != null) {
-      await signIn(bobEmail, _password);
-      await fsDelete('users/$bobUid');
+    if (_cleanup) {
+      if (aliceUid != null) {
+        await signIn(aliceEmail, _password);
+        if (proposalId != null) await fsDelete('proposals/$proposalId');
+        await fsDelete('users/$aliceUid');
+      }
+      if (bobUid != null) {
+        await signIn(bobEmail, _password);
+        await fsDelete('users/$bobUid');
+      }
     }
   }
 }
@@ -344,14 +352,16 @@ Future<void> testScoreRejection() async {
       }
     }
   } finally {
-    if (aliceUid != null) {
-      await signIn(aliceEmail, _password);
-      if (proposalId != null) await fsDelete('proposals/$proposalId');
-      await fsDelete('users/$aliceUid');
-    }
-    if (bobUid != null) {
-      await signIn(bobEmail, _password);
-      await fsDelete('users/$bobUid');
+    if (_cleanup) {
+      if (aliceUid != null) {
+        await signIn(aliceEmail, _password);
+        if (proposalId != null) await fsDelete('proposals/$proposalId');
+        await fsDelete('users/$aliceUid');
+      }
+      if (bobUid != null) {
+        await signIn(bobEmail, _password);
+        await fsDelete('users/$bobUid');
+      }
     }
   }
 }
@@ -464,14 +474,16 @@ Future<void> testPartialConfirmReject() async {
       check('Both confirmed final scores', confirmedBy.length == 2);
     }
   } finally {
-    if (aliceUid != null) {
-      await signIn(aliceEmail, _password);
-      if (proposalId != null) await fsDelete('proposals/$proposalId');
-      await fsDelete('users/$aliceUid');
-    }
-    if (bobUid != null) {
-      await signIn(bobEmail, _password);
-      await fsDelete('users/$bobUid');
+    if (_cleanup) {
+      if (aliceUid != null) {
+        await signIn(aliceEmail, _password);
+        if (proposalId != null) await fsDelete('proposals/$proposalId');
+        await fsDelete('users/$aliceUid');
+      }
+      if (bobUid != null) {
+        await signIn(bobEmail, _password);
+        await fsDelete('users/$bobUid');
+      }
     }
   }
 }
@@ -572,21 +584,24 @@ Future<void> testOpponentWins() async {
       }
     }
   } finally {
-    if (aliceUid != null) {
-      await signIn(aliceEmail, _password);
-      if (proposalId != null) await fsDelete('proposals/$proposalId');
-      await fsDelete('users/$aliceUid');
-    }
-    if (bobUid != null) {
-      await signIn(bobEmail, _password);
-      await fsDelete('users/$bobUid');
+    if (_cleanup) {
+      if (aliceUid != null) {
+        await signIn(aliceEmail, _password);
+        if (proposalId != null) await fsDelete('proposals/$proposalId');
+        await fsDelete('users/$aliceUid');
+      }
+      if (bobUid != null) {
+        await signIn(bobEmail, _password);
+        await fsDelete('users/$bobUid');
+      }
     }
   }
 }
 
 // ─── Main ─────────────────────────────────────────────
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
+  _cleanup = parseCleanupFlag(args);
   final results = <String, bool>{};
 
   print('==========================================');
