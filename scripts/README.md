@@ -80,3 +80,23 @@ All test scripts share `test_helpers.dart`, which provides:
 ### Key Implementation Detail
 
 Firestore REST API doesn't support `arrayUnion`/`arrayRemove` for complex objects (maps). The doubles helpers work around this by reading the document, modifying the `doublesPlayers` array in Dart, and writing the full array back via `fsUpdate()`. Only `playerIds` (array of strings) and `scoreConfirmedBy` can use `fsCommit` transforms.
+
+
+  ┌─────────┬─────────────────────────────────────┬──────────────┐
+  │  User   │                Email                │   Password   │
+  ├─────────┼─────────────────────────────────────┼──────────────┤
+  │ Alice   │ alice.dbl.<timestamp>@pickle.test   │ TestPass123! │
+  ├─────────┼─────────────────────────────────────┼──────────────┤
+  │ Bob     │ bob.dbl.<timestamp>@pickle.test     │ TestPass123! │
+  ├─────────┼─────────────────────────────────────┼──────────────┤
+  │ Charlie │ charlie.dbl.<timestamp>@pickle.test │ TestPass123! │
+  ├─────────┼─────────────────────────────────────┼──────────────┤
+  │ Diana   │ diana.dbl.<timestamp>@pickle.test   │ TestPass123! │
+  └─────────┴─────────────────────────────────────┴──────────────┘
+
+  The emails will be the timestamped ones from this run. You can check the Auth emulator UI at http://localhost:9099 to see the exact
+  emails, or check the Firestore emulator at http://localhost:4000 to browse the proposals and standings data directly.
+
+  Usage going forward:
+  dart run scripts/test_doubles_happy_path.dart              # cleanup after (default)
+  dart run scripts/test_doubles_happy_path.dart --no-cleanup  # keep data
