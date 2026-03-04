@@ -13,6 +13,8 @@ import 'package:pickle_connect/main.dart';
 
 void main() {
   testWidgets('App launches without crashing', (WidgetTester tester) async {
+    // TODO: Fix Firebase initialization for widget tests
+    // Currently fails with: [core/no-app] No Firebase App '[DEFAULT]' has been created
     // Build our app and trigger a frame.
     await tester.pumpWidget(const ProviderScope(child: PickleConnectApp()));
 
